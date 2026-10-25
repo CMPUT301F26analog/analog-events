@@ -11,9 +11,9 @@
 |    Field     |  Details   |
 |:-------------|:-----------|
 |**Promptee**  | Your name  |
-|**Agent**     | ChatGPT / Gemini / Claude / Muse (lol) |
+| **Agent**    | ChatGPT / Gemini / Claude / Muse (lol) |
 | **Model**    | The name and version of model |
-| ** Date**    | MM-DD-YYYY   |
+| **Date**     | MM-DD-YYYY   |
 
 ### Prompt
 
