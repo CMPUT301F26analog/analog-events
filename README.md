@@ -18,6 +18,7 @@ Click on the word to redirect to the location:
 [code](./application/app/src/main/java/com/example/birchbark)  
 [wiki](https://github.com/CMPUT301F26analog/analog-events/wiki)  
 [backlog](https://github.com/orgs/CMPUT301F26analog/projects/2)  
+[UML](https://drive.google.com/drive/u/0/folders/1iI--UyUtLB54dgvzSqsF6zoKqVwe94x-)  
 [docs](./doc)  
 [images](./doc)  
 [references](./doc/References.md)  
