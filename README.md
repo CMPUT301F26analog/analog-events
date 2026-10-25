@@ -13,14 +13,15 @@ how-to's.
 
 ### Quick Links
 
-Click on the word to redirect to the location
-**[code]**(./application/app/src/main/java/com/example/birchbark)
-**[wiki]**(https://github.com/CMPUT301F26analog/analog-events/wiki)
-**[backlog]**(https://github.com/orgs/CMPUT301F26analog/projects/2)
-**[docs]**(./doc)
-**[images]**(./doc)
-**[references]**()
-**[llm]**()
+Click on the word to redirect to the location:
+
+[code](./application/app/src/main/java/com/example/birchbark)  
+[wiki](https://github.com/CMPUT301F26analog/analog-events/wiki)  
+[backlog](https://github.com/orgs/CMPUT301F26analog/projects/2)  
+[docs](./doc)  
+[images](./doc)  
+[references]()  
+[llm]()  
 
 ### Using github and the 'Feature Branch Workflow'
 
