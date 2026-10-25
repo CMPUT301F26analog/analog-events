@@ -20,8 +20,8 @@ Click on the word to redirect to the location:
 [backlog](https://github.com/orgs/CMPUT301F26analog/projects/2)  
 [docs](./doc)  
 [images](./doc)  
-[references]()  
-[llm]()  
+[references](./doc/References.md)  
+[llm](./doc/LLM.md)  
 
 ### Using github and the 'Feature Branch Workflow'
 
