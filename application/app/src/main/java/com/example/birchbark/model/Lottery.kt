@@ -17,7 +17,7 @@ data class Lottery(
 
     /** US 02.04.03: registration must end after it starts. */
     fun isRegistrationPeriodValid(): Boolean {
-        if (registrationEnd < registrationStart) {
+        if (registrationEnd <= registrationStart) {
             return false
         } else {
             return true
