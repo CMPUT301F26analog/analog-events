@@ -37,6 +37,7 @@ class UserRepository(
 
     // Need to retrieve all firestore profiles when needed
     // TODO
+    // startListening()
 
     // Need to validate profile information; trim, no blank spaces, take care of leading
     // white space or trailing, no newline, format strings as required, concatenate
@@ -47,14 +48,18 @@ class UserRepository(
 
     // Need to add profile based on the FID as documentId
     // TODO
+    // fun addProfile
 
     // Need to retrieve profile using FID
     // TODO
+    // fun getProfile
 
     // Need to update existing user profile
     // TODO
+    // fun updateProfile
 
     // Need to delete profile
     // TODO
+    // fun removeProfile
 
 }
