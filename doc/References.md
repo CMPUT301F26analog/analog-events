@@ -42,6 +42,12 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 [2] Firebase, "FirebaseInstallations," Google. [Online]. Available: https://firebase.google.com/docs/reference/android/com/google/firebase/installations/FirebaseInstallations [Accessed: Oct. 26/2026]
 
+[3] Firebase, "FirebaseFirestore Framework Reference DocumentID," Google. [Online]. Available: https://firebase.google.com/docs/reference/swift/firebasefirestore/api/reference/Structs/DocumentID [Accessed: Oct. 27/2026]
+
+[4] Android Developers, "Add repository and Manual DI," Google. [Online]. Available: https://developer.android.com/codelabs/basic-android-kotlin-compose-add-repository#0 [Accessed: Oct. 27/2026]
+
+[5] Firebase, "DocumentID," Google. [Online]. Available: https://firebase.google.com/docs/reference/android/com/google/firebase/firestore/DocumentId [Accessed: Oct. 27/2026]
+
 
 ## Text
 
