@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+import com.google.firebase.firestore.Exclude
+
 // LLM assistance: see doc/LLM.md, Prompt #001 (Akshat)
 data class Lottery(
     val id: String = "",
@@ -17,6 +19,7 @@ data class Lottery(
     // ---------- Validation: one per story ----------
 
     /** US 02.04.03: registration must end after it starts. */
+    @Exclude
     fun isRegistrationPeriodValid(): Boolean {
         if (registrationEnd <= registrationStart) {
             return false
@@ -26,6 +29,7 @@ data class Lottery(
     }
 
     /** US 02.04.04: booking must end after it starts, and start after registration ends. */
+    @Exclude
     fun isBookingPeriodValid(): Boolean {
         if (bookingEnd <= bookingStart) {
             return false
@@ -37,6 +41,7 @@ data class Lottery(
     }
 
     /** US 02.04.05: at least one winner. */
+    @Exclude
     fun isNumWinnersValid(): Boolean {
         if (numWinners <= 0) {
             return false
@@ -46,6 +51,7 @@ data class Lottery(
     }
 
     /** US 02.04.07: no limit (null) is fine, otherwise must be positive. */
+    @Exclude
     fun isWaitlistCapacityValid(): Boolean {
         if (waitlistCapacity == null) {
             return true
