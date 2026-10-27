@@ -38,7 +38,10 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 ## Website
 
-[1]
+[1] Android Developers, "Best practices for unique identifiers," Google. [Online]. Available: https://developer.android.com/identity/user-data-ids#kotlin [Accessed: Oct. 26/2026]
+
+[2] Firebase, "FirebaseInstallations," Google. [Online]. Available: https://firebase.google.com/docs/reference/android/com/google/firebase/installations/FirebaseInstallations [Accessed: Oct. 26/2026]
+
 
 ## Text
 
