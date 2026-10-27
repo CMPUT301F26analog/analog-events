@@ -6,6 +6,7 @@ import com.google.firebase.firestore.Exclude
 data class Lottery(
     val id: String = "",
     val campsiteIds: List<String> = listOf(),
+    /** FID of the owner, i.e. their document ID in the "users" collection. */
     val ownerId: String = "",
     val registrationStart: Long = 0L,
     val registrationEnd: Long = 0L,
