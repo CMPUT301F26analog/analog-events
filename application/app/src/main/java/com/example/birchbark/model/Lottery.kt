@@ -1,5 +1,6 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #001 (Akshat)
 data class Lottery(
     val id: String = "",
     val campsiteIds: List<String> = listOf(),
