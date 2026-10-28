@@ -1,11 +1,12 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #001 (Akshat)
+
 /**
  * A lottery for one or more campsites. Plain data only, so Firestore
  * can save and load it; the rules live in the Rule and Checker classes.
  */
 
-// LLM assistance: see doc/LLM.md, Prompt #001 (Akshat)
 data class Lottery(
     val id: String = "",
     val campsiteIds: List<String> = listOf(),
