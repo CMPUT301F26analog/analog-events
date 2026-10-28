@@ -15,7 +15,8 @@ data class Lottery(
     val numWinners: Int = 0,
     val waitlistCapacity: Int? = null,
     val drawn: Boolean = false,
-){
+)
+/*{
 
     // ---------- Validation: one per story ----------
 
@@ -116,6 +117,5 @@ data class Lottery(
         return !drawn
     }
 }
+*/
 
-
-enum class LotteryStatus { SCHEDULED, OPEN, CLOSED, DRAWN }

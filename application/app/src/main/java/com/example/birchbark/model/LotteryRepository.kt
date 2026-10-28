@@ -42,7 +42,7 @@ class LotteryRepository {
     fun createLottery(lottery: Lottery, callback: SaveCallback) {
 
         //Checking rules before touching DB
-        val errors = lottery.validate()
+        val errors = LotteryValidator.validate(lottery)
         if (errors.isNotEmpty()) {
             callback.onInvalid(errors)
             return
@@ -64,7 +64,7 @@ class LotteryRepository {
     /** US 02.04.06: saves changes to an existing lottery. Refuses after the draw. */
     fun updateLottery(lottery: Lottery, callback: SaveCallback) {
         //can't edit after draw
-        if (!lottery.canEdit()) {
+        if (!EditPermission.canEdit(lottery)) {
             callback.onInvalid(listOf("Cannot edit lottery after draw"))
             return
         }
@@ -76,7 +76,7 @@ class LotteryRepository {
         }
 
         //checking rules before touching DB
-        val errors = lottery.validate()
+        val errors = LotteryValidator.validate(lottery)
         if (errors.isNotEmpty()) {
             callback.onInvalid(errors)
             return
