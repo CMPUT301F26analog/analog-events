@@ -1,5 +1,6 @@
 package com.example.birchbark.model
 
+/** Runs every LotteryRule. Empty list = valid, safe to save. */
 object LotteryValidator {
     private val rules = listOf(
         RegistrationPeriodRule,
