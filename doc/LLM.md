@@ -22,3 +22,22 @@
 > Suggested the Lottery fields and types (Long epoch-millis dates, nullable waitlistCapacity, drawn flag), the function signatures for validation and status, and explained the logic of each. I wrote the validation functions myself with review. Claude provided the code for status(), isRegistrationOpen(), isWaitlistFull() and canEdit(), and the full LotteryTest.kt file.
 
 
+
+---
+
+## Prompt #002 (Akshat)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Akshat Singh Chana |
+| **Agent**    | Claude |
+| **Model**    | Claude Opus 5.5 |
+| **Date**     | 10-27-2026 to 11-03-2026 |
+
+### Prompt
+
+> Help me build a Firestore repository for lotteries (US 02.04.01, 02.04.06), restructure the lottery logic based on teammate feedback, and add a Time class using java.time.
+
+### Answer
+
+> Explained Firestore callbacks and provided getLottery and the class structure; reviewed and corrected my createLottery and updateLottery. Provided the split into one class per rule (LotteryRule, the four rule objects, LotteryValidator, and the checker objects), the updated LotteryTest.kt, the desugaring build change, Time.kt and TimeTest.kt.
