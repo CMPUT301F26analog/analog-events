@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** Works out a lottery's current stage from its dates, so it never goes stale. */
 object LotteryStatusCalculator {
     fun status(lottery: Lottery, now: Long): LotteryStatus {

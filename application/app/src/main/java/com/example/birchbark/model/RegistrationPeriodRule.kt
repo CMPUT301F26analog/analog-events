@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** US 02.04.03: registration must end after it starts. */
 object RegistrationPeriodRule : LotteryRule {
     override val message = "Registration must end after it starts"

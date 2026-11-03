@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** US 02.04.04: booking must end after it starts, and start after registration ends. */
 object BookingPeriodRule : LotteryRule {
     override val message = "Booking must end after it starts, and start after registration ends"

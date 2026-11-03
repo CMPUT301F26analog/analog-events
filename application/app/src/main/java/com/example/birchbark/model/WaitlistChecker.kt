@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** US 02.04.07: is the waitlist full? (Krish uses this) */
 object WaitlistChecker {
     fun isFull(lottery: Lottery, currentSize: Int): Boolean {

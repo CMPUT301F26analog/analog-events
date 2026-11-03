@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** Runs every LotteryRule. Empty list = valid, safe to save. */
 object LotteryValidator {
     private val rules = listOf(

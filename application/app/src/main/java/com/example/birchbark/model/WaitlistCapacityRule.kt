@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** US 02.04.07: no limit (null) is fine, otherwise must be positive. */
 object WaitlistCapacityRule : LotteryRule {
     override val message = "Waitlist capacity must be blank (no limit) or at least 1"

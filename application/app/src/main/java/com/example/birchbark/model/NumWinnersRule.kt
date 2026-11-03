@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 /** US 02.04.05: at least one winner. */
 object NumWinnersRule : LotteryRule {
     override val message = "Number of winners must be at least 1"
