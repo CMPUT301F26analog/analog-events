@@ -1,5 +1,7 @@
 package com.example.birchbark.util
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate

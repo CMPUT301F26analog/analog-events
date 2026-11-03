@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 import com.google.firebase.firestore.FirebaseFirestore
 
 /**

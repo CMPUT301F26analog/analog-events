@@ -1,5 +1,7 @@
 package com.example.birchbark.util
 
+// LLM assistance: see doc/LLM.md, Prompt #002 (Akshat)
+
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
