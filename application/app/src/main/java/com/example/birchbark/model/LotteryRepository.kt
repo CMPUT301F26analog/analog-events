@@ -5,28 +5,61 @@ package com.example.birchbark.model
 import com.google.firebase.firestore.FirebaseFirestore
 
 /**
- * Saves and loads Lottery objects in the Firestore "lotteries" collection.
+ * Saves and loads [Lottery] objects in the Firestore "lotteries" collection.
  * The only class that talks to Firestore about lotteries.
+ *
+ * Firestore calls are asynchronous, so no function here returns a result
+ * directly: each one reports back later through a [SaveCallback] or [LoadCallback].
  */
 class LotteryRepository {
 
     private val db = FirebaseFirestore.getInstance()
 
-    /** Results of a save (create or update). */
+    /** Receives the result of [createLottery] or [updateLottery]. Exactly one function is called. */
     interface SaveCallback {
+        /**
+         * The lottery was saved.
+         * @param lotteryId the Firestore document ID of the saved lottery.
+         */
         fun onSuccess(lotteryId: String)
-        fun onInvalid(errors: List<String>)   // validation failed, nothing saved
-        fun onError(error: Exception)          // network/permission problem
-    }
 
-    /** Results of loading one lottery. */
-    interface LoadCallback {
-        fun onLoaded(lottery: Lottery)
-        fun onNotFound()
+        /**
+         * The lottery broke a rule, so nothing was saved.
+         * @param errors messages to show the owner, one per problem.
+         */
+        fun onInvalid(errors: List<String>)
+
+        /**
+         * Firestore failed, e.g. no network or no permission. Nothing was saved.
+         * @param error the exception Firestore reported.
+         */
         fun onError(error: Exception)
     }
 
-    /** Loads one lottery by its document ID. */
+    /** Receives the result of [getLottery]. Exactly one function is called. */
+    interface LoadCallback {
+        /**
+         * The lottery was found.
+         * @param lottery the loaded lottery.
+         */
+        fun onLoaded(lottery: Lottery)
+
+        /** No lottery exists with that ID. */
+        fun onNotFound()
+
+        /**
+         * Firestore failed, e.g. no network or no permission.
+         * @param error the exception Firestore reported.
+         */
+        fun onError(error: Exception)
+    }
+
+    /**
+     * Loads one lottery by its document ID.
+     *
+     * @param id the lottery's Firestore document ID ([Lottery.id]).
+     * @param callback receives the lottery, a not-found result, or an error.
+     */
     fun getLottery(id: String, callback: LoadCallback) {
         db.collection("lotteries").document(id).get()
             .addOnSuccessListener { document ->
@@ -40,7 +73,15 @@ class LotteryRepository {
             .addOnFailureListener { error -> callback.onError(error) }
     }
 
-    /** US 02.04.01: saves a new lottery. Refuses to save if invalid. */
+    /**
+     * US 02.04.01: saves a new lottery. Runs [LotteryValidator] first and
+     * refuses to save an invalid lottery. Firestore generates the ID, which is
+     * also stored inside the saved lottery's [Lottery.id].
+     *
+     * @param lottery the new lottery. Its [Lottery.id] is ignored and replaced.
+     * @param callback onSuccess with the new ID, onInvalid with the rule
+     *   messages, or onError if Firestore fails.
+     */
     fun createLottery(lottery: Lottery, callback: SaveCallback) {
 
         //Checking rules before touching DB
@@ -63,7 +104,15 @@ class LotteryRepository {
 
     }
 
-    /** US 02.04.06: saves changes to an existing lottery. Refuses after the draw. */
+    /**
+     * US 02.04.06: saves changes to an existing lottery, overwriting the stored
+     * version. Refuses if the lottery has been drawn ([EditPermission]), has no
+     * ID yet, or breaks a rule ([LotteryValidator]).
+     *
+     * @param lottery the edited lottery. Must have the [Lottery.id] it was saved with.
+     * @param callback onSuccess with the lottery's ID, onInvalid with the reason
+     *   it was refused, or onError if Firestore fails.
+     */
     fun updateLottery(lottery: Lottery, callback: SaveCallback) {
         //can't edit after draw
         if (!EditPermission.canEdit(lottery)) {
