@@ -28,7 +28,7 @@ import kotlin.String
 class UserRepository(
     // Constructor parameter, used for dependency injection (easier to test)
     // Helps with the reusability of code, makes refactoring easier, helps with
-    // testing. See [5] in references
+    // testing. See [5] in References.md
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
@@ -44,13 +44,13 @@ class UserRepository(
      * Starts a live listener on ALL profiles, and is intended for Admin profile screen only.
      * Retrieves all firestore profiles when needed.
      * Entrants should use [getProfile] for their own profile, for privacy concerns. See [2]
-     * in LLM references.
+     * in LLM.md (references).
      */
     fun startListening() {
         // Preventing duplicate listeners
         if (listener!=null) return // i.e., already listening, so we don't need to register a new listener
 
-        // Real-time snapshot listener. [2] in LLM references.
+        // Real-time snapshot listener. Uses [2] in LLM.md as a structure/code helper.
         listener = profilesRef.addSnapshotListener { snapshots, exception ->
             // Handing errors
             if (exception != null) {
@@ -73,21 +73,22 @@ class UserRepository(
 
     /** Returns [profile] with leading/trailing spaces removed and inner whitespace taken care of,
      * including blank spaces and newlines. Strings are formatted as required. Concatenation is
-     * resolved. See [6] and [7] ]in references.
+     * resolved. See [6] and [7] in References.md, used to help understand the documentation.
      */
     fun cleanProfile(profile: UserProfile): UserProfile = profile.copy(
-        // All regex was with the help of [6] in references
+        // All regex was with the help of [6] in References.md
         fid = profile.fid.trim(),
         lastName = profile.lastName.replace(Regex("\\s+"), " ").trim(),
         firstName = profile.firstName.replace(Regex("\\s+"), " ").trim(),
         email = profile.email.trim().lowercase(),
         phoneNumber = profile.phoneNumber.replace(Regex("\\s+"), " ").trim(),
         userName = profile.userName.replace(Regex("\\s+"), " ").trim(),
-        roles = profile.roles.map { it.trim().lowercase() } // [7] in references.
+        roles = profile.roles.map { it.trim().lowercase() } // [7] in References.md
     )
 
     /**
      * Validates a clean profile. Returns an error message to show the user, or null if it's valid.
+     * Check [8] in References.md, which was used for documentation.
      */
     fun validateProfile(profile: UserProfile): String? {
         if (profile.fid.isBlank()) return "Profile ID is missing."
@@ -97,7 +98,7 @@ class UserRepository(
         if (profile.email.isBlank() || !emailRegex.matches(profile.email)) {
             return "That email address doesn't look right."
         }
-        // Phone number should look like generally have minimum 3 (area code) & check [TBD] in references
+        // Phone number should look like generally have minimum 3 (area code) & check [8] in References.md
         if (profile.phoneNumber.isBlank() || profile.phoneNumber.count { it.isDigit() } !in 3..15) {
             return "That phone number doesn't look right."
         }
@@ -111,8 +112,8 @@ class UserRepository(
 
     /**
      * Creates a profile at users/{fid}. Using FID as the documentID means only one device
-     * can have one profile. See [3] in LLM references, which was used as a starting base
-     * for the structure of this code. See [10] in references.
+     * can have one profile. See [3] in LLM.md (references), which was used as a starting base
+     * for the structure of this code. See [10] in References.md, used for documentation.
      */
     fun addProfile(
         profile: UserProfile,
@@ -121,15 +122,15 @@ class UserRepository(
     ) {
         // Clean the data
         val clean = cleanProfile(profile)
-        // Validate the data. [3] in LLM references.
+        // Validate the data. Uses [3] in LLM.md as a structure/code helper.
         val error = validateProfile(clean)
         if (error != null){
             onFailure(IllegalArgumentException(error))
             return
         }
-        // Route to the FID document path and save it. [3] in LLM references.
+        // Route to the FID document path and save it. Uses [3] in LLM.md as a structure/code helper.
         profilesRef.document(clean.fid)
-            .set(clean)  // [10] in references
+            .set(clean)  // [10] in References.md
             .addOnSuccessListener { onResult() }
             .addOnFailureListener { onFailure(it) }
     }
@@ -150,8 +151,8 @@ class UserRepository(
 
     /**
      * Updates name, email, and phone number of an existing profile. Role is not changed here.
-     * Uses similar structure as [addProfile] and [startListening] functions for help. See [9] in
-     * references
+     * Uses similar structure as [addProfile] and [startListening] functions for help. See [9]
+     * in References.md, used for documentation.
      */
     fun updateProfile(
         profile: UserProfile,
@@ -166,7 +167,7 @@ class UserRepository(
             onFailure(IllegalArgumentException(error))
             return
         }
-        // Set up the updates
+        // Set up the updates. See [9] in References.md
         val updates = mapOf(
             "lastName" to clean.lastName,
             "firstName" to clean.firstName,
@@ -209,14 +210,14 @@ class UserRepository(
 
     /**
      * Deletes the profile document. Uses similar structure as [addProfile]
-     * and [startListening] functions for help. See [11] in references.
+     * and [startListening] functions for help. See [11] in References.md, used for documentation.
      */
     fun removeProfile(
         fid: String,
         onSuccess: () -> Unit = {},
         onFailure: (Exception) -> Unit = {}
     ) {
-        profilesRef.document(fid).delete() // [11] in references.
+        profilesRef.document(fid).delete() // [11] in References.md
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
     }

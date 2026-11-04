@@ -13,7 +13,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 
-// Created using [4] in LLM references.     
+// Created using [4] in LLM references.
 @RunWith(AndroidJUnit4::class)
 class UserRepositoryTest {
 
