@@ -20,25 +20,31 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.birchbark.model.EntrantFilters
 import com.example.birchbark.ui.theme.BirchBarkColors.Gold
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.ui.text.input.KeyboardType
+import com.example.birchbark.util.Time
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
- * Renders a configurable entry form for updating search and sorting criteria.
+ * Renders the filter form for the browse screen (US 01.01.02).
  *
- * This screen manages localized input states for campsite attributes, handles type conversions
- * for numerical parameters, and exposes action callbacks to confirm, flush, or discard
- * the updated criteria layout.
+ * Location is free text, dates come from a range picker, and occupancy and
+ *  rating are checked as the user types. Apply is disabled while a number is invalid.
  *
- * @param currentFilters The baseline filtering criteria used to populate initial field values.
- * @param onApply Callback triggered with updated criteria when confirming or clearing selections.
- * @param onCancel Callback triggered to exit the screen without persisting state changes.
- * @param modifier Structural styling configurations to inject from the parent layout scope.
+ * @param currentFilters The filters currently applied, used to fill the fields.
+ * @param onApply Called with the new filters when the user taps Apply or Clear filters.
+ * @param onCancel Called to leave the screen without changing the filters.
+ * @param modifier Modifier from the parent layout.
  */
 @Composable
 fun FilterScreen(
@@ -53,6 +59,13 @@ fun FilterScreen(
     var occupancy by remember { mutableStateOf(currentFilters.minOccupancy?.toString() ?: "") }
     var rating by remember { mutableStateOf(currentFilters.minRating?.toString() ?: "") }
     val fieldColors = birchBarkFieldColors()
+    var showPicker by remember { mutableStateOf(false) }
+
+    // Parse once; the same values are used for the error checks and for Apply. See [TBD] in LLM.md, used for helper code
+    val occupancyValue = occupancy.trim().toIntOrNull()
+    val ratingValue = rating.trim().replace(',', '.').toDoubleOrNull()
+    val occupancyError = occupancy.isNotBlank() && (occupancyValue == null || occupancyValue < 1)
+    val ratingError = rating.isNotBlank() && (ratingValue == null || ratingValue !in 1.0..5.0)
 
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Text("Filters", style = MaterialTheme.typography.headlineSmall)
@@ -60,14 +73,40 @@ fun FilterScreen(
 
         OutlinedTextField(value = location, onValueChange = { location = it },
             label = { Text("Location") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = startDate, onValueChange = { startDate = it },
-            label = { Text("Start date") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = endDate, onValueChange = { endDate = it },
-            label = { Text("End date") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = occupancy, onValueChange = { occupancy = it },
-            label = { Text("Minimum occupancy") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = rating, onValueChange = { rating = it },
-            label = { Text("Minimum rating") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
+
+        // One button replaces the two date text fields. See [TBD] in LLM.md, used for helper code
+        OutlinedButton(
+            onClick = {
+                showPicker = true
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val start = startDate?.let { Time.format(it) }
+            val end = endDate?.let { Time.format(it) }
+            Text(if (start == null) "Choose dates" else "$start to ${end ?: "?"}")
+        }
+
+        // See [TBD] in LLM.md, used for helper code for error-catching
+        OutlinedTextField(
+            value = occupancy,
+            onValueChange = { occupancy = it },
+            label = { Text("Guests") },
+            isError = occupancyError,
+            supportingText = { if (occupancyError) Text("Enter a whole number, 1 or more") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = fieldColors,
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rating,
+            onValueChange = { rating = it },
+            label = { Text("Minimum rating") },
+            isError = ratingError,
+            supportingText = { if (ratingError) Text("Enter a number from 1 to 5") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            colors = fieldColors,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -78,14 +117,15 @@ fun FilterScreen(
                         location = location,
                         startDate = startDate,
                         endDate = endDate,
-                        minOccupancy = occupancy.trim().toIntOrNull(),
-                        minRating = rating.trim().toDoubleOrNull()
+                        minOccupancy = occupancyValue,
+                        minRating = ratingValue
                     )
                 )
             },
             colors = birchBarkButtonColors(),
             modifier = Modifier.fillMaxWidth()
         ) { Text("Apply") }
+
         OutlinedButton(
             onClick = {
                 onApply(EntrantFilters())
@@ -94,6 +134,37 @@ fun FilterScreen(
         {
             Text("Clear filters")
         }
+
         TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel", color = Gold) }
     }
+
+    // See [TBD] in LLM.md, used for helper code --> Matches from the above code
+    if (showPicker) {
+        val pickerState = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = startDate?.let { dateToUtcMillis(it) },
+            initialSelectedEndDateMillis = endDate?.let { dateToUtcMillis(it) }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    startDate = pickerState.selectedStartDateMillis?.let { utcMillisToDate(it) }
+                    endDate = pickerState.selectedEndDateMillis?.let { utcMillisToDate(it) }
+                    showPicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DateRangePicker(state = pickerState)
+        }
+    }
 }
+
+// See [TBD] in LLM.md, used to help sort out date-time issues with helper code
+private fun utcMillisToDate(millis: Long): LocalDate =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+
+private fun dateToUtcMillis(date: LocalDate): Long =
+    date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
