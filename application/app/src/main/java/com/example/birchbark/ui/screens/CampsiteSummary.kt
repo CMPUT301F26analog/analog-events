@@ -71,7 +71,7 @@ fun CampsiteSummary(
     }
 }
 
-
+/*
 @Preview(showBackground = true, name = "Campsite Summary Preview")
 @Composable
 fun CampsiteSummaryPreview() {
@@ -95,3 +95,4 @@ fun CampsiteSummaryPreview() {
         )
     }
 }
+*/
