@@ -1,4 +1,4 @@
-package com.example.birchbark
+package com.example.birchbark.model
 
 /**
  * A campsite an owner registered, as stored in the Firestore "campsites"

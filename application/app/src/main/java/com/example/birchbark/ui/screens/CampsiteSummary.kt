@@ -1,21 +1,22 @@
-package com.example.birchbark
+package com.example.birchbark.ui.screens
 
 // Importing required libraries
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
+import com.example.birchbark.util.ratingLabel
 
 /**
  * Displays a summary card for a specific campsite, including its name, location,
@@ -32,7 +33,10 @@ fun CampsiteSummary(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().padding(8.dp).clickable(onClick = onClick),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = TealCard)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -42,7 +46,7 @@ fun CampsiteSummary(
             // Occupancy
             Text(text = "Up to ${campsite.maxOccupancy} guests")
             // Name
-            Text(text = campsite.name, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(text = campsite.name, style = MaterialTheme.typography.titleLarge)
             // Location
             Text(text = campsite.location)
             // View button --> to see the details

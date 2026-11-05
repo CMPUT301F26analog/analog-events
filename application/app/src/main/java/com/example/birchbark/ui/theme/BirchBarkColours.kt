@@ -6,14 +6,17 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+// This file was initially created using [TBD] in LLM.md, then updated to match the Admin screens.
 /* Claude, Sonnet 5.5, 2026-11-04, "Provide me with a ui.theme kotlin file for the colours that
 matches this UI (insert image of mockup)
  */
-// This file was initially created using [] in LLM.md, then updated to match the Admin screens.
+
 /**
- * ONE place for every colour in the app. These values were updated from the admin screens.
- * Import what you need:
- *   import com.example.birchbark.ui.theme.BirchBarkColors.DarkGreen
+ * Centrally manages the complete color palette for the BirchBark application.
+ *
+ * This object functions as the single source of truth for raw hex color definitions
+ * mapping to the application's user interface specifications, including backgrounds,
+ * surface elements, text hierarchies, and placeholder asset gradients.
  */
 object BirchBarkColors {
     val DarkGreen = Color(0xFF1B3232)   // screen background
@@ -30,8 +33,11 @@ object BirchBarkColors {
 }
 
 /**
- * Use this in your existing ui/theme/Theme.kt so default Material components also match:
- *   MaterialTheme(colorScheme = BirchBarkColorScheme, typography = Typography, content = content)
+ * Adapts the custom palette into a Material Design 3 Dark Color Scheme.
+ *
+ * This mapping binds the specific brand tokens from [BirchBarkColors] to standard
+ * Material component slots, ensuring semantic consistency across system elements
+ * such as primary actions, body text, and structural container boundaries.
  */
 val BirchBarkColorScheme = darkColorScheme(
     primary = BirchBarkColors.Gold,
@@ -48,7 +54,15 @@ val BirchBarkColorScheme = darkColorScheme(
     error = Color(0xFFE57373)
 )
 
-/** Cream text fields for dark dialogs and forms (was copy-pasted in two screens). */
+/**
+ * Builds standard configuration profiles for outlined input components.
+ *
+ * This function provides uniform styling across interactive forms and dialog inputs,
+ * maintaining high visibility for label states, borders, and input text fields
+ * using variations of the primary cream color token.
+ *
+ * @return A [TextFieldColors] bundle configured for standard application form fields.
+ */
 @Composable
 fun birchBarkFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = BirchBarkColors.Cream,
@@ -60,7 +74,15 @@ fun birchBarkFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedBorderColor = BirchBarkColors.Cream.copy(alpha = 0.5f)
 )
 
-/** Gold buttons with dark text (the same look as the admin screens). */
+/**
+ * Generates custom button configurations conforming to brand specifications.
+ *
+ * This helper aligns primary action buttons with the established visual design system,
+ * utilizing high-contrast gold containers for enabled interactions and dimming color
+ * properties for unselectable UI components.
+ *
+ * @return A [ButtonColors] bundle configured for interactive control mechanisms.
+ */
 @Composable
 fun birchBarkButtonColors() = ButtonDefaults.buttonColors(
     containerColor = BirchBarkColors.Gold,

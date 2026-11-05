@@ -1,7 +1,6 @@
-package com.example.birchbark
+package com.example.birchbark.ui.screens
 
 // Importing required libraries
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -26,35 +26,53 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontWeight
+import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
+import com.example.birchbark.util.priceLabel
+import com.example.birchbark.util.ratingLabel
+import com.example.birchbark.model.Lottery
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.Color
 
 /**
- * Displays the complete details screen for a selected campsite, featuring an image background,
- * summary details, additional pricing, information buttons (Description, Rules, Policy), and
- * the ability to enter the lottery registration system.
+ * Displays the complete details view for an individual campsite. Includes property details,
+ * contextual informational tabs, and user registration for the campsite's open availability lottery.
  *
- * @param campsite The campsite data model holding all structural information to present.
- * @param onBack Callback triggered when the "Back" button is clicked to return to the previous screen.
- * @param onLotteryClick Callback triggered when the user enters the campsite access lottery.
- * @param modifier The modifier to be applied to the root screen layout.
+ * @param campsite The campsite model containing metadata, description text, and rules.
+ * @param lottery The active lottery instance associated with this campsite, if available.
+ * @param joined True if the current user has already registered for this specific lottery.
+ * @param isFull True if the current lottery is full.
+ * @param message The user-facing contextual status or action message regarding lottery entry status.
+ * @param onBack Callback execution when the user elects to navigate back to the previous screen.
+ * @param onJoin Callback triggered when the user commits an entry action to join the lottery.
+ * @param modifier The modifier chain to pass down to the root scrolling Column layout.
+ * @param onLeave Callback triggered when the user elects to leave the lottery.
  */
 @Composable
 fun CampsiteDetailsScreen(
     campsite: Campsite,
     lottery: Lottery?,
     joined: Boolean,
+    isFull: Boolean,
     message: String?,               // Based on the joined boolean, what message is shown with the lottery
     onBack: () -> Unit,
     onJoin: () -> Unit,
+    onLeave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Setting up the tabs
+    // Setting up the tabs : See [TBD] in References.md, which was used for documentation
     // https://developer.android.com/develop/ui/compose/components/tabs
     var selectedTab by remember { mutableStateOf(DetailTab.DESCRIPTION)}
 
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-
+    Column(modifier = modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp)
+    ) {
         // Back button
         Button(
             onClick = onBack,
@@ -82,7 +100,7 @@ fun CampsiteDetailsScreen(
         // Rating
         Text(campsite.ratingLabel())
         // Name
-        Text(text = campsite.name, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        Text(text = campsite.name, style = MaterialTheme.typography.headlineMedium)
         // Location
         Text(text = campsite.location)
         // Max occupancy
@@ -103,18 +121,40 @@ fun CampsiteDetailsScreen(
             DetailTab.RULES -> campsite.rules
             DetailTab.POLICY -> campsite.cancellationPolicy
         }
-        Text(tabText, modifier = Modifier.padding(vertical = 16.dp))
+        Text(
+            text = tabText,
+            modifier = Modifier.padding(vertical = 16.dp))
 
         // Lottery button
-        LotterySection(lottery = lottery, joined = joined, message = message, onJoin = onJoin)
+        LotterySection(
+            lottery = lottery,
+            joined = joined,
+            message = message,
+            onJoin = onJoin
+        )
     }
 }
 
 @Composable
-private fun TabButton(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun TabButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
     if (selected) {
-        Button(onClick = onClick, colors = birchBarkButtonColors(), modifier = Modifier.padding(end = 4.dp)) { Text(label) }
+        Button(
+            onClick = onClick,
+            colors = birchBarkButtonColors(),
+            modifier = Modifier.padding(end = 4.dp))
+        {
+            Text(label)
+        }
     } else {
-        OutlinedButton(onClick = onClick, modifier = Modifier.padding(end = 4.dp)) { Text(label) }
+        OutlinedButton(
+            onClick = onClick,
+            modifier = Modifier.padding(end = 4.dp))
+        {
+            Text(label)
+        }
     }
 }
