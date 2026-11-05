@@ -10,31 +10,39 @@ import com.example.birchbark.model.Campsite
 
 /**
  * Switches between the owner campsite screens. Starts on the list of the
- * owner's campsites (US 02.03.01), tapping one opens its details (US 02.01.04),
- * and the edit button opens the edit screen (US 02.01.03).
+ * owner's campsites (US 02.03.01). Tapping one opens its details (US 02.01.04),
+ * the update button opens the edit screen (US 02.01.03), and the register
+ * button opens the register form (US 02.01.01, US 02.01.02).
  *
- * Uses two variables to remember which screen is open instead of a navigation
+ * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
  * button goes back one screen.
- *
- * Outstanding issues. There's no register campsite screen to go to yet.
  */
 
 /**
  * Shows whichever owner campsite screen is open.
  *
- * @param ownerId the owner's ID, passed to the list so it only shows their campsites.
+ * @param ownerId the owner's ID, passed to the list and register screens.
  */
 @Composable
 fun OwnerCampsitesApp(ownerId: String) {
-    //null means that screen isn't open
+    //null or false means that screen isn't open
+    var registering by remember { mutableStateOf(false) }
     var selectedCampsiteId by remember { mutableStateOf<String?>(null) }
     var editingCampsite by remember { mutableStateOf<Campsite?>(null) }
 
     val editing = editingCampsite
     val selectedId = selectedCampsiteId
 
-    if (editing != null) {
+    if (registering) {
+        //register screen, back or finishing goes to the list
+        BackHandler { registering = false }
+        RegisterCampsiteScreen(
+            ownerId = ownerId,
+            onDone = { registering = false },
+            onCancel = { registering = false }
+        )
+    } else if (editing != null) {
         //edit screen, back goes to the details screen
         BackHandler { editingCampsite = null }
         EditCampsiteScreen(
@@ -54,7 +62,8 @@ fun OwnerCampsitesApp(ownerId: String) {
         //list screen
         MyCampsitesScreen(
             ownerId = ownerId,
-            onCampsiteClick = { campsite -> selectedCampsiteId = campsite.id }
+            onCampsiteClick = { campsite -> selectedCampsiteId = campsite.id },
+            onRegisterClick = { registering = true }
         )
     }
 }

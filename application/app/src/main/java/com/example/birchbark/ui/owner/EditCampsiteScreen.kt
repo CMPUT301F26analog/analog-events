@@ -34,7 +34,8 @@ import com.example.birchbark.model.CampsiteRepository
  * saving updates the campsite in Firebase.
  *
  * EditCampsiteScreen does the saving, and EditCampsiteForm is just the form so
- * the intent tests can check it without needing Firestore.
+ * the intent tests can check it without needing Firestore. The register screen
+ * (US 02.01.01) uses the same form with a blank campsite.
  *
  * Outstanding issues. The mockup also has Replace Camp Pin and Add more images
  * buttons, those need the map and image upload so they aren't here yet. Map
@@ -82,13 +83,17 @@ fun EditCampsiteScreen(campsite: Campsite, onSaved: () -> Unit, onCancel: () -> 
 }
 
 /**
- * The edit form. Starts filled in with the campsite's current details.
+ * The campsite form, used for both updating and registering. Starts filled in
+ * with whatever campsite it's given, so a blank Campsite gives an empty form.
  *
  * @param campsite the campsite being edited, used to fill in the fields.
- * @param errors messages to show above the update button, empty if there are none.
+ * @param errors messages to show above the button, empty if there are none.
  * @param saving true while it's saving, so the button can't be tapped twice.
- * @param onSave called with the edited campsite when the owner taps update.
+ * @param onSave called with the filled in campsite when the owner taps the button.
  * @param onCancel called when the owner taps back.
+ * @param title heading at the top of the form.
+ * @param buttonText what the save button says.
+ * @param savingText what the save button says while it's saving.
  */
 @Composable
 fun EditCampsiteForm(
@@ -96,12 +101,18 @@ fun EditCampsiteForm(
     errors: List<String>,
     saving: Boolean,
     onSave: (Campsite) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    title: String = "Update my Campsite",
+    buttonText: String = "Update my Campsite!",
+    savingText: String = "Updating..."
 ) {
     var name by remember { mutableStateOf(campsite.name) }
     var location by remember { mutableStateOf(campsite.location) }
     var description by remember { mutableStateOf(campsite.description) }
-    var maxOccupancy by remember { mutableStateOf(campsite.maxOccupancy.toString()) }
+    //a new campsite has 0, show an empty box instead so the owner types their own
+    var maxOccupancy by remember {
+        mutableStateOf(if (campsite.maxOccupancy == 0) "" else campsite.maxOccupancy.toString())
+    }
     var tags by remember { mutableStateOf(campsite.tags.joinToString(", ")) }
     var price by remember { mutableStateOf(campsite.price?.toString() ?: "") }
     var rules by remember { mutableStateOf(campsite.rules) }
@@ -119,7 +130,7 @@ fun EditCampsiteForm(
         //back button at the top, where the mockup has its back arrow
         TextButton(onClick = onCancel) { Text("Back") }
 
-        Text("Update my Campsite", style = MaterialTheme.typography.headlineSmall)
+        Text(title, style = MaterialTheme.typography.headlineSmall)
 
         OutlinedTextField(
             value = name,
@@ -209,7 +220,7 @@ fun EditCampsiteForm(
                 }
             }
         ) {
-            Text(if (saving) "Updating..." else "Update my Campsite!")
+            Text(if (saving) savingText else buttonText)
         }
     }
 }
