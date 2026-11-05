@@ -24,7 +24,9 @@ import kotlin.String
  * @param db Constructor to create the db object that UserRepository will use and test with
  */
 
-
+/**
+ * US 01.09.01 Be identified by my device
+ */
 class UserRepository(
     // Constructor parameter, used for dependency injection (easier to test)
     // Helps with the reusability of code, makes refactoring easier, helps with
