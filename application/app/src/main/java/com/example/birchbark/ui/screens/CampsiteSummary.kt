@@ -22,6 +22,9 @@ import com.example.birchbark.util.ratingLabel
  * Displays a summary card for a specific campsite, including its name, location,
  * rating, and max occupancy.
  *
+ * US 01.01.04 See campsite summary information including name, location, maximum
+ * occupancy, and rating
+ *
  * @param campsite The campsite data model containing details to display.
  * @param onClick Callback triggered when the card or the "View" button is clicked.
  * @param modifier The modifier to be applied to the layout.
