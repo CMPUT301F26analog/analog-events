@@ -121,8 +121,10 @@ fun AdminCampsitesScreen() {
         cursorColor = Cream,
         focusedBorderColor = Cream,
         unfocusedBorderColor = Cream.copy(alpha = 0.5f))
+
 //Scaffold gives a screen a standard layout structure with places for things like a top bar,
 // bottom bar, and floating button
+
     Scaffold(containerColor = DarkGreen) { padding ->
         Column(
             modifier = Modifier
@@ -268,6 +270,7 @@ fun AdminCampsitesScreen() {
             confirmButton = {
                 TextButton(onClick = { selectedCampsite = null }) {
                     Text("Close", color = Gold) } }) } }
+
 //Displays one campsite's photo placeholder, rating, name, and location.
 //@param onDetailsClick action to run when the details button is tapped
 @Composable

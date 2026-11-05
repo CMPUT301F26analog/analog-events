@@ -48,6 +48,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
 
+//Displays user profiles loaded from the Firestore `users` collection.
+ //Loads campsites from `campsites` and matches each campsite's `ownerId`
+ //to a user document ID. Shows loading and error messages, lets the admin
+ //filter and sort profiles, and opens a profile's details when its card is tapped.
+
 @Composable
 fun AdminProfilesScreen() {
 
@@ -258,6 +263,8 @@ fun AdminProfilesScreen() {
                 TextButton(onClick = { selectedProfile = null }) {
                     Text("Close", color = ProfileGold) } }) } }
 
+//Displays a read-only dropdown field for choosing a profile filter.
+
 @Composable
 private fun ProfileFilterDropdown(
     label: String,
@@ -306,6 +313,7 @@ private fun ProfileFilterDropdown(
                         onSelect(option)
                         expanded = false }) } } } }
 
+//Displays a profile's initials and name on a card.
 @Composable
 private fun ProfileCard(
     profile: ProfilePreview,
@@ -349,7 +357,7 @@ private fun ProfileCard(
                         containerColor = ProfileGold,
                         contentColor = ProfileBackground))
                 { Text("→") } } } } }
-
+//Holds the profile details used by the admin profiles screen.
 private data class ProfilePreview(
     val name: String,
     val email: String,
@@ -358,7 +366,7 @@ private data class ProfilePreview(
     val campsite: String,
     val area: String
 )
-
+//Holds the current campsite, area, and sorting choices for the profiles list.
 private data class ProfileFilters(
     val campsite: String = "All campsites",
     val area: String = "All areas",
@@ -371,7 +379,7 @@ private val ProfileCardColor = Color(0xFF244746)
 private val ProfileTeal = Color(0xFF168F83)
 private val ProfileGold = Color(0xFFD6A266)
 private val ProfileCream = Color(0xFFFFFBF5)
-
+//Previews the admin profiles screen in Android Studio.
 @Preview(showBackground = true)
 @Composable
 private fun AdminProfilesScreenPreview() {
