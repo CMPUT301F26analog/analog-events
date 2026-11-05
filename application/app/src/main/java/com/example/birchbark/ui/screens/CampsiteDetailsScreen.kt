@@ -61,7 +61,6 @@ fun CampsiteDetailsScreen(
     modifier: Modifier = Modifier
 ) {
     // Setting up the tabs : See [1] in References.md, which was used for documentation
-    // https://developer.android.com/develop/ui/compose/components/tabs
     var selectedTab by remember { mutableStateOf(DetailTab.DESCRIPTION)}
 
     Column(modifier = modifier
