@@ -41,3 +41,44 @@
 ### Answer
 
 > Explained Firestore callbacks and provided getLottery and the class structure; reviewed and corrected my createLottery and updateLottery. Provided the split into one class per rule (LotteryRule, the four rule objects, LotteryValidator, and the checker objects), the updated LotteryTest.kt, the desugaring build change, Time.kt and TimeTest.kt, and the full KDoc comments (@param/@return) for every model and util file.
+
+---
+
+## Prompt #003
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar |
+| **Agent**    | Gemini |
+| **Model**    | N/A |
+| **Date**     | 11-04-2026 |
+
+### Prompt
+
+> Please write a preview function for the following composable [INSERT CODE]
+
+### Answer
+
+    @Preview(showBackground = true, name = "Campsite Summary Preview")
+    @Composable
+    fun CampsiteSummaryPreview() {
+        // 1. Create a dummy or mock campsite object to feed into your UI
+        // Note: Replace these parameters with whatever fields your actual
+        // com.example.birchbark.model.Campsite class requires.
+        val mockCampsite = Campsite(
+            name = "Whispering Pines",
+            location = "Banff National Park, AB",
+            maxOccupancy = 6,
+
+        // Add any other properties your Campsite model requires (e.g., rating = 4.8)
+    )
+
+    // 2. Wrap it inside your app's theme so colors like TealCard render properly
+    // Replace 'MaterialTheme' with 'BirchBarkTheme' if you have a custom theme file!
+    MaterialTheme {
+        CampsiteSummary(
+            campsite = mockCampsite,
+            onClick = { /* Do nothing in preview */ }
+        )
+    }
+    }
