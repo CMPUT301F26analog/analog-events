@@ -17,6 +17,10 @@ import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.ratingLabel
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
+
+
 
 /**
  * Displays a summary card for a specific campsite, including its name, location,
@@ -45,13 +49,17 @@ fun CampsiteSummary(
         Column(modifier = Modifier.padding(16.dp)) {
             // Our UI Mockups has rating, occupancy, name, then location
             // Rating
-            Text(campsite.ratingLabel())
+            Text(campsite.ratingLabel(),
+                color = Color.White)
             // Occupancy
-            Text(text = "Up to ${campsite.maxOccupancy} guests")
+            Text(text = "Up to ${campsite.maxOccupancy} guests",
+                color = Color.White)
             // Name
-            Text(text = campsite.name, style = MaterialTheme.typography.titleLarge)
+            Text(text = campsite.name, style = MaterialTheme.typography.titleLarge,
+                color = Color.White)
             // Location
-            Text(text = campsite.location)
+            Text(text = campsite.location,
+                color = Color.White)
             // View button --> to see the details
             Button(
                 onClick = onClick,
@@ -60,5 +68,30 @@ fun CampsiteSummary(
                 Text("View")
             }
         }
+    }
+}
+
+
+@Preview(showBackground = true, name = "Campsite Summary Preview")
+@Composable
+fun CampsiteSummaryPreview() {
+    // 1. Create a dummy or mock campsite object to feed into your UI
+    // Note: Replace these parameters with whatever fields your actual
+    // com.example.birchbark.model.Campsite class requires.
+    val mockCampsite = Campsite(
+        name = "Whispering Pines",
+        location = "Banff National Park, AB",
+        maxOccupancy = 6,
+
+        // Add any other properties your Campsite model requires (e.g., rating = 4.8)
+    )
+
+    // 2. Wrap it inside your app's theme so colors like TealCard render properly
+    // Replace 'MaterialTheme' with 'BirchBarkTheme' if you have a custom theme file!
+    MaterialTheme {
+        CampsiteSummary(
+            campsite = mockCampsite,
+            onClick = { /* Do nothing in preview */ }
+        )
     }
 }
