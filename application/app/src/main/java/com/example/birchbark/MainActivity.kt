@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
@@ -36,9 +37,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BirchBarkTheme {
-
                 if (ENABLE_FIREBASE_TEST) {
-                    FirebaseTestScreen()
+                    var authenticated by remember{
+                        mutableStateOf(Firebase.auth.currentUser != null)
+                    }
+
+                    if (authenticated) {
+                        NotificationSettingsScreen()
+                    } else {
+                        FirebaseTestScreen(
+                            onAuthenticated = { authenticated = true }
+                        )
+                    }
                 } else {
                     // Without developer login for database
                     Text("Develop")
@@ -49,7 +59,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun FirebaseTestScreen() {
+fun FirebaseTestScreen(onAuthenticated: () -> Unit) {
     /**
      * NOTE::
      *
@@ -108,6 +118,8 @@ fun FirebaseTestScreen() {
                         status = "Authenticated! Testing Firestore..."
 
                         FirebaseRepoTest().testConnection()
+
+                        onAuthenticated()
                     }
                     .addOnFailureListener { e ->
 
