@@ -30,6 +30,7 @@ import com.example.birchbark.util.ratingLabel
 import com.example.birchbark.model.Lottery
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Displays the complete details view for an individual campsite. Includes property details,
@@ -59,7 +60,7 @@ fun CampsiteDetailsScreen(
     onLeave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Setting up the tabs : See [TBD] in References.md, which was used for documentation
+    // Setting up the tabs : See [1] in References.md, which was used for documentation
     // https://developer.android.com/develop/ui/compose/components/tabs
     var selectedTab by remember { mutableStateOf(DetailTab.DESCRIPTION)}
 
@@ -120,13 +121,15 @@ fun CampsiteDetailsScreen(
             text = tabText,
             modifier = Modifier.padding(vertical = 16.dp))
 
-        // Lottery button
+        /*
+        // Lottery button - Outstanding Issue, TBD
         LotterySection(
             lottery = lottery,
             joined = joined,
             message = message,
             onJoin = onJoin
         )
+         */
     }
 }
 
@@ -153,3 +156,41 @@ private fun TabButton(
         }
     }
 }
+
+/*
+// See [3] in LLM.md, used to help create the preview function below
+@Preview(showBackground = true, name = "Campsite Details Screen Preview")
+@Composable
+fun CampsiteDetailsScreenPreview() {
+    // 1. Create a dummy campsite model with sample text for tabs
+    // Note: Adjust the parameter names based on your actual Campsite data class structure
+    val mockCampsite = Campsite(
+        name = "Birchwood Haven",
+        location = "Jasper National Park, AB",
+        maxOccupancy = 4,
+        imageUrl = "placeholder_url", // Set to null if you want to test layout without the promo box
+        description = "A beautiful secluded spot surrounded by ancient birch trees with an excellent lakeside view.",
+        rules = "1. Pack out what you pack in.\n2. Quiet hours from 10 PM to 7 AM.",
+        cancellationPolicy = "Full refund if canceled at least 48 hours before check-in."
+    )
+
+    // 2. Create a dummy lottery model (using an empty constructor or mock fields)
+    // If your Lottery model requires constructor arguments, add mock values here.
+    val mockLottery = Lottery()
+
+    // 3. Wrap your screen inside the theme wrapper to see proper colors and buttons
+    // Switch to 'BirchBarkTheme' if you have a custom theme wrapper set up.
+    MaterialTheme {
+        CampsiteDetailsScreen(
+            campsite = mockCampsite,
+            lottery = mockLottery,
+            joined = false,
+            isFull = false,
+            message = "Registration for the weekend lottery is currently open!",
+            onBack = {},
+            onJoin = {},
+            onLeave = {}
+        )
+    }
+}
+ */
