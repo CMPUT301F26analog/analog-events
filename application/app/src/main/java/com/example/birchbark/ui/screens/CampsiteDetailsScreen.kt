@@ -29,10 +29,13 @@ import com.example.birchbark.util.priceLabel
 import com.example.birchbark.util.ratingLabel
 import com.example.birchbark.model.Lottery
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.setValue
 
 /**
  * Displays the complete details view for an individual campsite. Includes property details,
  * contextual informational tabs, and user registration for the campsite's open availability lottery.
+ *
+ * US 01.01.05 See details of a campsite
  *
  * @param campsite The campsite model containing metadata, description text, and rules.
  * @param lottery The active lottery instance associated with this campsite, if available.
