@@ -1,5 +1,7 @@
 package com.example.birchbark
-
+import androidx.compose.runtime.LaunchedEffect
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,46 +50,80 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 
 @Composable
 fun AdminProfilesScreen() {
-// List of the Profiles
-    val profiles = listOf(
-        ProfilePreview(
-            name = "Eliza Lazar",
-            email = "eliza@example.com",
-            phone = "780-555-0142",
-            role = "Entrant",
-            campsite = "Pine Ridge",
-            area = "Banff"
-        ),
-        ProfilePreview(
-            name = "Anahita Houshyar",
-            email = "anahita@example.com",
-            phone = "780-555-0186",
-            role = "Owner",
-            campsite = "Eagle Creek",
-            area = "Hinton"
-        ),
-        ProfilePreview(
-            name = "Sam Patel",
-            email = "sam@example.com",
-            phone = "780-555-0119",
-            role = "Entrant",
-            campsite = "Willow Lake",
-            area = "Jasper"
-        )
-    )
 
+    var profiles by remember { mutableStateOf(emptyList<ProfilePreview>()) }
+    var campsiteData by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        val db = Firebase.firestore
+
+        db.collection("campsites")
+            .get()
+            .addOnSuccessListener { campsiteResult ->
+                val campsiteByOwnerId = campsiteResult.documents.mapNotNull { campsite ->
+                    val ownerId = campsite.getString("ownerId")
+                        ?: return@mapNotNull null
+                    val name = campsite.getString("name")
+                        ?: return@mapNotNull null
+                    val location = campsite.getString("location") ?: ""
+
+                    ownerId to (name to location)
+                }.toMap()
+
+                campsiteData = campsiteResult.documents.mapNotNull { campsite ->
+                    val name = campsite.getString("name")
+                        ?: return@mapNotNull null
+                    name to (campsite.getString("location") ?: "")
+                }
+
+                db.collection("users")
+                    .get()
+                    .addOnSuccessListener { userResult ->
+                        profiles = userResult.documents.map { user ->
+                            val ownedCampsite = campsiteByOwnerId[user.id]
+                            val roles = (user.get("roles") as? List<*>)
+                                ?.filterIsInstance<String>()
+                                .orEmpty()
+
+                            ProfilePreview(
+                                name = listOfNotNull(
+                                    user.getString("firstName"),
+                                    user.getString("lastName")
+                                ).joinToString(" ").ifBlank { "Unnamed user" },
+                                email = user.getString("email") ?: "",
+                                phone = user.getString("phoneNumber") ?: "",
+                                role = roles.joinToString(", ").ifBlank { "Unknown" },
+                                campsite = ownedCampsite?.first ?: "",
+                                area = ownedCampsite?.second ?: ""
+                            )
+                        }
+                        isLoading = false
+                    }
+                    .addOnFailureListener { error ->
+                        loadError = error.localizedMessage ?: "Could not load profiles."
+                        isLoading = false
+                    }
+            }
+            .addOnFailureListener { error ->
+                loadError = error.localizedMessage ?: "Could not load campsites."
+                isLoading = false
+            }
+    }
+
+    val campsiteOptions = listOf("All campsites") +
+            campsiteData.map { it.first }.distinct()
+
+    val areaOptions = listOf("All areas") +
+            campsiteData.map { it.second }.filter { it.isNotBlank() }.distinct()
     var appliedFilters by remember { mutableStateOf(ProfileFilters()) }
     var draftFilters by remember { mutableStateOf(ProfileFilters()) }
     var showFilters by remember { mutableStateOf(false) }
     var selectedProfile by remember {
         mutableStateOf<ProfilePreview?>(null)
     }
-//Variables used for the campsite filtering
-    val campsiteOptions =
-        listOf("All campsites") +
-                SampleData.campsites.map { it.name }.distinct()
-    val areaOptions =
-        listOf("All areas") + profiles.map { it.area }.distinct()
+
+
 
     val matchingProfiles = profiles.filter { profile -> (appliedFilters.campsite == "All campsites" ||
                 profile.campsite == appliedFilters.campsite) &&
@@ -95,19 +131,12 @@ fun AdminProfilesScreen() {
                         profile.area == appliedFilters.area) }
 
     val sortedProfiles = when (appliedFilters.sortBy) {
-        "Last name" -> matchingProfiles.sortedBy {
-            it.name.substringAfterLast(" ")
-        }
+        "Last name" -> matchingProfiles.sortedBy { it.name.substringAfterLast(" ") }
 
-        else -> matchingProfiles.sortedBy {
-            it.name.substringBefore(" ")
-        }
+        else -> matchingProfiles.sortedBy { it.name.substringBefore(" ") }
     }.let { profilesInOrder ->
-        if (appliedFilters.sortOrder == "Z–A") {
-            profilesInOrder.reversed()
-        } else {
-            profilesInOrder
-        }
+        if (appliedFilters.sortOrder == "Z–A") { profilesInOrder.reversed() }
+        else { profilesInOrder }
     }
 
     Scaffold(containerColor = ProfileBackground) { innerPadding ->
@@ -115,55 +144,45 @@ fun AdminProfilesScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-        ) {
-            Row(
+        ) { Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 20.dp, top = 16.dp, end = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Profiles",
+            ) { Text(text = "Profiles",
                     style = MaterialTheme.typography.titleLarge,
-                    color = ProfileGold
-                )
+                    color = ProfileGold)
 
                 TextButton(onClick = {
                     draftFilters = appliedFilters
                     showFilters = true
-                }) {
-                    Text("Filter", color = ProfileGold)
-                }
-            }
+                }) { Text("Filter", color = ProfileGold) } }
 
-            if (sortedProfiles.isEmpty()) {
+            if (isLoading) {
+                Text("Loading profiles...", color = ProfileCream)
+            } else if (loadError != null) {
+                Text(loadError ?: "Could not load profiles.", color = ProfileCream)
+            } else if (sortedProfiles.isEmpty()) {
                 Text(
-                    text = "No profiles match these filters.",
+                    "No profiles match these filters.",
                     color = ProfileCream,
                     modifier = Modifier.padding(20.dp)
                 )
-            } else {
+            }
+            else {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentPadding = PaddingValues(
                         horizontal = 20.dp,
-                        vertical = 12.dp
-                    ),
+                        vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    verticalAlignment = Alignment.CenterVertically) {
                     items(sortedProfiles) { profile ->
                         ProfileCard(profile) {
-                            selectedProfile = profile
-                        }
-                    }
-                }
-            }
-        }
-    }
+                            selectedProfile = profile } } } } } }
 
     if (showFilters) {
         AlertDialog(
@@ -186,18 +205,14 @@ fun AdminProfilesScreen() {
                         value = draftFilters.sortBy,
                         options = listOf("First name", "Last name"),
                         onSelect = {
-                            draftFilters = draftFilters.copy(sortBy = it)
-                        }
-                    )
+                            draftFilters = draftFilters.copy(sortBy = it) })
 
                     ProfileFilterDropdown(
                         label = "Order",
                         value = draftFilters.sortOrder,
                         options = listOf("A–Z", "Z–A"),
                         onSelect = {
-                            draftFilters = draftFilters.copy(sortOrder = it)
-                        }
-                    )
+                            draftFilters = draftFilters.copy(sortOrder = it)})
 
                     Text("Campsite", color = ProfileCream)
 
@@ -205,10 +220,7 @@ fun AdminProfilesScreen() {
                         label = "Choose campsite",
                         value = draftFilters.campsite,
                         options = campsiteOptions,
-                        onSelect = {
-                            draftFilters = draftFilters.copy(campsite = it)
-                        }
-                    )
+                        onSelect = { draftFilters = draftFilters.copy(campsite = it) })
 
                     Text("Area", color = ProfileCream)
 
@@ -217,28 +229,17 @@ fun AdminProfilesScreen() {
                         value = draftFilters.area,
                         options = areaOptions,
                         onSelect = {
-                            draftFilters = draftFilters.copy(area = it)
-                        }
-                    )
-                }
-            },
+                            draftFilters = draftFilters.copy(area = it) })} },
             confirmButton = {
                 TextButton(onClick = {
                     appliedFilters = draftFilters
-                    showFilters = false
-                }) {
-                    Text("Apply Filters", color = ProfileGold)
-                }
+                    showFilters = false }) { Text("Apply Filters", color = ProfileGold) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showFilters = false
                 }) {
-                    Text("Cancel", color = ProfileCream)
-                }
-            }
-        )
-    }
+                    Text("Cancel", color = ProfileCream) } }) }
 
     selectedProfile?.let { profile ->
         AlertDialog(
@@ -247,23 +248,15 @@ fun AdminProfilesScreen() {
             title = {
                 Text(profile.name, color = ProfileCream)
             },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Email: ${profile.email}", color = ProfileCream)
                     Text("Phone: ${profile.phone}", color = ProfileCream)
                     Text("Role: ${profile.role}", color = ProfileCream)
                     Text("Campsite: ${profile.campsite}", color = ProfileCream)
-                    Text("Area: ${profile.area}", color = ProfileCream)
-                }
-            },
+                    Text("Area: ${profile.area}", color = ProfileCream) } },
             confirmButton = {
                 TextButton(onClick = { selectedProfile = null }) {
-                    Text("Close", color = ProfileGold)
-                }
-            }
-        )
-    }
-}
+                    Text("Close", color = ProfileGold) } }) } }
 
 @Composable
 private fun ProfileFilterDropdown(
@@ -271,7 +264,9 @@ private fun ProfileFilterDropdown(
     value: String,
     options: List<String>,
     onSelect: (String) -> Unit
-) {
+)
+
+{
     var expanded by remember { mutableStateOf(false) }
 
     Box {
@@ -296,89 +291,64 @@ private fun ProfileFilterDropdown(
         )
 
         // This layer opens the choices when you tap the field.
-        Box(
-            modifier = Modifier
+        Box(modifier = Modifier
                 .matchParentSize()
-                .clickable { expanded = true }
-        )
+                .clickable { expanded = true })
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(ProfileCardColor)
-        ) {
-            options.forEach { option ->
+        ) { options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(option, color = ProfileCream) },
                     onClick = {
                         onSelect(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
+                        expanded = false }) } } } }
 
 @Composable
 private fun ProfileCard(
     profile: ProfilePreview,
     onDetailsClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
+) { Card(   modifier = Modifier
             .width(290.dp)
             .height(460.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = ProfileTeal
-        )
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+            containerColor = ProfileTeal)) {
+        Box(modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
                         .size(110.dp)
                         .background(ProfileCream, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+                    contentAlignment = Alignment.Center)
+
+                {
                     Text(
                         text = profile.name
                             .split(" ")
                             .mapNotNull { it.firstOrNull() }
                             .joinToString(""),
                         style = MaterialTheme.typography.headlineMedium,
-                        color = ProfileBackground
-                    )
-                }
+                        color = ProfileBackground) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = profile.name,
                     style = MaterialTheme.typography.titleLarge,
-                    color = ProfileCream
-                )
+                    color = ProfileCream)
 
                 Button(
                     onClick = onDetailsClick,
                     modifier = Modifier.padding(top = 24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ProfileGold,
-                        contentColor = ProfileBackground
-                    )
-                ) {
-                    Text("→")
-                }
-            }
-        }
-    }
-}
+                        contentColor = ProfileBackground))
+                { Text("→") } } } } }
 
 private data class ProfilePreview(
     val name: String,
@@ -405,7 +375,4 @@ private val ProfileCream = Color(0xFFFFFBF5)
 @Preview(showBackground = true)
 @Composable
 private fun AdminProfilesScreenPreview() {
-    BirchBarkTheme {
-        AdminProfilesScreen()
-    }
-}
+    BirchBarkTheme { AdminProfilesScreen() } }

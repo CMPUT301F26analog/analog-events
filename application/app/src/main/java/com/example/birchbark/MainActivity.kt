@@ -28,7 +28,7 @@ import com.google.firebase.auth.auth
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
-private const val ENABLE_FIREBASE_TEST = true
+private const val ENABLE_FIREBASE_TEST = false
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                     FirebaseTestScreen()
                 } else {
                     // Without developer login for database
-                    Text("Develop")
+                    AdminBrowseScreen()
                 }
             }
         }

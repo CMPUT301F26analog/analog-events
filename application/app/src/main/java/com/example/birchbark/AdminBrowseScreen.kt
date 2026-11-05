@@ -1,5 +1,5 @@
 package com.example.birchbark
-
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,42 +30,37 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
+//The sections available from the admin navigation bar.
 private enum class AdminSection {
     CAMPSITES,
     PROFILES,
     LOGS
 }
 
-/**
- * Shows the admin browsing tabs and the signed-in admin.
- */
+// Shows the admin browsing tabs and the signed-in admin.
+//@param adminName is the name shown in the header
 @Composable
 fun AdminBrowseScreen(adminName: String = currentAdminName()) {
-    var selectedSection by rememberSaveable {
-        mutableStateOf(AdminSection.CAMPSITES)
-    }
+    var selectedSection by rememberSaveable { mutableStateOf(AdminSection.CAMPSITES) }
 
     Scaffold(
         bottomBar = {
             NavigationBar(containerColor = DarkGreen) {
                 NavigationBarItem(
+                    modifier = Modifier.testTag("admin-campsites-tab"),
+
                     selected = selectedSection == AdminSection.CAMPSITES,
                     onClick = { selectedSection = AdminSection.CAMPSITES },
                     icon = {
-                        Text(
-                            "⌂",
-                            color = if (selectedSection == AdminSection.CAMPSITES) {
-                                DarkGreen
-                            } else {
-                                MutedText
-                            }
-                        )
-                    },
-                    label = { Text("Campsites") },
-                    colors = navigationItemColors()
-                )
+                        Text("⌂",
+                            color = if (selectedSection == AdminSection.CAMPSITES) {DarkGreen}
+                            else {MutedText})
+                    }, label = { Text("Campsites") },
+                    colors = navigationItemColors())
 
                 NavigationBarItem(
+                    modifier = Modifier.testTag("admin-profiles-tab"),
+
                     selected = selectedSection == AdminSection.PROFILES,
                     onClick = { selectedSection = AdminSection.PROFILES },
                     icon = {
@@ -74,56 +69,39 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                             color = if (selectedSection == AdminSection.PROFILES) {
                                 DarkGreen
                             } else {
-                                MutedText
-                            }
-                        )
-                    },
+                                MutedText }) },
                     label = { Text("Profiles") },
-                    colors = navigationItemColors()
-                )
+                    colors = navigationItemColors())
 
                 NavigationBarItem(
+                    modifier = Modifier.testTag("admin-logs-tab"),
+
                     selected = selectedSection == AdminSection.LOGS,
                     onClick = { selectedSection = AdminSection.LOGS },
                     icon = {
-                        Text(
-                            "▤",
-                            color = if (selectedSection == AdminSection.LOGS) {
-                                DarkGreen
-                            } else {
-                                MutedText
-                            }
-                        )
-                    },
+                        Text("▤",
+                            color = if (selectedSection == AdminSection.LOGS) {DarkGreen}
+                            else {MutedText}) },
                     label = { Text("Logs") },
-                    colors = navigationItemColors()
-                )
-            }
-        }
-    ) { padding ->
+                    colors = navigationItemColors()) } })
+    { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DarkGreen)
-                .padding(padding)
-        ) {
+                .padding(padding)) {
             AdminUserHeader(adminName)
 
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                when (selectedSection) {
+                    .fillMaxWidth())
+            { when (selectedSection) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
-                    AdminSection.LOGS -> PlaceholderScreen("Logs")
-                }
-            }
-        }
-    }
-}
+                    AdminSection.LOGS -> PlaceholderScreen("Logs") } } } } }
 
+//This section provides the colors for the navigation items.
 @Composable
 private fun navigationItemColors() =
     NavigationBarItemDefaults.colors(
@@ -133,7 +111,8 @@ private fun navigationItemColors() =
         unselectedIconColor = MutedText,
         unselectedTextColor = MutedText
     )
-
+//Shows the name and initials of the admin.
+//@param name is the admin's name to display
 @Composable
 private fun AdminUserHeader(name: String) {
     val initials = name
@@ -162,33 +141,23 @@ private fun AdminUserHeader(name: String) {
 
         Column {
             Text("Welcome", color = MutedText)
-            Text(name, color = Cream)
-        }
-    }
-}
-
+            Text(name, color = Cream) } } }
+//Shows a temporary message for a section that is not implemented yet.
+//@param sectionName the name of the section we implement later.
 @Composable
 private fun PlaceholderScreen(sectionName: String) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
-    ) {
-        Text("$sectionName screen goes here", color = Cream)
-    }
-}
+    ) { Text("$sectionName screen goes here", color = Cream) } }
 
 private fun currentAdminName(): String {
-    val user = try {
-        Firebase.auth.currentUser
+    val user = try { Firebase.auth.currentUser
     } catch (_: IllegalStateException) {
-        null
-    }
-
+        null }
     return user?.displayName?.takeIf { it.isNotBlank() }
         ?: user?.email?.substringBefore("@")?.takeIf { it.isNotBlank() }
-        ?: "Admin"
-}
-
+        ?: "Admin" }
 private val DarkGreen = Color(0xFF1B3232)
 private val Gold = Color(0xFFD6A266)
 private val Cream = Color(0xFFF5EADD)
