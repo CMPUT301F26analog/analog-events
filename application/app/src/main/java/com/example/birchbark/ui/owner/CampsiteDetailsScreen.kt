@@ -29,39 +29,49 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.model.CampsiteRepository
+import com.example.birchbark.model.Lottery
+import com.example.birchbark.model.LotteryRepository
+import com.example.birchbark.util.Time
 
 /**
  * US 02.01.04 View campsite details. The owner's campsite details screen from
  * the My Campgrounds mockup. Opens when the owner taps a campsite in their
  * list, shows all the saved details, and has a button to update them.
+ * Also shows if the campsite has a lottery, and has a Campsite Lottery button
+ * to create one (US 02.04.01).
  *
- * CampsiteDetailsScreen loads the campsite from Firestore, and
- * CampsiteDetailsContent just draws the campsite it's given so the intent
- * tests can use a fake one.
+ * CampsiteDetailsScreen loads the campsite and its lotteries from Firestore, and
+ * CampsiteDetailsContent just draws what it's given so the intent tests can use
+ * fake data.
  *
- * Outstanding issues. The mockup also has View Gallery, Campsite Lottery and
- * Generate QR Code buttons, those belong to other stories so they aren't here
- * yet. The image isn't shown since image upload isn't done, and map location
- * just shows the coordinates for now.
+ * Outstanding issues. The mockup also has View Gallery and Generate QR Code
+ * buttons, those belong to other stories so they aren't here yet. The image
+ * isn't shown since image upload isn't done, and map location just shows the
+ * coordinates for now.
  */
 
 /**
- * Loads one campsite and shows its details. Loads again every time the
- * screen opens, so changes from the edit screen show up right away.
+ * Loads one campsite and its lotteries and shows its details. Loads again every
+ * time the screen opens, so changes from other screens show up right away.
  *
  * @param campsiteId the Firestore ID of the campsite to show.
  * @param onEditClick called with the campsite when the owner taps update.
  * @param onBack called when the owner taps back.
+ * @param onLotteryClick called with the campsite when the owner taps Campsite Lottery.
  */
 @Composable
 fun CampsiteDetailsScreen(
     campsiteId: String,
     onEditClick: (Campsite) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onLotteryClick: (Campsite) -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
+    val lotteryRepository = remember { LotteryRepository() }
     var loadedCampsite by remember { mutableStateOf<Campsite?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var lotteries by remember { mutableStateOf<List<Lottery>?>(null) }
+    var lotteryLoadFailed by remember { mutableStateOf(false) }
 
     //load every time the screen opens
     LaunchedEffect(campsiteId) {
@@ -78,10 +88,25 @@ fun CampsiteDetailsScreen(
                 errorMessage = "Couldn't load the campsite, check your connection and try again"
             }
         })
+        lotteryRepository.getLotteriesForCampsite(campsiteId, object : LotteryRepository.ListCallback {
+            override fun onLoaded(lotteries: List<Lottery>) {
+                setLotteries(lotteries)
+            }
+
+            override fun onError(error: Exception) {
+                lotteryLoadFailed = true
+            }
+
+            //the parameter is also called lotteries, so set the screen's one through this
+            fun setLotteries(found: List<Lottery>) {
+                lotteries = found
+            }
+        })
     }
 
     val shown = loadedCampsite
     val error = errorMessage
+    val lotteryList = lotteries
 
     if (error != null) {
         Column(
@@ -102,10 +127,24 @@ fun CampsiteDetailsScreen(
             CircularProgressIndicator()
         }
     } else {
+        val now = Time.now()
+        val lotteryText = if (lotteryLoadFailed) {
+            "Couldn't load the lottery"
+        } else if (lotteryList == null) {
+            "Loading..."
+        } else {
+            lotteryStatusText(lotteryList, now)
+        }
+        //only let them make a new lottery if there isn't one going already
+        val canCreateLottery = lotteryList != null && currentLottery(lotteryList, now) == null
+
         CampsiteDetailsContent(
             campsite = shown,
             onEditClick = { onEditClick(shown) },
-            onBack = onBack
+            onBack = onBack,
+            lotteryText = lotteryText,
+            canCreateLottery = canCreateLottery,
+            onLotteryClick = { onLotteryClick(shown) }
         )
     }
 }
@@ -117,9 +156,19 @@ fun CampsiteDetailsScreen(
  * @param campsite the campsite to show.
  * @param onEditClick called when the owner taps update.
  * @param onBack called when the owner taps back.
+ * @param lotteryText what to show for the campsite's lottery, like "No lottery yet".
+ * @param canCreateLottery true to show the Campsite Lottery button.
+ * @param onLotteryClick called when the owner taps Campsite Lottery.
  */
 @Composable
-fun CampsiteDetailsContent(campsite: Campsite, onEditClick: () -> Unit, onBack: () -> Unit) {
+fun CampsiteDetailsContent(
+    campsite: Campsite,
+    onEditClick: () -> Unit,
+    onBack: () -> Unit,
+    lotteryText: String = "No lottery yet",
+    canCreateLottery: Boolean = false,
+    onLotteryClick: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -156,6 +205,7 @@ fun CampsiteDetailsContent(campsite: Campsite, onEditClick: () -> Unit, onBack: 
             "Rating",
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
         )
+        DetailRow("Lottery", lotteryText)
 
         Spacer(modifier = Modifier.height(16.dp))
         Button(
@@ -163,6 +213,15 @@ fun CampsiteDetailsContent(campsite: Campsite, onEditClick: () -> Unit, onBack: 
             modifier = Modifier.fillMaxWidth().testTag("editButton")
         ) {
             Text("Update Campsite Details")
+        }
+        if (canCreateLottery) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onLotteryClick,
+                modifier = Modifier.fillMaxWidth().testTag("lotteryButton")
+            ) {
+                Text("Campsite Lottery")
+            }
         }
     }
 }

@@ -11,8 +11,9 @@ import com.example.birchbark.model.Campsite
 /**
  * Switches between the owner campsite screens. Starts on the list of the
  * owner's campsites (US 02.03.01). Tapping one opens its details (US 02.01.04),
- * the update button opens the edit screen (US 02.01.03), and the register
- * button opens the register form (US 02.01.01, US 02.01.02).
+ * the update button opens the edit screen (US 02.01.03), the Campsite Lottery
+ * button opens the lottery form (US 02.04.01), and the register button opens
+ * the register form (US 02.01.01, US 02.01.02).
  *
  * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
@@ -30,8 +31,10 @@ fun OwnerCampsitesApp(ownerId: String) {
     var registering by remember { mutableStateOf(false) }
     var selectedCampsiteId by remember { mutableStateOf<String?>(null) }
     var editingCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var lotteryCampsite by remember { mutableStateOf<Campsite?>(null) }
 
     val editing = editingCampsite
+    val lotteryFor = lotteryCampsite
     val selectedId = selectedCampsiteId
 
     if (registering) {
@@ -50,13 +53,22 @@ fun OwnerCampsitesApp(ownerId: String) {
             onSaved = { editingCampsite = null },
             onCancel = { editingCampsite = null }
         )
+    } else if (lotteryFor != null) {
+        //lottery screen, back or saving goes to the details screen
+        BackHandler { lotteryCampsite = null }
+        CreateLotteryScreen(
+            campsite = lotteryFor,
+            onCreated = { lotteryCampsite = null },
+            onCancel = { lotteryCampsite = null }
+        )
     } else if (selectedId != null) {
         //details screen, back goes to the list
         BackHandler { selectedCampsiteId = null }
         CampsiteDetailsScreen(
             campsiteId = selectedId,
             onEditClick = { campsite -> editingCampsite = campsite },
-            onBack = { selectedCampsiteId = null }
+            onBack = { selectedCampsiteId = null },
+            onLotteryClick = { campsite -> lotteryCampsite = campsite }
         )
     } else {
         //list screen
