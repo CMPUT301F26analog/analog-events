@@ -1,6 +1,7 @@
 package com.example.birchbark.model
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 
 /**
  * Saves and loads [Campsite] objects in the Firestore "campsites" collection.
@@ -166,9 +167,12 @@ class CampsiteRepository {
     }
 
     /**
-     * US 02.01.03: saves changes to an existing campsite, overwriting the stored
-     * version. Refuses if the campsite has no ID yet or breaks a rule
-     * ([CampsiteValidator]).
+     * US 02.01.03: saves the owner's changes to an existing campsite. Refuses if
+     * the campsite has no ID yet or breaks a rule ([CampsiteValidator]).
+     *
+     * Only changes the fields an owner can edit, so ownerId and the ratings
+     * never get overwritten by an old copy. It also fails instead of saving if
+     * the campsite was deleted, so a removed campsite can't come back.
      *
      * @param campsite the edited campsite. Must have the [Campsite.id] it was saved with.
      * @param callback onSuccess with the campsite's ID, onInvalid with the reason
@@ -188,13 +192,34 @@ class CampsiteRepository {
             return
         }
 
-        //overwrite the existing document
-        db.collection("campsites").document(campsite.id).set(campsite)
+        //only the fields an owner can edit, not id, ownerId or the ratings
+        val changes = hashMapOf<String, Any?>(
+            "name" to campsite.name,
+            "location" to campsite.location,
+            "description" to campsite.description,
+            "maxOccupancy" to campsite.maxOccupancy,
+            "latitude" to campsite.latitude,
+            "longitude" to campsite.longitude,
+            "imageUrl" to campsite.imageUrl,
+            "tags" to campsite.tags,
+            "price" to campsite.price,
+            "rules" to campsite.rules,
+            "cancellationPolicy" to campsite.cancellationPolicy
+        )
+
+        //update() fails if the document doesn't exist, unlike set() which would recreate it
+        db.collection("campsites").document(campsite.id).update(changes)
             .addOnSuccessListener {
                 callback.onSuccess(campsite.id)
             }
             .addOnFailureListener { error ->
-                callback.onError(error)
+                if (error is FirebaseFirestoreException &&
+                    error.code == FirebaseFirestoreException.Code.NOT_FOUND
+                ) {
+                    callback.onInvalid(listOf("This campsite doesn't exist anymore"))
+                } else {
+                    callback.onError(error)
+                }
             }
     }
 
