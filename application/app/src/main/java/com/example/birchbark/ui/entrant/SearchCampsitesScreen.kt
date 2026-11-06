@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,24 +39,34 @@ import com.example.birchbark.model.CampsiteRepository
  * campsites with a matching name or location show up. If nothing matches it
  * shows a not found message.
  *
+ * Also works with filters (US 01.01.02, US 01.01.03). The browse screen can pass
+ * a filter, like CampsiteFilter.matches with the entrant's filters, and only
+ * campsites that match both the search and the filter show up. It can also pass
+ * onFilterClick to show a Filters button that opens the filter screen.
+ *
  * SearchCampsitesScreen loads every campsite from Firestore, and
  * SearchCampsitesContent does the searching and drawing so the intent tests
  * can give it fake campsites. Tapping a result calls onCampsiteClick, so the
  * entrant details screen (US 01.01.05) can be opened from here.
  *
- * Outstanding issues. The filter button, recommended campsites and recommended
- * searches from the mockup aren't here yet, filters are US 01.01.02 (Part 4).
- * The result cards are plain for now and can be swapped for the campsite
- * summary card (US 01.01.04) once it's done.
+ * Outstanding issues. Recommended campsites and recommended searches from the
+ * mockup aren't here yet. The result cards are plain for now and can be swapped
+ * for the campsite summary card (US 01.01.04).
  */
 
 /**
  * Loads every campsite and shows the search page.
  *
  * @param onCampsiteClick called with the campsite the entrant tapped.
+ * @param filter extra check a campsite has to pass to show up, everything passes by default.
+ * @param onFilterClick called when the entrant taps Filters, or null to hide the button.
  */
 @Composable
-fun SearchCampsitesScreen(onCampsiteClick: (Campsite) -> Unit) {
+fun SearchCampsitesScreen(
+    onCampsiteClick: (Campsite) -> Unit,
+    filter: (Campsite) -> Boolean = { true },
+    onFilterClick: (() -> Unit)? = null
+) {
     val repository = remember { CampsiteRepository() }
     var allCampsites by remember { mutableStateOf<List<Campsite>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -92,21 +103,34 @@ fun SearchCampsitesScreen(onCampsiteClick: (Campsite) -> Unit) {
             CircularProgressIndicator()
         }
     } else {
-        SearchCampsitesContent(campsites = list, onCampsiteClick = onCampsiteClick)
+        SearchCampsitesContent(
+            campsites = list,
+            onCampsiteClick = onCampsiteClick,
+            filter = filter,
+            onFilterClick = onFilterClick
+        )
     }
 }
 
 /**
  * The search bar and results. The results update right away as the entrant
- * types, using [Campsite.matchesSearch].
+ * types, using [Campsite.matchesSearch] and the filter.
  *
  * @param campsites every campsite to search through.
  * @param onCampsiteClick called with the campsite the entrant tapped.
+ * @param filter extra check a campsite has to pass to show up, everything passes by default.
+ * @param onFilterClick called when the entrant taps Filters, or null to hide the button.
  */
 @Composable
-fun SearchCampsitesContent(campsites: List<Campsite>, onCampsiteClick: (Campsite) -> Unit) {
+fun SearchCampsitesContent(
+    campsites: List<Campsite>,
+    onCampsiteClick: (Campsite) -> Unit,
+    filter: (Campsite) -> Boolean = { true },
+    onFilterClick: (() -> Unit)? = null
+) {
     var keyword by remember { mutableStateOf("") }
-    val results = campsites.filter { it.matchesSearch(keyword) }
+    //has to match the search and pass the filter
+    val results = campsites.filter { it.matchesSearch(keyword) && filter(it) }
 
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -120,6 +144,16 @@ fun SearchCampsitesContent(campsites: List<Campsite>, onCampsiteClick: (Campsite
             //clear button only shows once they've typed something
             if (keyword.isNotEmpty()) {
                 TextButton(onClick = { keyword = "" }) { Text("Clear") }
+            }
+        }
+        //filters button only shows if the screen using this gave it somewhere to go
+        if (onFilterClick != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onFilterClick,
+                modifier = Modifier.testTag("filterButton")
+            ) {
+                Text("Filters")
             }
         }
         Spacer(modifier = Modifier.height(12.dp))

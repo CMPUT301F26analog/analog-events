@@ -18,7 +18,7 @@ import org.junit.runner.RunWith
 
 /**
  * Intent tests for the entrant search screen.
- * Covers US 01.01.01.
+ * Covers US 01.01.01, and searching together with filters for US 01.01.02 and US 01.01.03.
  *
  * Uses fake campsites so these don't need Firestore.
  */
@@ -94,5 +94,56 @@ class SearchCampsitesTest {
         }
         composeRule.onNodeWithText("Dinosaur Provincial Park Campground").performClick()
         assertEquals("c3", tapped?.id)
+    }
+
+    // works with filters, only campsites that pass the filter show up
+
+    @Test
+    fun filter_onlyShowsCampsitesThatPass() {
+        composeRule.setContent {
+            SearchCampsitesContent(
+                campsites = campsites,
+                onCampsiteClick = {},
+                filter = { it.maxOccupancy >= 6 }
+            )
+        }
+        //Whistlers fits 6 and Dinosaur fits 8, Two Jack only fits 4
+        composeRule.onAllNodesWithTag("searchResult").assertCountEquals(2)
+    }
+
+    @Test
+    fun filter_andSearchBothHaveToMatch() {
+        composeRule.setContent {
+            SearchCampsitesContent(
+                campsites = campsites,
+                onCampsiteClick = {},
+                filter = { it.maxOccupancy >= 6 }
+            )
+        }
+        //Two Jack is in Banff but doesn't pass the filter
+        composeRule.onNodeWithTag("searchField").performTextInput("Banff")
+        composeRule.onNodeWithTag("notFound").assertIsDisplayed()
+    }
+
+    @Test
+    fun filterButton_opensFilters() {
+        var clicked = 0
+        composeRule.setContent {
+            SearchCampsitesContent(
+                campsites = campsites,
+                onCampsiteClick = {},
+                onFilterClick = { clicked++ }
+            )
+        }
+        composeRule.onNodeWithTag("filterButton").performClick()
+        assertEquals(1, clicked)
+    }
+
+    @Test
+    fun filterButton_hidden_whenNoFilterScreen() {
+        composeRule.setContent {
+            SearchCampsitesContent(campsites = campsites, onCampsiteClick = {})
+        }
+        composeRule.onNodeWithTag("filterButton").assertDoesNotExist()
     }
 }
