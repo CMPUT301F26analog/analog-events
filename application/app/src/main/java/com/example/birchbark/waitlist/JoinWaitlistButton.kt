@@ -6,13 +6,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import com.example.birchbark.model.WaitlistRepository
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-
+import com.google.firebase.installations.FirebaseInstallations
 /**
  * Displays a join or leave button based on the user's waitlist membership.
  *
- * Checks membership in Firestore and allows authenticated users to
+ * Checks membership in Firestore using the device's Firebase Installation ID.
+ * Allows entrants to join or leave a lottery waitlist.
  * join or leave a lottery waitlist while displaying operation feedback.
  *
  * @param lotteryId The Firestore document ID of the lottery.
@@ -21,7 +20,8 @@ import com.google.firebase.auth.auth
 fun JoinWaitlistButton(lotteryId: String) {
 
     val repository = remember { WaitlistRepository() }
-    val userId = Firebase.auth.currentUser?.uid
+    var userId by remember { mutableStateOf<String?>(null) }
+    var idError by remember { mutableStateOf<String?>(null) }
 
     var isJoined by remember(lotteryId, userId) {
         mutableStateOf<Boolean?>(null)
@@ -34,8 +34,15 @@ fun JoinWaitlistButton(lotteryId: String) {
     var message by remember(lotteryId, userId) {
         mutableStateOf("")
     }
-
-    // Check whether the user is already registered
+    LaunchedEffect(Unit) {
+        FirebaseInstallations.getInstance().id
+            .addOnSuccessListener { fid ->
+                userId = fid
+            }
+            .addOnFailureListener { error ->
+                idError = error.message ?: "Unable to identify device"
+            }
+    }
     LaunchedEffect(lotteryId, userId) {
         val uid = userId ?: return@LaunchedEffect
 
@@ -56,7 +63,7 @@ fun JoinWaitlistButton(lotteryId: String) {
     Column {
 
         if (userId == null) {
-            Text("Sign in to join.")
+            Text(idError ?: "Loading profile...")
         } else if (isJoined == null) {
             Text(
                 if (message.isNotEmpty()) message
