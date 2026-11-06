@@ -12,7 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-// See [3] in LLM.md, used to help write Test for CampsiteDetailsScreen.kt
+// See [8] in LLM.md, used to help write Test for CampsiteDetailsScreen.kt
 
 /**
  * Intent tests for the entrant campsite details screen.

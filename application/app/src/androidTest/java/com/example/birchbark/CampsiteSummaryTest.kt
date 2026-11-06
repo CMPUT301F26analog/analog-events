@@ -12,7 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-// See [3] in LLM.md, used to help write Test for CampsiteSummary.kt
+// See [5] in LLM.md, used to help write Test for CampsiteSummary.kt
 
 /**
  * Intent tests for the campsite summary card.
