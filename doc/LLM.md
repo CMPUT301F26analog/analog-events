@@ -45,7 +45,7 @@
 =======
 <!-- Copy the section beginnning at "Prompt #001..." for each new interaction. Increment as we go on -->
 
-## Prompt #003
+## Prompt #003 (Eliza)
 
 |    Field     |  Details   |
 |:-------------|:-----------|
@@ -225,7 +225,7 @@
             // TODO: Instantiate generic custom text field component listening directly to field transformations
         }
 
-## Prompt #004
+## Prompt #004  (Eliza)
 
 |    Field     |  Details   |
 |:-------------|:-----------|
