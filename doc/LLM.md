@@ -149,6 +149,34 @@
 |    Field     |  Details   |
 |:-------------|:-----------|
 |**Promptee**  | Eliza Lazar  |
+| **Agent**    | Gemini |
+| **Model**    | N/A |
+| **Date**     | 2026-11-05   |
+
+### Prompt
+
+> ""I'm trying to use the Material 3 DatePicker inside my FilterScreen composable, but Android Studio is showing a red underline error under my function name saying it's experimental. Here is my function setup: [INSERT CODE]. How do I fix this error so I can use the new Material 3 components?""
+
+### Answer
+> To fix the red underline error, you need to acknowledge that you are using an experimental API by adding the @OptIn annotation directly above your composable function. In Jetpack Compose, certain newer components (like the Material 3 DatePicker) require this annotation to let the Kotlin compiler know you are intentionally using APIs that might change in future library versions. Here is how your function signature should look to fix the compilation error:
+
+    kotlin
+    @OptIn(ExperimentalMaterial3Api::class) // This fixes the red underline error
+    @Composable
+    fun FilterScreen(
+        currentFilters: EntrantFilters,
+        onApply: (EntrantFilters) -> Unit,
+        onCancel: () -> Unit,
+        modifier: Modifier = Modifier
+    ) {
+        // Your DatePicker and layout code goes here
+    }
+
+## Prompt #008 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
 | **Agent**    | Claude |
 | **Model**    | Sonnet 5.5 |
 | **Date**     | 2026-11-05   |
@@ -159,3 +187,5 @@
 
 ### Answer
 > See CampsiteFilterTest.kt file in Test folder for full answer.
+
+
