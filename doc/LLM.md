@@ -1972,3 +1972,94 @@ Test both an authorized admin account and a regular account. The admin deletion 
      * 8. Verify authLinks/{authUid} removed.
      */
     }
+    ---
+
+## Prompt #042 (Anahita)
+
+| **Field** | **Details** |
+|---|---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I add a campsite removal option to the admin screen, alongside profile removal?
+
+### Answer
+
+Add a delete action to the campsite details dialog. Ask for confirmation, delete the Firestore document using its document ID, and update the visible list only after Firestore confirms success.
+
+```kotlin
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+
+fun deleteCampsite(
+    campsiteId: String,
+    onSuccess: () -> Unit,
+    onError: (Exception) -> Unit
+) {
+    Firebase.firestore
+        .collection("campsites")
+        .document(campsiteId)
+        .delete()
+        .addOnSuccessListener {
+            onSuccess()
+        }
+        .addOnFailureListener { error ->
+            onError(error)
+        }
+}
+
+@Composable
+fun DeleteCampsiteDialog(
+    campsiteId: String,
+    campsiteName: String,
+    onDismiss: () -> Unit,
+    onDeleted: (String) -> Unit
+) {
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Delete campsite?")
+        },
+        text = {
+            Text(
+                errorMessage
+                    ?: "Delete $campsiteName from the campsites?"
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    errorMessage = null
+
+                    deleteCampsite(
+                        campsiteId = campsiteId,
+                        onSuccess = {
+                            onDeleted(campsiteId)
+                        },
+                        onError = { error ->
+                            errorMessage = error.message
+                                ?: "Could not delete the campsite."
+                        }
+                    )
+                }
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
