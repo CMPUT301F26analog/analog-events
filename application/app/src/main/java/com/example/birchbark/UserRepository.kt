@@ -19,7 +19,7 @@ import kotlin.String
  * The basis for the code is from the ListyCity Lab examples and exercises, simulating the
  * cityRepository class.
  *
- * See [2], [4], and [5] in References.md
+ * See [2], [4], [5], [13], and [14] in References.md
  *
  * @param db Constructor to create the db object that UserRepository will use and test with
  */
@@ -27,6 +27,7 @@ import kotlin.String
 /**
  * US 01.09.01 Be identified by my device
  */
+
 class UserRepository(
     // Constructor parameter, used for dependency injection (easier to test)
     // Helps with the reusability of code, makes refactoring easier, helps with
@@ -76,6 +77,7 @@ class UserRepository(
     /** Returns [profile] with leading/trailing spaces removed and inner whitespace taken care of,
      * including blank spaces and newlines. Strings are formatted as required. Concatenation is
      * resolved. See [6] and [7] in References.md, used to help understand the documentation.
+     * @param profile from UserProfile data class
      */
     fun cleanProfile(profile: UserProfile): UserProfile = profile.copy(
         // All regex was with the help of [6] in References.md
@@ -91,6 +93,7 @@ class UserRepository(
     /**
      * Validates a clean profile. Returns an error message to show the user, or null if it's valid.
      * Check [8] in References.md, which was used for documentation.
+     * @param profile from UserProfile data class
      */
     fun validateProfile(profile: UserProfile): String? {
         if (profile.fid.isBlank()) return "Profile ID is missing."
@@ -116,6 +119,8 @@ class UserRepository(
      * Creates a profile at users/{fid}. Using FID as the documentID means only one device
      * can have one profile. See [3] in LLM.md (references), which was used as a starting base
      * for the structure of this code. See [10] in References.md, used for documentation.
+     * @param profile from UserProfile data class
+     * @param onResult callback result as unit object for profile creation handshake
      */
     fun addProfile(
         profile: UserProfile,
@@ -134,6 +139,46 @@ class UserRepository(
         profilesRef.document(clean.fid)
             .set(clean)  // [10] in References.md
             .addOnSuccessListener { onResult() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    /**
+     * First-launch registration: creates users/{fid} and authLinks/{authUid}
+     * in ONE atomic batch. The FID remains the canonical profile ID.
+     * Roles may be chosen only at registration; Admin is Console-assigned.
+     * Security Rules enforce the same restrictions, independent of this UI.
+     * Function was assisted in creation with LLM, see LLM.md [014].
+     */
+    fun registerProfile(
+        profile: UserProfile,
+        onResult: (UserProfile) -> Unit,
+        onFailure: (Exception) -> Unit = {}
+    ) {
+        val clean = cleanProfile(profile).copy(registrationComplete = true)
+        val error = validateProfile(clean)
+        if (error != null) {
+            onFailure(IllegalArgumentException(error))
+            return
+        }
+        if (clean.authUid.isBlank() ||
+            clean.authUid != com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        ) {
+            onFailure(IllegalArgumentException("No matching authenticated session."))
+            return
+        }
+        if (clean.roles.isEmpty() || clean.roles.distinct().size != clean.roles.size ||
+            clean.roles.any { it != "entrant" && it != "owner" }
+        ) {
+            onFailure(IllegalArgumentException("Select Entrant, Owner, or both."))
+            return
+        }
+
+        val batch = db.batch()
+        batch.set(profilesRef.document(clean.fid), clean)
+        batch.set(db.collection("authLinks").document(clean.authUid),
+            mapOf("fid" to clean.fid))
+        batch.commit()
+            .addOnSuccessListener { onResult(clean) }
             .addOnFailureListener { onFailure(it) }
     }
 
@@ -187,8 +232,10 @@ class UserRepository(
 
     /**
      * Set's the user's role [entrant, owner, admin]. Uses similar structure as [addProfile]
-     * and [startListening] functions for help.
+     * and [startListening] functions for help. Function was assisted in creation by LLM,
+     * see LLM.md [014].
      */
+    @Deprecated("Role assignments are managed only through Firebase Console.")
     fun setRole(
         fid: String,
         roles: List<String>,

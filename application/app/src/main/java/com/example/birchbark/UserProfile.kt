@@ -18,8 +18,13 @@ import com.google.firebase.firestore.DocumentId
  * @param phoneNumber The phone number of the user
  * @param userName The username that a profile can opt in to use for display purposes
  * @param roles A string list of roles that users can have [entrant, owner, admin]
+ * @param authUid A string for the anonymous firestore user ID
+ * @param registrationComplete Simple flag to check that registration was complete
  *
- * See [3] and [5] in References.md
+ * The registrationComplete flag will be deprecated in part 4 to use a verification system
+ * should the team resolve for that.
+ *
+ * See [3], [5], [13] and [14] in References.md
  *
  * Followed data class structure from ListyCity lab code.
  */
@@ -30,7 +35,9 @@ data class UserProfile(
     val email: String = "",
     val phoneNumber: String = "",
     val userName: String = "",
-    val roles: List<String> = emptyList()
+    val roles: List<String> = emptyList(),
+    val authUid: String = "",
+    val registrationComplete: Boolean = false
 ) {
 
 }

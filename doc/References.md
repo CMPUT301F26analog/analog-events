@@ -62,6 +62,10 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 [12] “Tabs,” Android Developers, 2025. [Online]. Available: https://developer.android.com/develop/ui/compose/components/tabs [Accessed: Nov. 04/2026]
 
+[13] Firebase, "Authenticate withe Firebase Anonymously on Android," Firebase. [Online] Available: https://firebase.google.com/docs/auth/android/anonymous-auth [Accessed: Nov. 04/2026]
+
+[14] Firebase, "Writing conditions for Cloud Firestore Security Rules," Firebase. [Online] Available: https://firebase.google.com/docs/firestore/security/rules-conditions [Accessed: Nov. 04/2026]
+
 ## Text
 
 [2]

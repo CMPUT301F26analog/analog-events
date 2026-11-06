@@ -803,3 +803,204 @@ I would start with this instrumented test before introducing mocks or dependency
 ### Answer
 
 > Provided CurrentLottery (moving the "current lottery" rule into the model) and its unit tests, getLotteryForCampsite, EditLotteryRoute, and the Edit Lottery button changes to CampsiteDetailsScreen and OwnerCampsitesApp. I fixed the parameter name clash in EditLotteryRoute's onLoaded.
+
+---
+
+## Prompt #014
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Riley Whitford  |
+| **Agent**    | ChatGPT  |
+| **Model**    | GPT-6 |
+| **Date**     | 11-05-2026   |
+
+### Prompt
+
+> Chat, we are creating an Android application using the Kotlin language. We are developing in Android Studio. The overall flow the application follows this storyboard image. It also has to meet the requirements (for now) set here: Now, here are the relevant Authenticator, Users, UserProfile, and MainActivity files. Note that I am referencing these two source: https://firebase.google.com/docs/firestore/security/rules-conditions and https://firebase.google.com/docs/auth/android/anonymous-auth. I think I will need to use anonymous authentication to use the firebase appropriately. I first want to get the registration screens implemented, following the UI theme files uploaded. The program needs to go between entrants, owners and admin screens based on these intial screen files and parameters. If you are unsure about anything, do not assume, ask me for clarification. **UPLOADED RELEVANT FILES** >
+
+### Answer
+
+I have received and reviewed the two reference materials. I will examine how the implementation fits together, focusing on:
+- Project structure: Packages, Kotlin files, Gradle configuration, and dependencies.
+- Classes and functions: Each component's purpose, responsibilities, and relationships.
+- Data flow: How information moves between UI screens, ViewModels, repositories, and Firebase.
+- Navigation: How the implemented screens connect and whether they follow the storyboard.
+- Firebase integration: Device identification, user profiles, campsites, lotteries, waiting lists, and associated data models.
+- Requirement coverage: Which user stories are implemented, partially implemented, or missing.
+- Integration issues: Potential bugs, duplicated functionality, inconsistencies, and dependencies between team members' implementations.
+
+These are the most important issues I identified in the source. Some are definite missing connections; others are correctness or security risks that require testing.
+1. Two different user identifiers are being used
+
+High priority · Authentication and profile consistency
+
+Authenticator, UserRepository, and JoinWaitlistButton use the Firebase Installation ID (FID). NotificationSettingsScreen and NotificationSettingsRepository use the Firebase Authentication UID.
+
+As a result, notification settings may be stored at users/{authUid} while the actual profile exists at users/{fid}. These identifiers are not inherently equal.
+
+Also, an FID identifies an app installation; it is not a secure authentication credential. It can change after an app reinstall or data reset.
+
+Recommendation: Establish a single canonical user ID and authentication strategy before integrating the other screens. Firebase Anonymous Authentication could support passwordless use, subject to the project's identification requirements. NotificationSettingsRepository.kt
+
+
+
+
+2. Firebase authorization is not established in the uploaded code
+
+High priority · Data protection
+
+UserRepository.setRole() accepts role updates, and CampsiteRepository.updateCampsite() does not verify the caller's ownership. Admin navigation also has no visible role check.
+
+The actual security depends on Firestore rules, which were not provided. UI filtering is not sufficient authorization.
+
+Recommendation: Enforce ownership and admin permissions through authenticated identities and Firestore security rules. Users must not be able to grant themselves the admin role.
+
+
+
+3. Lottery editing can overwrite a completed draw
+
+High priority · Lottery consistency
+
+LotteryRepository.updateLottery() checks EditPermission.canEdit(lottery) on the caller-supplied object, then writes the entire object using .set(lottery).
+
+If a client holds an older copy with drawn = false, it could overwrite a newer stored copy where drawn = true, assuming the security rules permit the write.
+
+Recommendation: Read the latest stored lottery within a Firestore transaction, verify edit permission, and update only editable fields. Prevent updates to missing lotteries. LotteryRepository.kt
+
+
+
+
+4. Deleting records does not clean up related data
+
+High priority · Referential integrity
+
+UserRepository.removeProfile() deletes the user's document but does not remove their waiting-list registrations. Similarly, CampsiteRepository.deleteCampsite() deletes the campsite document without removing its references from lotteries.
+
+This conflicts with the profile deletion acceptance criteria and can leave invalid waitlist counts.
+
+Recommendation: Define a coordinated deletion process that handles related documents and subcollections, preferably through trusted backend operations.
+
+
+
+5. Admin profile browsing assumes one campsite per owner
+
+Medium priority · Incorrect data relationships
+
+In AdminProfilesScreen, campsite ownership is converted to a map using:
+ownerId to (name to location)
+
+
+followed by .toMap().
+
+If an owner registers multiple campsites, only one survives per owner ID. This makes the campsite and area filters unreliable for owners of multiple campsites.
+
+Recommendation: Group campsites by owner ID instead of mapping each owner to one campsite. AdminProfilesScreen.kt
+
+
+
+
+6. Some admin campsite filters cannot work with the loaded model
+
+Medium priority · Filtering
+
+AdminCampsitesScreen supports filters for siteType and status, but the corresponding properties of CampsitePreview are initialized to empty strings and never populated from Firestore.
+
+Therefore, entering a nonempty value for either filter removes every campsite.
+
+The admin preview model also drops the campsite document ID, which will be needed for deletion. AdminCampsitesScreen.kt
+
+
+
+
+7. Date filtering uses overlap rather than full availability
+
+Medium priority · Entrant filtering
+
+CampsiteFilter.matchesDates() accepts a campsite when the lottery booking period overlaps any portion of the requested dates.
+
+If the intended behavior is to accommodate the entrant's entire selected period, this logic is too permissive. The search route also does not yet load and supply lottery data to this filter. CampsiteFilter.kt
+
+
+Recommendation: Decide whether the requested range must be fully contained in the booking period, and then use that same rule consistently in filtering and booking.
+
+
+
+8. Registration and booking dates have a possible boundary issue
+
+Medium priority · Date validation
+
+Time.endOfDay() represents the start of the following day. BookingPeriodRule requires bookingStart > registrationEnd.
+
+For example, if registration's last day is November 10, booking on November 11 is rejected because both values represent November 11 at midnight.
+
+If the first booking day is supposed to be the next calendar day after registration closes, the boundary should permit equality. If a full intervening day is required, the existing condition is appropriate. Time.kt
+ BookingPeriodRule.kt
+
+
+
+
+7. Recommended integration sequence
+I would approach integration in this order, prioritizing the relationships that many other features depend on.
+Priority	Task	Expected result
+1	Establish common identity and profile initialization	Every feature references the correct user and profile
+2	Create a shared app navigation structure	Entrant, Owner and Admin flows become reachable
+3	Connect entrant search → filters → details → waitlist	Complete main entrant workflow
+4	Integrate owner lottery editing and waitlist viewing	Complete main owner workflows
+5	Connect admin deletion operations and confirmations	Complete admin management workflows
+6	Implement QR generation, map selection and image handling	Address remaining Part 3 visual and functional requirements
+7	Review Firestore permissions, deletion cleanup and lottery transactions	Protect data consistency and access
+8	Run unit, UI and Firebase integration tests	Verify behavior against acceptance criteria
+
+I'd keep FID-based profiles and add anonymous authentication exclusively to establish Firebase sessions.
+
+The resulting setup would be:
+BirchBark launches
+
+Firebase Anonymous Authentication
+Gets authenticated UID for Firestore permissions
+Firebase Installations
+Retrieves FID for your application profile
+Firestore users/fid
+Load existing profile or display registration
+
+You would not have to replace FIDs throughout your existing Kotlin code.
+
+This approach is a functional testing policy, not secure per-user authorization. It would allow different anonymous accounts to access each other's data unless additional ownership checks were added. Eventually, we could associate each FID profile with its anonymous Authentication UID and enforce ownership.
+
+The good news is that we don't need to discard the FID registration design.
+
+I suggest we proceed in this order:
+1. Enable Firebase Anonymous Authentication in the console.
+2. Automatically sign in anonymously when MainActivity starts.
+3. Continue using Authenticator.checkForAccount() to identify the installation by FID.
+4. If the FID has no completed profile, display your registration screen.
+5. Update Firestore rules to permit the necessary authenticated application operations while keeping developer data protected.
+6. Test registration, campsite creation and editing, and waitlist joins from separate emulators.
+For admin functions, we'll also need to decide how to distinguish demo administrators from regular anonymous users. A profile's editable roles field is not sufficient for secure admin authorization.
+
+My recommendation is to use this hybrid model: FID for BirchBark identification, Anonymous Authentication for Firebase access. It preserves your team's existing architecture, requires no password or login screen, and allows us to develop the required functionality without making all application collections publicly writable.
+
+The first implementation is prepared using your existing Entrant, Owner, and Admin screens.
+
+Download BirchBark Registration & Navigation (ZIP)
+What is included
+File	Changes
+MainActivity.kt	Automatic authentication, registration gate, and role-based navigation
+Authenticator.kt	Firebase Anonymous Authentication with FID-based profile lookup
+UserProfile.kt	Adds authUid and registrationComplete
+UserRepository.kt	Adds registration that saves the profile and authentication mapping together
+RegisterProfileScreen.kt	Registration form with Entrant, Owner, or both; optional Terms of Service
+firestore.rules	Initial registration security, immutable roles, and basic ownership checks
+README.md	Installation instructions and testing checklist
+
+Navigation behavior
+- Entrant: Existing SearchCampsitesScreen
+- Owner: Existing OwnerCampsitesApp, passing the user's FID
+- Entrant + Owner: Role selection screen
+- Admin: Existing AdminBrowseScreen by default, with switching available for other assigned roles
+Before testing
+Enable Anonymous Authentication in Firebase Console, confirm the Firebase Authentication and Firestore dependencies are present, and review the included security rules before deploying them. Firebase supports anonymous sessions for accessing data protected by security rules. 
+
+The ZIP contains source replacements, not a complete Android Studio project. I verified its contents but have not compiled it against your full Gradle project.
+
