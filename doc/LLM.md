@@ -239,4 +239,4 @@
 > "Can you provide me with unit tests in android studio based on this function structure [INSERT CODE], in kotlin?"
 
 ### Answer
-> See EditLotteryScreenTest.kt file in Test folder for full answer.
+> See EditLotteryScreenTest.kt file in Test folder for full answer
