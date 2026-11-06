@@ -5,7 +5,7 @@ CMPUT 301 Fall 2026 team repository for project development.
 
 # **WORK IN PROGRESS ** 
 
-## Software V0.0.1
+## Software V0.4.1
 
 
 This README will currently hold hyperlinked text to various parts of the project, small tutorials, or
