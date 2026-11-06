@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.birchbark.model.Campsite
+import com.example.birchbark.waitlist.OwnerWaitlistScreen
 
 /**
  * Switches between the owner campsite screens. Starts on the list of the
@@ -32,12 +33,24 @@ fun OwnerCampsitesApp(ownerId: String) {
     var selectedCampsiteId by remember { mutableStateOf<String?>(null) }
     var editingCampsite by remember { mutableStateOf<Campsite?>(null) }
     var lotteryCampsite by remember { mutableStateOf<Campsite?>(null) }
-
+    var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val selectedId = selectedCampsiteId
+    val waitlistId = waitlistLotteryId
 
-    if (registering) {
+    if (waitlistId != null) {
+
+        BackHandler {
+            waitlistLotteryId = null
+        }
+
+        OwnerWaitlistScreen(
+            lotteryId = waitlistId,
+            onBack = { waitlistLotteryId = null }
+        )
+
+    } else if (registering) {
         //register screen, back or finishing goes to the list
         BackHandler { registering = false }
         RegisterCampsiteScreen(
@@ -68,7 +81,9 @@ fun OwnerCampsitesApp(ownerId: String) {
             campsiteId = selectedId,
             onEditClick = { campsite -> editingCampsite = campsite },
             onBack = { selectedCampsiteId = null },
-            onLotteryClick = { campsite -> lotteryCampsite = campsite }
+            onLotteryClick = { campsite -> lotteryCampsite = campsite },
+            onViewWaitlist = { lotteryId ->
+                waitlistLotteryId = lotteryId }
         )
     } else {
         //list screen

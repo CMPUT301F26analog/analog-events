@@ -64,7 +64,8 @@ fun CampsiteDetailsScreen(
     campsiteId: String,
     onEditClick: (Campsite) -> Unit,
     onBack: () -> Unit,
-    onLotteryClick: (Campsite) -> Unit = {}
+    onLotteryClick: (Campsite) -> Unit = {},
+    onViewWaitlist: (String) -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
@@ -137,6 +138,10 @@ fun CampsiteDetailsScreen(
         }
         //only let them make a new lottery if there isn't one going already
         val canCreateLottery = lotteryList != null && currentLottery(lotteryList, now) == null
+        val selectedLottery = lotteryList?.let { list ->
+            currentLottery(list, now)
+                ?: list.maxByOrNull { it.registrationStart }
+        }
 
         CampsiteDetailsContent(
             campsite = shown,
@@ -144,7 +149,15 @@ fun CampsiteDetailsScreen(
             onBack = onBack,
             lotteryText = lotteryText,
             canCreateLottery = canCreateLottery,
-            onLotteryClick = { onLotteryClick(shown) }
+            onLotteryClick = { onLotteryClick(shown) },
+            canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
+            onViewWaitlist = {
+                selectedLottery?.id
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { lotteryId ->
+                        onViewWaitlist(lotteryId)
+                    }
+            }
         )
     }
 }
@@ -167,7 +180,9 @@ fun CampsiteDetailsContent(
     onBack: () -> Unit,
     lotteryText: String = "No lottery yet",
     canCreateLottery: Boolean = false,
-    onLotteryClick: () -> Unit = {}
+    onLotteryClick: () -> Unit = {},
+    canViewWaitlist: Boolean = false,
+    onViewWaitlist: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -206,6 +221,19 @@ fun CampsiteDetailsContent(
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
         )
         DetailRow("Lottery", lotteryText)
+        if (canViewWaitlist) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onViewWaitlist,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("viewWaitlistButton")
+            ) {
+                Text("View Waitlist")
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
         Button(
