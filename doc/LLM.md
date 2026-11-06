@@ -1842,3 +1842,133 @@ match /users/{userId} {
 ```
 
 Test both an authorized admin account and a regular account. The admin deletion should succeed, while the regular account should be denied. Keep the authorization check in Firestore rules as well as in the UI, since hiding a delete button alone does not secure the data.
+
+---
+
+## Prompt #041 (Eliza)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Microsoft 365 Copilot  |
+| **Model** | GPT-5 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> We implemented a ProfileDeletionCoordinator for deleting user profiles and cleaning up Firebase waitlists. The PR requests additional testing:
+
+    Verify deletion for an entrant belonging to multiple waitlists.
+    Confirm all affected waitlist membership documents are removed.
+    Verify waitlist counts are decremented correctly.
+    Confirm users/{fid} and authLinks/{authUid} are removed.
+    Verify Cancel preserves the profile and its memberships.
+    Verify unauthorized users cannot delete another person's profile.
+
+> Here is my ProfileDeletionCoordinator implementation and existing DeleteProfileSectionTest. Which of these requirements should be covered through automated unit/UI tests versus Firebase integration/manual testing? Please suggest an outline of additional tests to add and identify which items require manual verification. With the automated tests, could you provide an outline with suggestions in comments?
+
+### Answer
+
+> Automated Tests
+
+    Verify deletion fails when profile identity is incomplete.
+    Verify deletion fails when fid is missing.
+    Verify deletion fails when authUid is missing.
+    Verify deletion is rejected when attempting to delete another user's profile.
+
+> ProfileDeletionCoordinatorTest
+> 
+    class ProfileDeletionCoordinatorTest {
+
+    /*
+     * Test invalid profile identity.
+     *
+     * Suggested checks:
+     * - Empty fid
+     * - Empty authUid
+     * - Both empty
+     *
+     * Expected:
+     * - Failure callback invoked
+     * - IllegalArgumentException returned
+     */
+    @Test
+    fun deleteProfile_failsWhenProfileIdentityMissing() {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    /*
+     * Test missing fid.
+     *
+     * Expected:
+     * - Deletion rejected before Firebase operations begin.
+     */
+    @Test
+    fun deleteProfile_failsWhenFidMissing() {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    /*
+     * Test missing authUid.
+     *
+     * Expected:
+     * - Deletion rejected before Firebase operations begin.
+     */
+    @Test
+    fun deleteProfile_failsWhenAuthUidMissing() {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    /*
+     * Test authorization guard.
+     *
+     * Scenario:
+     * - Authenticated user does not match profile authUid.
+     *
+     * Expected:
+     * - Failure callback invoked.
+     * - Profile deletion not attempted.
+     */
+    @Test
+    fun deleteProfile_failsWhenDeletingOtherUsersProfile() {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    /*
+     * The following requirements were identified as
+     * Firebase integration/manual verification items:
+     *
+     * - User registered on multiple waitlists.
+     * - Waitlist membership removal.
+     * - Waitlist count updates.
+     * - users/{fid} deletion.
+     * - authLinks/{authUid} deletion.
+     *
+     * Suggested procedure:
+     *
+     * 1. Create disposable entrant account.
+     * 2. Join multiple waitlists.
+     * 3. Record waitlist counts.
+     * 4. Delete profile through application UI.
+     * 5. Verify membership documents removed.
+     * 6. Verify waitlist counts decreased.
+     * 7. Verify users/{fid} removed.
+     * 8. Verify authLinks/{authUid} removed.
+     */
+    }

@@ -62,14 +62,14 @@ class AuthenticatorTest {
         authenticator.checkForAccount(
             object : Authenticator.Callback {
 
-                override fun onAccountFound(fid: String) {
-                    returnedFid = fid
+                override fun onAccountFound(profile: UserProfile) {
+                    returnedFid = profile.fid
                     accountFound = true
                     Log.d("AuthenticatorTest", "Account found")
                     latch.countDown()
                 }
 
-                override fun onAccountGone(fid: String) {
+                override fun onRegistrationRequired(fid: String, authUid: String) {
                     returnedFid = fid
                     accountFound = false
                     Log.d("AuthenticatorTest", "Account missing")
