@@ -263,12 +263,38 @@ class UserRepository(
      */
     fun removeProfile(
         fid: String,
+        authUid: String,
         onSuccess: () -> Unit = {},
         onFailure: (Exception) -> Unit = {}
     ) {
-        profilesRef.document(fid).delete() // [11] in References.md
+        if (fid.isBlank() || authUid.isBlank()) {
+            onFailure(
+                IllegalArgumentException("Profile identity is incomplete.")
+            )
+            return
+        }
+
+        if (com.google.firebase.auth.FirebaseAuth.getInstance()
+                .currentUser?.uid != authUid
+        ) {
+            onFailure(
+                IllegalArgumentException("Authentication does not match.")
+            )
+            return
+        }
+
+        val batch = db.batch()
+
+        batch.delete(profilesRef.document(fid))
+
+        batch.delete(
+            db.collection("authLinks").document(authUid)
+        )
+
+        batch.commit()
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
     }
+
 
 }
