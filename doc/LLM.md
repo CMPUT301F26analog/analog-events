@@ -45,18 +45,4 @@
 =======
 <!-- Copy the section beginnning at "Prompt #001..." for each new interaction. Increment as we go on -->
 
-## Prompt #003
 
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-05   |
-
-### Prompt
-
-> "Can you provide me with unit tests in android studio based on this function structure [INSERT CODE], in kotlin?"
-
-### Answer
-> See CampsiteSummaryTest.kt file in Test folder for full answer.
