@@ -1,10 +1,3 @@
-
-# LLM Reference Document
-
-> Records interactions such as prompts and responses from Large-Language Models (LLMs).
-
----
-
 ## Prompt #001 (Akshat)
 
 | Field | Details |
@@ -43,147 +36,61 @@
 
 ## Prompt #003 (Eliza)
 
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-04   |
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Gemini |
+| **Model** | N/A |
+| **Date** | 11-04-2026 |
 
 ### Prompt
 
-> "Write Kotlin code to parse and validate a string occupancy (must be an integer >= 1) and a string rating (must be a double between 1.0 and 5.0, replacing commas with periods). Just give me the variable assignments and error flags."
+> Please write a preview function for the following composable [INSERT CODE]
 
 ### Answer
-> See FilterScreen.kt file in main folder for full answer.
+
+```kotlin
+@Preview(showBackground = true, name = "Campsite Summary Preview")
+@Composable
+fun CampsiteSummaryPreview() {
+    // 1. Create a dummy or mock campsite object to feed into your UI
+    // Note: Replace these parameters with whatever fields your actual
+    // com.example.birchbark.model.Campsite class requires.
+    val mockCampsite = Campsite(
+        name = "Whispering Pines",
+        location = "Banff National Park, AB",
+        maxOccupancy = 6,
+
+        // Add any other properties your Campsite model requires (e.g., rating = 4.8)
+    )
+
+    // 2. Wrap it inside your app's theme so colors like TealCard render properly
+    // Replace 'MaterialTheme' with 'BirchBarkTheme' if you have a custom theme file!
+    MaterialTheme {
+        CampsiteSummary(
+            campsite = mockCampsite,
+            onClick = { /* Do nothing in preview */ }
+        )
+    }
+}
+```
+
+---
 
 ## Prompt #004 (Eliza)
 
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-04   |
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Claude |
+| **Model** | Sonnet 5.5 |
+| **Date** | 2026-11-04 |
 
 ### Prompt
 
-> ""I'm building a screen in Jetpack Compose and I want to add a button that opens a calendar/date picker when the user clicks it. How do I handle showing and hiding the pop-up dialog in Compose?"
+> Please provide me with a ui.theme kotlin file for the colours thatmatches this UI (insert image of mockup)
 
 ### Answer
-> In Jetpack Compose, you handle showing and hiding a pop-up dialog by using a boolean state variable. Because Compose is declarative, you don't "open" or "close" a dialog with a command. Instead, you conditionally show it based on whether that state variable is true or false.
-> Here is exactly how you handle this pattern:
-> 1. Define the Visibility State
-> At the top of your composable, create a state variable (often named something like showPicker). Initialize it to false so the calendar is hidden by default.
-  
-    kotlin
-    var showPicker by remember { mutableStateOf(false) }
-> 2. Trigger the State with a Button
-
-> When the user clicks your button, you simply flip that state variable to true. This tells Compose to redraw the screen and include the dialog.
-
-    kotlin
-    OutlinedButton(
-        onClick = { showPicker = true }, // Turns the dialog ON
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Choose dates")
-    }
-
-> 3. Conditionally Display the Dialog
-
-> Right below your button, use a standard Kotlin if statement. If showPicker is true, the dialog is rendered. To hide it, you just set showPicker = false inside the dialog's dismiss or confirm actions.
-
-    kotlin
-    if (showPicker) {
-        DatePickerDialog(
-            onDismissRequest = { showPicker = false }, // Turns it OFF if user taps outside
-            confirmButton = {
-                TextButton(onClick = { showPicker = false }) { // Turns it OFF when they click OK
-                    Text("OK")
-                }
-            }
-        ) {
-            // Your actual DatePicker calendar content goes here
-        }
-    }
-
-## Prompt #005 (Eliza)
-
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-04   |
-
-### Prompt
-
-> ""I'm making a form field in Jetpack Compose for entering the number of guests. I want it to look red and show a message saying 'Enter a whole number, 1 or more' if the user types something invalid like letters or a number less than 1. How do I build that kind of validation layout?""
-
-### Answer
-> See FilterScreen.kt file in main folder for full answer.
-
-## Prompt #006 (Eliza)
-
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-04   |
-
-### Prompt
-
-> "I am working with a DatePicker in Android that returns dates as a Long timestamp in UTC milliseconds, but the rest of my app uses Java LocalDate. Can you give me two simple helper functions to convert back and forth between UTC milliseconds and a LocalDate?"
-
-### Answer
-> See FilterScreen.kt file in main folder for full answer.
-
-## Prompt #007 (Eliza)
-
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Gemini |
-| **Model**    | N/A |
-| **Date**     | 2026-11-05   |
-
-### Prompt
-
-> ""I'm trying to use the Material 3 DatePicker inside my FilterScreen composable, but Android Studio is showing a red underline error under my function name saying it's experimental. Here is my function setup: [INSERT CODE]. How do I fix this error so I can use the new Material 3 components?""
-
-### Answer
-> To fix the red underline error, you need to acknowledge that you are using an experimental API by adding the @OptIn annotation directly above your composable function. In Jetpack Compose, certain newer components (like the Material 3 DatePicker) require this annotation to let the Kotlin compiler know you are intentionally using APIs that might change in future library versions. Here is how your function signature should look to fix the compilation error:
-
-    kotlin
-    @OptIn(ExperimentalMaterial3Api::class) // This fixes the red underline error
-    @Composable
-    fun FilterScreen(
-        currentFilters: EntrantFilters,
-        onApply: (EntrantFilters) -> Unit,
-        onCancel: () -> Unit,
-        modifier: Modifier = Modifier
-    ) {
-        // Your DatePicker and layout code goes here
-    }
-
-## Prompt #008 (Eliza)
-
-|    Field     |  Details   |
-|:-------------|:-----------|
-|**Promptee**  | Eliza Lazar  |
-| **Agent**    | Claude |
-| **Model**    | Sonnet 5.5 |
-| **Date**     | 2026-11-05   |
-
-### Prompt
-
-> "Can you provide me with unit tests in android studio based on this function structure [INSERT CODE], in kotlin?"
-
-### Answer
-> See CampsiteFilterTest.kt file in Test folder for full answer.
-
 
 > Here is the Jetpack Compose ui.theme implementation tailored to your BirchBark admin screen color palette and Material Design 3 specifications:
 
@@ -464,3 +371,168 @@ fun birchBarkButtonColors() = ButtonDefaults.buttonColors(
 ---
 
 
+## Prompt #008 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-05   |
+
+### Prompt
+
+> "Can you provide me with unit tests in android studio based on this function structure [INSERT CODE], in kotlin?"
+
+### Answer
+> See CampsiteFilterTest.kt file in Test folder for full answer.
+
+
+> Here is the Jetpack Compose ui.theme implementation tailored to your BirchBark admin screen color palette and Material Design 3 specifications:
+
+```kotlin
+package com.example.birchbark.ui.theme
+
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+
+object BirchBarkColors {
+    val DarkGreen = Color(---)   // Screen background
+    val TealCard = Color(---)    // Cards, dialogs, surfaces
+    val Teal = Color(---)        // Profile cards
+    val Gold = Color(---)        // Accents, buttons, selected tab
+    val Cream = Color(---)       // Main text hierarchy
+    val MutedText = Color(---)   // Secondary text, unselected icons
+    val AvatarGreen = Color(---) // Initials circle in the header
+    val Scrim = Color(---)       // Dark strip over campsite photos
+    val PhotoTop = Color(---)    // Campsite photo placeholder gradient
+    val PhotoMid = Color(---)
+    val PhotoBottom = Color(---)
+}
+
+val BirchBarkColorScheme = darkColorScheme(
+    primary = BirchBarkColors.Gold,
+    onPrimary = BirchBarkColors.DarkGreen,
+    secondary = BirchBarkColors.Teal,
+    onSecondary = BirchBarkColors.Cream,
+    background = BirchBarkColors.DarkGreen,
+    onBackground = BirchBarkColors.Cream,
+    surface = BirchBarkColors.TealCard,
+    onSurface = BirchBarkColors.Cream,
+    surfaceVariant = BirchBarkColors.TealCard,
+    onSurfaceVariant = BirchBarkColors.MutedText,
+    outline = BirchBarkColors.Cream.copy(alpha = 0.5f),
+    error = Color(---)
+)
+
+@Composable
+fun birchBarkFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = BirchBarkColors.Cream,
+    unfocusedTextColor = BirchBarkColors.Cream,
+    focusedLabelColor = BirchBarkColors.Cream,
+    unfocusedLabelColor = BirchBarkColors.Cream.copy(alpha = 0.7f),
+    cursorColor = BirchBarkColors.Cream,
+    focusedBorderColor = BirchBarkColors.Cream,
+    unfocusedBorderColor = BirchBarkColors.Cream.copy(alpha = 0.5f)
+)
+
+@Composable
+fun birchBarkButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = BirchBarkColors.Gold,
+    contentColor = BirchBarkColors.DarkGreen,
+    disabledContainerColor = BirchBarkColors.Gold.copy(alpha = 0.3f),
+    disabledContentColor = BirchBarkColors.DarkGreen.copy(alpha = 0.6f)
+)
+```
+
+---
+
+## Prompt #009 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> "I am working with a DatePicker in Android that returns dates as a Long timestamp in UTC milliseconds, but the rest of my app uses Java LocalDate. Can you give me two simple helper functions to convert back and forth between UTC milliseconds and a LocalDate?"
+
+### Answer
+> See FilterScreen.kt file in main folder for full answer.
+
+---
+
+## Prompt #010 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> ""I'm building a screen in Jetpack Compose and I want to add a button that opens a calendar/date picker when the user clicks it. How do I handle showing and hiding the pop-up dialog in Compose?"
+
+### Answer
+> In Jetpack Compose, you handle showing and hiding a pop-up dialog by using a boolean state variable. Because Compose is declarative, you don't "open" or "close" a dialog with a command. Instead, you conditionally show it based on whether that state variable is true or false.
+> Here is exactly how you handle this pattern:
+> 1. Define the Visibility State
+> At the top of your composable, create a state variable (often named something like showPicker). Initialize it to false so the calendar is hidden by default.
+  
+    kotlin
+    var showPicker by remember { mutableStateOf(false) }
+> 2. Trigger the State with a Button
+
+> When the user clicks your button, you simply flip that state variable to true. This tells Compose to redraw the screen and include the dialog.
+
+    kotlin
+    OutlinedButton(
+        onClick = { showPicker = true }, // Turns the dialog ON
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Choose dates")
+    }
+
+> 3. Conditionally Display the Dialog
+
+> Right below your button, use a standard Kotlin if statement. If showPicker is true, the dialog is rendered. To hide it, you just set showPicker = false inside the dialog's dismiss or confirm actions.
+
+    kotlin
+    if (showPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false }, // Turns it OFF if user taps outside
+            confirmButton = {
+                TextButton(onClick = { showPicker = false }) { // Turns it OFF when they click OK
+                    Text("OK")
+                }
+            }
+        ) {
+            // Your actual DatePicker calendar content goes here
+        }
+    }
+
+## Prompt #011 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> ""I'm making a form field in Jetpack Compose for entering the number of guests. I want it to look red and show a message saying 'Enter a whole number, 1 or more' if the user types something invalid like letters or a number less than 1. How do I build that kind of validation layout?""
+
+### Answer
+> See FilterScreen.kt file in main folder for full answer.
+
+---
