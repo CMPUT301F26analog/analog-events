@@ -1,6 +1,6 @@
 package com.example.birchbark
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalInspectionMode
+
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import androidx.compose.ui.platform.testTag
@@ -45,7 +45,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
 
-//Displays campsite cards and lets the admin filter campsites and view their details.
+//Shows the campsite cards from Firebase.
+//The admin can filter the campsites, open the details, and remove a campsite.
+//This composable has no parameters because it loads its campsite data from Firebase.
+//It keeps track of the campsite list, loading state, filters, and open dialogs.
 @Composable
 
 fun AdminCampsitesScreen() {
@@ -60,13 +63,19 @@ fun AdminCampsitesScreen() {
     }
     // This shows an error if Firebase cannot delete the campsite.
     var deleteError by remember { mutableStateOf<String?>(null) }
+    // Tracks whether the campsite request is still running.
     var isLoading by remember { mutableStateOf(true) }
+    // Stores a message to show if Firebase cannot load the campsite list.
     var loadError by remember { mutableStateOf<String?>(null) }
 
+    // Loads the campsite documents when this screen first appears.
     LaunchedEffect(Unit) {
+        // Reads all campsite documents from the Firestore campsites collection.
         Firebase.firestore.collection("campsites")
             .get()
             .addOnSuccessListener { result ->
+                // Turns each Firestore document into the smaller object used by the UI.
+                // Documents without a name are skipped because the card needs a name.
                 campsites = result.documents.mapNotNull { document ->
                     val name = document.getString("name") ?: return@mapNotNull null
                     val ratingCount =
@@ -74,6 +83,7 @@ fun AdminCampsitesScreen() {
                     val ratingTotal =
                         (document.get("ratingTotal") as? Number)?.toDouble() ?: 0.0
 
+                    // Uses the Firestore field names to fill in the campsite card details.
                     CampsitePreview(
                         campsiteId = document.id,
                         name = name,
@@ -101,6 +111,7 @@ fun AdminCampsitesScreen() {
         mutableStateOf<CampsitePreview?>(null)
     }
 
+    // Keeps only campsites that match every filter the admin has applied.
     val visibleCampsites = campsites.filter { campsite ->
         val minCapacity = appliedFilters.minCapacity.toIntOrNull()
         val maxCapacity = appliedFilters.maxCapacity.toIntOrNull()
@@ -120,6 +131,7 @@ fun AdminCampsitesScreen() {
                         campsite.status.contains(appliedFilters.status, true)) &&
                 (minRating == null || campsite.rating >= minRating) }
 
+    // Applies the same text, cursor, and border colors to the filter fields.
     val filterFieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Cream,
         unfocusedTextColor = Cream,
@@ -132,6 +144,7 @@ fun AdminCampsitesScreen() {
 //Scaffold gives a screen a standard layout structure with places for things like a top bar,
 // bottom bar, and floating button
 
+    // Sets the screen background and gives the content padding around the scaffold.
     Scaffold(containerColor = DarkGreen) { padding ->
         Column(
             modifier = Modifier
@@ -151,11 +164,13 @@ fun AdminCampsitesScreen() {
 
                 TextButton(
                     modifier = Modifier.testTag("campsite-filter-button"),
+                    // Starts a new filter edit using the filters that are already applied.
                     onClick = {
                         draftFilters = appliedFilters
                         showFilters = true
                     }) { Text("Filter", color = Gold) } }
 
+            // Shows different content depending on whether loading succeeded or found results.
             if (isLoading) {
                 Text("Loading campsites...", color = Cream)
             } else if (loadError != null) {
@@ -177,10 +192,12 @@ fun AdminCampsitesScreen() {
                         vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically) {
+                    // Creates one card for each campsite that passed the filters.
                     items(visibleCampsites) { campsite ->
                         CampsiteCard(campsite) {
                             selectedCampsite = campsite } } } } } }
 
+    // Shows the filter dialog while the admin chooses campsite search options.
     if (showFilters) {
         AlertDialog(
             onDismissRequest = { showFilters = false },
@@ -249,6 +266,7 @@ fun AdminCampsitesScreen() {
                             draftFilters = draftFilters.copy(minRating = it) },
                         label = { Text("Minimum rating (1–5)") },
                         singleLine = true,colors = filterFieldColors) } },
+            // Saves the draft values as the active filters when Apply is tapped.
             confirmButton = {
                 TextButton(modifier = Modifier.testTag("apply-campsite-filters"),
                     onClick = {
@@ -260,6 +278,7 @@ fun AdminCampsitesScreen() {
                 TextButton(onClick = { showFilters = false }) {
                     Text("Cancel", color = Cream) } }) }
 
+    // Shows the details dialog for the campsite whose card was tapped.
     selectedCampsite?.let { campsite ->
         AlertDialog(
             onDismissRequest = { selectedCampsite = null },
@@ -286,6 +305,7 @@ fun AdminCampsitesScreen() {
                     Text("Close", color = Gold) } }) }
 
     // This asks the admin to confirm the delete before it is sent to Firebase.
+    // campsite is the campsite selected for deletion in the details dialog.
     campsiteToDelete?.let { campsite ->
         AlertDialog(
             onDismissRequest = {
@@ -330,8 +350,10 @@ fun AdminCampsitesScreen() {
                         deleteError = null }) {
                     Text("Cancel", color = Cream) } }) } }
 
-//Displays one campsite's photo placeholder, rating, name, and location.
-//@param onDetailsClick action to run when the details button is tapped
+//Shows one campsite card with its rating, name, location, and details button.
+// campsite contains the values displayed on the card.
+// onDetailsClick is called when the details button is tapped.
+// This composable displays the card UI; the parent screen handles the click result.
 @Composable
 private fun CampsiteCard(
     campsite: CampsitePreview,
@@ -393,6 +415,11 @@ private fun CampsiteCard(
             { Text("→") } } } } }
 
 
+//Keeps the campsite information used by the screen.
+// campsiteId is the Firestore document ID used when deleting this campsite.
+// name and location are shown on the card and details dialog.
+// rating is the average rating, and owner is the campsite owner's ID.
+// keywords, siteType, capacity, and status are also used by the filters or details.
 private data class CampsitePreview(
     val campsiteId: String,
     val name: String,
@@ -404,7 +431,10 @@ private data class CampsitePreview(
     val capacity: Int = 0,
     val status: String = ""
 )
-//Stores the campsite filter values entered in the filter dialog.
+//Stores the filter values that the admin enters.
+// location, keywords, siteType, and status are matched against campsite details.
+// minCapacity, maxCapacity, and minRating are Strings because they come from text fields.
+// Empty filter values mean that the filter should not restrict the results.
 private data class CampsiteFilters(
     val location: String = "",
     val keywords: String = "",
@@ -418,7 +448,8 @@ private val DarkGreen = Color(0xFF1B3232)
 private val TealCard = Color(0xFF244746)
 private val Gold = Color(0xFFD6A266)
 private val Cream = Color(0xFFFFFBF5)
-//Previews the admin campsites screen in Android Studio.
+//Shows the campsite screen preview in Android Studio.
+// The preview calls the screen with its default state and does not need parameters.
 @Preview(showBackground = true)
 @Composable
 private fun AdminCampsitesScreenPreview() {

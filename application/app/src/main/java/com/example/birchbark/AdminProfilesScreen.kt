@@ -52,7 +52,8 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 //Loads campsites from `campsites` and matches each campsite's `ownerId`
 //to a user document ID. Shows loading and error messages, lets the admin
 //filter and sort profiles, and opens a profile's details when its card is tapped.
-
+//This composable has no parameters because it loads its information from Firebase.
+//It also keeps the current filters, selected profile, and dialog state while it is shown.
 @Composable
 fun AdminProfilesScreen() {
     // This holds the profile that the admin picked to delete.
@@ -63,11 +64,15 @@ fun AdminProfilesScreen() {
     var deleteError by remember { mutableStateOf<String?>(null) }
     var profiles by remember { mutableStateOf(emptyList<ProfilePreview>()) }
     var campsiteData by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
+    // Tracks whether the profile and campsite information is still being loaded.
     var isLoading by remember { mutableStateOf(true) }
+    // Stores a message to show if either Firebase request fails.
     var loadError by remember { mutableStateOf<String?>(null) }
+    // Runs the Firebase requests when this screen first appears.
     LaunchedEffect(Unit) {
         val db = Firebase.firestore
 
+        // Campsites are loaded first so their owner IDs can be matched to users.
         db.collection("campsites")
             .get()
             .addOnSuccessListener { campsiteResult ->
@@ -87,6 +92,7 @@ fun AdminProfilesScreen() {
                     name to (campsite.getString("location") ?: "")
                 }
 
+                // Each users document ID is compared with campsite ownerId values.
                 db.collection("users")
                     .get()
                     .addOnSuccessListener { userResult ->
@@ -115,6 +121,7 @@ fun AdminProfilesScreen() {
                 loadError = error.localizedMessage ?: "Could not load campsites."
                 isLoading = false } }
 
+    // Builds the campsite and area choices shown in the filter dropdowns.
     val campsiteOptions = listOf("All campsites") +
             campsiteData.map { it.first }.distinct()
 
@@ -128,11 +135,13 @@ fun AdminProfilesScreen() {
 
 
 
+    // Keeps profiles that match the campsite and area filters selected by the admin.
     val matchingProfiles = profiles.filter { profile -> (appliedFilters.campsite == "All campsites" ||
             profile.campsite == appliedFilters.campsite) &&
             (appliedFilters.area == "All areas" ||
                     profile.area == appliedFilters.area) }
 
+    // Sorts the filtered profiles by first or last name and applies the chosen order.
     val sortedProfiles = when (appliedFilters.sortBy) {
         "Last name" -> matchingProfiles.sortedBy { it.name.substringAfterLast(" ") }
 
@@ -142,6 +151,7 @@ fun AdminProfilesScreen() {
         else { profilesInOrder }
     }
 
+    // Provides the screen background and the padding used by its content.
     Scaffold(containerColor = ProfileBackground) { innerPadding ->
         Column(
             modifier = Modifier
@@ -187,6 +197,7 @@ fun AdminProfilesScreen() {
                         ProfileCard(profile) {
                             selectedProfile = profile } } } } } }
 
+    // Shows the filter dialog while the admin is choosing profile filters.
     if (showFilters) {
         AlertDialog(
             onDismissRequest = { showFilters = false },
@@ -241,6 +252,7 @@ fun AdminProfilesScreen() {
                 }) {
                     Text("Cancel", color = ProfileCream) } }) }
 
+    // Shows details for the profile whose card was selected.
     selectedProfile?.let { profile ->
         AlertDialog(
             onDismissRequest = { selectedProfile = null },
@@ -266,6 +278,7 @@ fun AdminProfilesScreen() {
                 TextButton(onClick = { selectedProfile = null }) {
                     Text("Close", color = ProfileGold) } }) }
     // This dialog asks one more time before deleting the profile from Firebase.
+    // profile is the profile selected in the details dialog for removal.
     profileToDelete?.let { profile ->
         AlertDialog(
             onDismissRequest = {
@@ -313,7 +326,11 @@ fun AdminProfilesScreen() {
 }
 
 //Displays a read-only dropdown field for choosing a profile filter.
-
+// label is the text shown above the field.
+// value is the option currently selected and displayed in the field.
+// options is the list of choices that appears when the field is tapped.
+// onSelect is called with the chosen option so the caller can update its filter.
+// The function returns a dropdown field and menu as part of the Compose UI.
 @Composable
 private fun ProfileFilterDropdown(
     label: String,
@@ -363,6 +380,9 @@ private fun ProfileFilterDropdown(
                     expanded = false }) } } } }
 
 //Displays a profile's initials and name on a card.
+// profile contains the information displayed on this card.
+// onDetailsClick is called when the details button is tapped.
+// The function returns the card UI; the selected profile is handled by its caller.
 @Composable
 private fun ProfileCard(
     profile: ProfilePreview,
@@ -407,6 +427,9 @@ private fun ProfileCard(
                     contentColor = ProfileBackground))
             { Text("→") } } } } }
 //Holds the profile details used by the admin profiles screen.
+// userId is the Firestore document ID used to identify this user.
+// name, email, and phone are the user's contact details shown to the admin.
+// role is the user's role or roles; campsite and area describe an owned campsite.
 private data class ProfilePreview(
     val userId: String,
     val name: String,
@@ -417,6 +440,7 @@ private data class ProfilePreview(
     val area: String
 )
 //Holds the current campsite, area, and sorting choices for the profiles list.
+// The default values mean no campsite or area filter is applied.
 private data class ProfileFilters(
     val campsite: String = "All campsites",
     val area: String = "All areas",
@@ -430,6 +454,7 @@ private val ProfileTeal = Color(0xFF168F83)
 private val ProfileGold = Color(0xFFD6A266)
 private val ProfileCream = Color(0xFFFFFBF5)
 //Previews the admin profiles screen in Android Studio.
+// It uses the screen's normal default state without needing a signed-in Firebase user.
 @Preview(showBackground = true)
 @Composable
 private fun AdminProfilesScreenPreview() {
