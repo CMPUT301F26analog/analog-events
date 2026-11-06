@@ -1,6 +1,6 @@
 package com.example.birchbark.ui.screens
 
-// See [4] in LLM.md, used to help write Test for EditLotteryScreen.kt
+// See [7] in LLM.md, used to help write Test for EditLotteryScreen.kt
 
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled

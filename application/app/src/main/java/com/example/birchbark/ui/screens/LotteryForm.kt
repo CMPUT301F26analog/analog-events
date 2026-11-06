@@ -5,7 +5,7 @@ import com.example.birchbark.util.Time
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
-// See [3] in LLM.md, used for help organizing and starting up the user story
+// See [6] in LLM.md, used for help organizing and starting up the user story
 
 /**
  * US 02.04.06 Update lottery listing

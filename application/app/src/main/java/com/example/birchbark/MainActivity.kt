@@ -25,10 +25,11 @@ import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
-private const val ENABLE_FIREBASE_TEST = true
+private const val ENABLE_FIREBASE_TEST = false
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,12 +37,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BirchBarkTheme {
-
                 if (ENABLE_FIREBASE_TEST) {
-                    FirebaseTestScreen()
+                    var authenticated by remember{
+                        mutableStateOf(Firebase.auth.currentUser != null)
+                    }
+
+                    if (authenticated) {
+                        NotificationSettingsScreen()
+                    } else {
+                        FirebaseTestScreen(
+                            onAuthenticated = { authenticated = true }
+                        )
+                    }
                 } else {
                     // Without developer login for database
-                    Text("Develop")
+                    AdminBrowseScreen()
                 }
             }
         }
@@ -50,19 +60,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun FirebaseTestScreen() {
-    /**
-     * NOTE::
-     *
-     * THIS IS ONLY TEMPORARY AND FOR DEVELOPMENT PURPOSES
-     *
-     * This is so that each of us can access firestore and create database
-     * collections.
-     *
-     * You will need to make a user and password, then supply me with the UID
-     * to gain access to using the database if you wish to test it out.
-     *
-     *
-     */
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var status by remember {
@@ -108,6 +106,8 @@ fun FirebaseTestScreen() {
                         status = "Authenticated! Testing Firestore..."
 
                         FirebaseRepoTest().testConnection()
+
+                        onAuthenticated()
                     }
                     .addOnFailureListener { e ->
 

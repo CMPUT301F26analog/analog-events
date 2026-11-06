@@ -28,7 +28,7 @@ import com.example.birchbark.ui.theme.birchBarkFieldColors
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 
-// See [3] in LLM.md, used for help organizing and starting up the user story. Further explanations
+// See [6] in LLM.md, used for help organizing and starting up the user story. Further explanations
 // were resolved within the same session.
 
 /**
