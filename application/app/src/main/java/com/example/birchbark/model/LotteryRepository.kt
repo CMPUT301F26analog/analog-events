@@ -172,4 +172,28 @@ class LotteryRepository {
             }
             .addOnFailureListener { error -> callback.onError(error) }
     }
+
+    /**
+     * US 02.04.06: loads the campsite's current lottery (see [CurrentLottery]).
+     *
+     * @param campsiteId the campsite's Firestore document ID.
+     * @param callback onLoaded with the current lottery, onNotFound if the
+     *   campsite has none, or onError if Firestore fails.
+     */
+    fun getLotteryForCampsite(campsiteId: String, callback: LoadCallback) {
+        getLotteriesForCampsite(campsiteId, object : ListCallback {
+            override fun onLoaded(lotteries: List<Lottery>) {
+                val current = CurrentLottery.pick(lotteries)
+                if (current == null) {
+                    callback.onNotFound()
+                } else {
+                    callback.onLoaded(current)
+                }
+            }
+
+            override fun onError(error: Exception) {
+                callback.onError(error)
+            }
+        })
+    }
 }
