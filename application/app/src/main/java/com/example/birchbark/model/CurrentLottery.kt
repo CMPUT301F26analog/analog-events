@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// LLM assistance: see doc/LLM.md, Prompt #009 (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #013 (Akshat)
 
 /**
  * US 02.04.06: decides which of a campsite's lotteries is the current one.

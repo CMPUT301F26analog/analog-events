@@ -1,6 +1,6 @@
 package com.example.birchbark.ui.screens
 
-// LLM assistance: see doc/LLM.md, Prompt #009 (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #013 (Akshat)
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

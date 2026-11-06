@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// LLM assistance: see doc/LLM.md, Prompt #009 (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #013 (Akshat)
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
