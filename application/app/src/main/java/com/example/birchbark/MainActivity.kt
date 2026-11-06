@@ -39,8 +39,10 @@ import com.google.firebase.auth.auth
 import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 import com.example.birchbark.ui.screens.CampsiteDetailsScreen
 import com.example.birchbark.ui.owner.OwnerCampsitesApp
+import com.example.birchbark.ui.entrant.EntrantCampsitesApp
 import com.example.birchbark.ui.entrant.EditProfileScreen
 import androidx.compose.foundation.layout.statusBarsPadding
+
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
@@ -169,7 +171,7 @@ private fun RoleHome(
         Box(modifier = Modifier.weight(1f)) {
             key(selected) {
                 when (selected) {
-                    "entrant" -> EntrantHome()
+                    "entrant" -> EntrantCampsitesApp()
                     "owner" -> OwnerCampsitesApp(ownerId = profile.fid)
                     "admin" -> AdminBrowseScreen(
                         adminName = listOf(profile.firstName, profile.lastName)
@@ -199,27 +201,5 @@ private fun RoleSelectionScreen(roles: List<String>, onSelect: (String) -> Unit)
                 Text(role.replaceFirstChar { it.uppercase() })
             }
         }
-    }
-}
-
-/** Existing entrant browsing screen; tap a campsite to see its existing details screen. */
-@Composable
-private fun EntrantHome() {
-    var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
-    val campsite = selectedCampsite
-    if (campsite == null) {
-        SearchCampsitesScreen(onCampsiteClick = { selectedCampsite = it })
-    } else {
-        BackHandler { selectedCampsite = null }
-        CampsiteDetailsScreen(
-            campsite = campsite,
-            lottery = null,
-            joined = false,
-            isFull = false,
-            message = null,
-            onBack = { selectedCampsite = null },
-            onJoin = {}, // Lottery entry flow is not connected in this phase.
-            onLeave = {}
-        )
     }
 }
