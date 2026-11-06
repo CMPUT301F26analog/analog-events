@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.screens.EditLotteryRoute
+import com.example.birchbark.waitlist.OwnerWaitlistScreen
 
 /**
  * Switches between the owner campsite screens. Starts on the list of the
@@ -35,13 +36,25 @@ fun OwnerCampsitesApp(ownerId: String) {
     var editingCampsite by remember { mutableStateOf<Campsite?>(null) }
     var lotteryCampsite by remember { mutableStateOf<Campsite?>(null) }
     var editingLotteryFor by remember { mutableStateOf<Campsite?>(null) }
-
+    var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val editLotteryFor = editingLotteryFor
     val selectedId = selectedCampsiteId
+    val waitlistId = waitlistLotteryId
 
-    if (registering) {
+    if (waitlistId != null) {
+
+        BackHandler {
+            waitlistLotteryId = null
+        }
+
+        OwnerWaitlistScreen(
+            lotteryId = waitlistId,
+            onBack = { waitlistLotteryId = null }
+        )
+
+    } else if (registering) {
         //register screen, back or finishing goes to the list
         BackHandler { registering = false }
         RegisterCampsiteScreen(
@@ -75,13 +88,14 @@ fun OwnerCampsitesApp(ownerId: String) {
     } else if (selectedId != null) {
         //details screen, back goes to the list
         BackHandler { selectedCampsiteId = null }
-        CampsiteDetailsScreen(
-            campsiteId = selectedId,
-            onEditClick = { campsite -> editingCampsite = campsite },
-            onBack = { selectedCampsiteId = null },
-            onLotteryClick = { campsite -> lotteryCampsite = campsite },
-            onEditLotteryClick = { campsite -> editingLotteryFor = campsite }
-        )
+    CampsiteDetailsScreen(
+        campsiteId = selectedId,
+        onEditClick = { campsite -> editingCampsite = campsite },
+        onBack = { selectedCampsiteId = null },
+        onLotteryClick = { campsite -> lotteryCampsite = campsite },
+        onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
+        onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId }
+    )
     } else {
         //list screen
         MyCampsitesScreen(

@@ -68,8 +68,9 @@ fun CampsiteDetailsScreen(
     onEditClick: (Campsite) -> Unit,
     onBack: () -> Unit,
     onLotteryClick: (Campsite) -> Unit = {},
-    onEditLotteryClick: (Campsite) -> Unit = {}
-) {
+    onEditLotteryClick: (Campsite) -> Unit = {},
+    onViewWaitlist: (String) -> Unit = {}
+  ) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
     var loadedCampsite by remember { mutableStateOf<Campsite?>(null) }
@@ -140,20 +141,33 @@ fun CampsiteDetailsScreen(
             lotteryStatusText(lotteryList, now)
         }
         //only let them make a new lottery if there isn't one going already
-        val canCreateLottery = lotteryList != null && currentLottery(lotteryList, now) == null
-        //can edit when there's a current, undrawn lottery
-        val canEditLottery = lotteryList != null && CurrentLottery.pick(lotteryList) != null
+    val canCreateLottery = lotteryList != null &&
+        currentLottery(lotteryList, now) == null
 
-        CampsiteDetailsContent(
-            campsite = shown,
-            onEditClick = { onEditClick(shown) },
-            onBack = onBack,
-            lotteryText = lotteryText,
-            canCreateLottery = canCreateLottery,
-            onLotteryClick = { onLotteryClick(shown) },
-            canEditLottery = canEditLottery,
-            onEditLotteryClick = { onEditLotteryClick(shown) }
-        )
+    val canEditLottery = lotteryList != null &&
+        CurrentLottery.pick(lotteryList) != null
+
+    val selectedLottery = lotteryList?.let { list ->
+        currentLottery(list, now)
+            ?: list.maxByOrNull { it.registrationStart }
+    }
+
+    CampsiteDetailsContent(
+        campsite = shown,
+        onEditClick = { onEditClick(shown) },
+        onBack = onBack,
+        lotteryText = lotteryText,
+        canCreateLottery = canCreateLottery,
+        onLotteryClick = { onLotteryClick(shown) },
+        canEditLottery = canEditLottery,
+        onEditLotteryClick = { onEditLotteryClick(shown) },
+        canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
+        onViewWaitlist = {
+            selectedLottery?.id
+                ?.takeIf { it.isNotBlank() }
+                ?.let { lotteryId -> onViewWaitlist(lotteryId) }
+        }
+    )
     }
 }
 
@@ -179,7 +193,9 @@ fun CampsiteDetailsContent(
     canCreateLottery: Boolean = false,
     onLotteryClick: () -> Unit = {},
     canEditLottery: Boolean = false,
-    onEditLotteryClick: () -> Unit = {}
+    onEditLotteryClick: () -> Unit = {},
+    canViewWaitlist: Boolean = false,
+    onViewWaitlist: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -218,6 +234,19 @@ fun CampsiteDetailsContent(
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
         )
         DetailRow("Lottery", lotteryText)
+        if (canViewWaitlist) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = onViewWaitlist,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("viewWaitlistButton")
+            ) {
+                Text("View Waitlist")
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
         Button(
