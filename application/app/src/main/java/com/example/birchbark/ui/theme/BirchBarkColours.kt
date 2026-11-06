@@ -6,10 +6,12 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// This file was initially created using [TBD] in LLM.md, then updated to match the Admin screens.
+
+// This file was initially created using [1] in LLM.md, then updated to match the Admin screens.
 /* Claude, Sonnet 5.5, 2026-11-04, "Provide me with a ui.theme kotlin file for the colours that
 matches this UI (insert image of mockup)
  */
+
 
 /**
  * Centrally manages the complete color palette for the BirchBark application.
@@ -90,3 +92,4 @@ fun birchBarkButtonColors() = ButtonDefaults.buttonColors(
     disabledContainerColor = BirchBarkColors.Gold.copy(alpha = 0.3f),
     disabledContentColor = BirchBarkColors.DarkGreen.copy(alpha = 0.6f)
 )
+

@@ -28,7 +28,7 @@ import com.google.firebase.auth.auth
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
-private const val ENABLE_FIREBASE_TEST = true
+private const val ENABLE_FIREBASE_TEST = false
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                     FirebaseTestScreen()
                 } else {
                     // Without developer login for database
-                    Text("Develop")
+                    AdminBrowseScreen()
                 }
             }
         }
@@ -50,19 +50,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun FirebaseTestScreen() {
-    /**
-     * NOTE::
-     *
-     * THIS IS ONLY TEMPORARY AND FOR DEVELOPMENT PURPOSES
-     *
-     * This is so that each of us can access firestore and create database
-     * collections.
-     *
-     * You will need to make a user and password, then supply me with the UID
-     * to gain access to using the database if you wish to test it out.
-     *
-     *
-     */
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var status by remember {
