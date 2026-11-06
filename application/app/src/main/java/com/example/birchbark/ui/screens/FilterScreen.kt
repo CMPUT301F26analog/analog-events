@@ -1,5 +1,6 @@
 package com.example.birchbark.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,11 @@ import com.example.birchbark.util.Time
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldDefaults.colors
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Renders the filter form for the browse screen (US 01.01.02).
@@ -46,6 +52,8 @@ import java.time.ZoneOffset
  * @param onCancel Called to leave the screen without changing the filters.
  * @param modifier Modifier from the parent layout.
  */
+
+@OptIn(ExperimentalMaterial3Api::class) // See [7] in LLM.md, used to help fix the code
 @Composable
 fun FilterScreen(
     currentFilters: EntrantFilters,
@@ -61,20 +69,20 @@ fun FilterScreen(
     val fieldColors = birchBarkFieldColors()
     var showPicker by remember { mutableStateOf(false) }
 
-    // Parse once; the same values are used for the error checks and for Apply. See [TBD] in LLM.md, used for helper code
+    // Parse once; the same values are used for the error checks and for Apply. See [3] in LLM.md, used for helper code
     val occupancyValue = occupancy.trim().toIntOrNull()
     val ratingValue = rating.trim().replace(',', '.').toDoubleOrNull()
     val occupancyError = occupancy.isNotBlank() && (occupancyValue == null || occupancyValue < 1)
     val ratingError = rating.isNotBlank() && (ratingValue == null || ratingValue !in 1.0..5.0)
 
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(modifier = modifier.fillMaxSize().background(Color(0xFF004D40)).verticalScroll(rememberScrollState()).padding(16.dp)) {
         Text("Filters", style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(value = location, onValueChange = { location = it },
             label = { Text("Location") }, colors = fieldColors, modifier = Modifier.fillMaxWidth())
 
-        // One button replaces the two date text fields. See [TBD] in LLM.md, used for helper code
+        // One button replaces the two date text fields. See [4] in LLM.md, used to understand and learn about showPicker
         OutlinedButton(
             onClick = {
                 showPicker = true
@@ -83,10 +91,10 @@ fun FilterScreen(
         ) {
             val start = startDate?.let { Time.format(it) }
             val end = endDate?.let { Time.format(it) }
-            Text(if (start == null) "Choose dates" else "$start to ${end ?: "?"}")
+            Text(if (start == null) "Choose dates" else "$start to ${end ?: "?"}", color = Color.White)
         }
 
-        // See [TBD] in LLM.md, used for helper code for error-catching
+        // See [5] in LLM.md, used for helper code for error-catching
         OutlinedTextField(
             value = occupancy,
             onValueChange = { occupancy = it },
@@ -109,7 +117,6 @@ fun FilterScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
         Button(
             onClick = {
                 onApply(
@@ -123,6 +130,7 @@ fun FilterScreen(
                 )
             },
             colors = birchBarkButtonColors(),
+            enabled = !occupancyError && !ratingError,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Apply") }
 
@@ -132,13 +140,13 @@ fun FilterScreen(
             },
             modifier = Modifier.fillMaxWidth())
         {
-            Text("Clear filters")
+            Text("Clear filters", color = Color.White)
         }
 
         TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel", color = Gold) }
     }
 
-    // See [TBD] in LLM.md, used for helper code --> Matches from the above code
+    // See [4] in LLM.md, used for helper code --> Matches from the above code
     if (showPicker) {
         val pickerState = rememberDateRangePickerState(
             initialSelectedStartDateMillis = startDate?.let { dateToUtcMillis(it) },
@@ -162,7 +170,7 @@ fun FilterScreen(
     }
 }
 
-// See [TBD] in LLM.md, used to help sort out date-time issues with helper code
+// See [6] in LLM.md, used to help sort out date-time issues with helper code
 private fun utcMillisToDate(millis: Long): LocalDate =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
 

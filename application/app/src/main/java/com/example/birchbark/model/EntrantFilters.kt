@@ -11,7 +11,8 @@ import java.time.LocalDate
  * but currently inactive until campsite seasonal availability schedules are implemented.
  * @property endDate The requested check-out date.
  * @property minOccupancy The minimum guest capacity the campsite must accommodate.
- * @property minRating The lowest acceptable average user review score, from 1.0 to 5.0.
+ * @property minRating The lowest acceptable average user review score, from 1.0 to 5.0.C ampsites with
+ *  *   no ratings don't pass if this is set.
  */
 data class EntrantFilters(
     val location: String = "",
@@ -19,4 +20,15 @@ data class EntrantFilters(
     val endDate: LocalDate? = null,
     val minOccupancy: Int? = null,
     val minRating: Double? = null
-)
+) {
+    /**
+     * How many filters are set, for the "Filters (2)" button label. Both dates count as one.
+     */
+    val activeCount: Int
+    get() = listOf(
+        location.isNotBlank(),
+        startDate != null || endDate != null,
+        minOccupancy != null,
+        minRating != null
+    ).count { it }
+}
