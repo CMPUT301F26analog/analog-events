@@ -1141,3 +1141,704 @@ val results = campsites.filter { it.matchesSearch(keyword) && filter(it) }
 ### Answer
 
 > Suggested reusing EditCampsiteForm with a blank campsite and passing in the title and button text, then showing a Registration Complete or Failed screen after saving. Provided RegisterCampsiteScreen and RegisterCampsiteTest.kt.
+
+---
+
+## Prompt #021 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 10-26-2026 |
+
+### Prompt
+
+> Help me plan the Lottery model for US 02.04.03, 02.04.04, 02.04.05, 02.04.06 and 02.04.07: figure out the fields and types, structure the validation and status functions, and write unit tests for them.
+
+### Answer
+
+A Lottery model should store the information needed to run a lottery, including its ID, registration dates, booking dates, number of winners, optional waitlist capacity, and whether the draw has happened. Dates can be stored as `Long` values representing milliseconds since the Unix epoch. A missing waitlist capacity can be represented by `null`.
+
+The model should validate its inputs. For example, the registration end must be after the registration start, and the number of winners must be positive. Its status can be calculated from the current time and the `drawn` flag:
+
+```kotlin
+enum class LotteryStatus {
+    UPCOMING,
+    REGISTRATION_OPEN,
+    REGISTRATION_CLOSED,
+    DRAWN
+}
+
+data class Lottery(
+    val id: String,
+    val registrationStart: Long,
+    val registrationEnd: Long,
+    val bookingStart: Long,
+    val bookingEnd: Long,
+    val winnerCount: Int,
+    val waitlistCapacity: Int?,
+    val drawn: Boolean
+) {
+    fun status(now: Long = System.currentTimeMillis()): LotteryStatus {
+        return when {
+            drawn -> LotteryStatus.DRAWN
+            now < registrationStart -> LotteryStatus.UPCOMING
+            now <= registrationEnd -> LotteryStatus.REGISTRATION_OPEN
+            else -> LotteryStatus.REGISTRATION_CLOSED
+        }
+    }
+
+    fun isRegistrationOpen(now: Long = System.currentTimeMillis()): Boolean =
+        status(now) == LotteryStatus.REGISTRATION_OPEN
+
+    fun isWaitlistFull(waitlistSize: Int): Boolean =
+        waitlistCapacity != null && waitlistSize >= waitlistCapacity
+
+    fun canEdit(now: Long = System.currentTimeMillis()): Boolean =
+        !drawn && now < registrationStart
+}
+```
+
+These status rules are examples and should match the project requirements. Unit tests should cover dates before, during, and after registration; the drawn state; a full waitlist; and invalid values.
+
+---
+
+## Prompt #022 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I get started on my part of the project, which is browsing campsites and profiles as an admin?
+
+### Answer
+
+Start by identifying what each screen needs to do. The campsite screen should display campsite information and provide a way to open its details. The profile screen should display user profiles. Build the basic layouts with sample data first, check that navigation and scrolling work, then connect the screens to the repositories and Firebase.
+
+A helpful order is:
+
+1. Create the screen composables.
+2. Add a small list of sample campsite and profile objects.
+3. Display the objects in scrollable lists.
+4. Add buttons and navigation.
+5. Connect the screens to the repositories and Firebase.
+6. Add loading, empty, and error states.
+
+---
+
+## Prompt #023 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I show the logged-in user's name or email at the top of the admin screen?
+
+### Answer
+
+Firebase Authentication provides the currently signed-in user. You can read the user's display name or email and show it in the admin header. Either property can be missing, so provide a fallback:
+
+```kotlin
+val user = Firebase.auth.currentUser
+val userLabel = user?.displayName
+    ?: user?.email
+    ?: "Admin"
+
+Text(text = "Signed in as $userLabel")
+```
+
+The screen should also handle the case where no user is signed in. For a larger screen, keep authentication state in the screen's view model rather than looking it up in multiple UI components.
+
+---
+
+## Prompt #024 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I make campsite cards that show the campsite name, location, rating, image, and a button to view its details?
+
+### Answer
+
+A campsite card should show the information an admin needs to identify and open a campsite. Keep the card focused on its name, location, rating, image, and details action.
+
+```kotlin
+@Composable
+fun CampsiteCard(
+    name: String,
+    location: String,
+    rating: Double,
+    imageUrl: String?,
+    onDetailsClick: () -> Unit
+) {
+    Card {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = name)
+            Text(text = location)
+            Text(text = "Rating: $rating")
+
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Image of $name"
+                )
+            } else {
+                Text(text = "No image available")
+            }
+
+            Button(onClick = onDetailsClick) {
+                Text("View details")
+            }
+        }
+    }
+}
+```
+
+Use the image loader and campsite fields already used in the project. If a campsite has no image, show a placeholder so the rest of the card still appears.
+
+---
+
+## Prompt #025 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I make the profiles screen so an admin can browse user profiles?
+
+### Answer
+
+Use a scrollable list with one card per profile. Each card can show the profile fields that are useful to an admin, such as the user's name and email. Keep the screen and profile card as separate composables so each is easier to maintain.
+
+```kotlin
+@Composable
+fun ProfilesList(
+    profiles: List<Profile>,
+    onProfileClick: (Profile) -> Unit
+) {
+    LazyColumn {
+        items(profiles, key = { it.id }) { profile ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onProfileClick(profile) }
+                    .padding(8.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("${profile.firstName} ${profile.lastName}")
+                    Text(profile.email)
+                }
+            }
+        }
+    }
+}
+```
+
+Show a loading indicator while profiles are retrieved, an empty-state message if there are no profiles, and an error message if loading fails.
+
+---
+
+## Prompt #026 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I add a location filter for campsites and profiles?
+
+### Answer
+
+Keep the full list and selected location as separate state. Derive the visible list from them. If no location is selected, show all items:
+
+```kotlin
+val visibleCampsites = if (selectedLocation == null) {
+    campsites
+} else {
+    campsites.filter { it.location == selectedLocation }
+}
+```
+
+Use the same approach for profiles if they have a location field. If the profile location is stored in a different format, compare normalized values or use a shared location identifier.
+
+---
+
+## Prompt #027 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I make the location filter look like selectable chips in a dialog?
+
+### Answer
+
+A filter dialog can show each available location as a selectable chip. Keep the selected location in state, and apply it when the user confirms the dialog.
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LocationFilter(
+    locations: List<String>,
+    selectedLocation: String?,
+    onLocationSelected: (String?) -> Unit
+) {
+    Column {
+        locations.forEach { location ->
+            FilterChip(
+                selected = selectedLocation == location,
+                onClick = {
+                    onLocationSelected(
+                        if (selectedLocation == location) null else location
+                    )
+                },
+                label = { Text(location) }
+            )
+        }
+    }
+}
+```
+
+Include an “All locations” option or a clear-filter action so the admin can return to the unfiltered list.
+
+---
+
+## Prompt #028 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I fix the campsite list so it scrolls horizontally?
+
+### Answer
+
+Use `LazyRow` for a horizontally scrolling list of campsite cards. Give each card a defined width so users can see that more cards are available by scrolling.
+
+```kotlin
+LazyRow(
+    contentPadding = PaddingValues(horizontal = 16.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    items(campsites, key = { it.id }) { campsite ->
+        CampsiteCard(
+            campsite = campsite,
+            modifier = Modifier.width(280.dp)
+        )
+    }
+}
+```
+
+Check that the row has enough vertical space, that another element is not intercepting touch gestures, and that its parent is not restricting its width.
+
+---
+
+## Prompt #029 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I center the yellow button on the screen?
+
+### Answer
+
+Place the button in a parent that controls its alignment. A `Box` can center it in the available space:
+
+```kotlin
+Box(
+    modifier = Modifier.fillMaxWidth(),
+    contentAlignment = Alignment.Center
+) {
+    Button(onClick = onClick) {
+        Text("Continue")
+    }
+}
+```
+
+If the button is inside a `Column` and only needs to be centered horizontally, use `horizontalAlignment = Alignment.CenterHorizontally` on the `Column`.
+
+---
+
+## Prompt #030 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I make the selected bottom navigation tab turn orange?
+
+### Answer
+
+Track which tab is selected and change the selected tab's color based on that state. In a Material 3 `NavigationBar`, set the selected icon and label colors through `NavigationBarItemDefaults.colors`:
+
+```kotlin
+NavigationBar {
+    tabs.forEachIndexed { index, tab ->
+        NavigationBarItem(
+            selected = selectedTab == index,
+            onClick = { selectedTab = index },
+            icon = { Icon(tab.icon, contentDescription = tab.label) },
+            label = { Text(tab.label) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color(0xFFFF9800),
+                selectedTextColor = Color(0xFFFF9800),
+                indicatorColor = Color.Transparent
+            )
+        )
+    }
+}
+```
+
+Use the project's existing theme colors if it already defines an orange accent.
+
+---
+
+## Prompt #031 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I preview and test the screens and buttons, and should I remove the @Preview functions before pushing?
+
+### Answer
+
+Use `@Preview` to check the screen layout quickly in Android Studio. Previews help with visual checks, but they do not test navigation, Firebase calls, or button behavior. Run the app to test those interactions.
+
+```kotlin
+@Preview(showBackground = true)
+@Composable
+fun CampsiteCardPreview() {
+    CampsiteCard(
+        name = "Jasper National Park",
+        location = "Near Jasper",
+        rating = 4.9,
+        imageUrl = null,
+        onDetailsClick = {}
+    )
+}
+```
+
+You can normally keep `@Preview` functions in the project. They are development helpers and are not called as part of the app's normal user flow.
+
+---
+
+## Prompt #032 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> Do the variables used in AdminProfilesScreen need to be stored in Firebase?
+
+### Answer
+
+Temporary UI state usually does not need to be stored in Firebase. The selected filter, whether a dialog is open, or which tab is selected can remain in Compose state or a view model.
+
+Information that should persist across sessions belongs in Firebase. This can include a user's name, email, phone number, roles, or profile image URL. The screen should load persistent profile data from Firestore and use local state for temporary interactions.
+
+---
+
+## Prompt #033 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> How can I add the profile fields to Firebase?
+
+### Answer
+
+Define a profile model that matches the fields the app needs, then save and retrieve it from the Firestore `users` collection. Use the Firebase Authentication user ID as the document ID so the profile can be found consistently.
+
+```kotlin
+data class Profile(
+    val id: String = "",
+    val firstName: String = "",
+    val lastName: String = "",
+    val email: String = "",
+    val phoneNumber: String = "",
+    val roles: List<String> = emptyList()
+)
+
+suspend fun saveProfile(profile: Profile) {
+    Firebase.firestore
+        .collection("users")
+        .document(profile.id)
+        .set(profile)
+        .await()
+}
+```
+
+The app should handle save failures and loading states. Only include fields that the app actually uses, and ensure Firebase security rules control who can read or update them.
+
+---
+
+## Prompt #034 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> Can a user profile be connected to a campsite?
+
+### Answer
+
+Store an owner identifier on each campsite, such as `ownerId`. Set it to the Firebase Authentication UID of the user who owns that campsite. The profile document can use that same UID as its document ID.
+
+For example:
+
+- `users/{userId}` stores the user's profile.
+- `campsites/{campsiteId}` stores the campsite and its `ownerId`.
+- The campsite's `ownerId` points to `users/{userId}`.
+
+This lets the app find the owner's profile without copying all profile information into every campsite document.
+
+---
+
+## Prompt #035 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> Why doesn't the profile code have a user ID field?
+
+### Answer
+
+A profile does not always need a `userId` field inside its data. If its Firestore document ID is already the Firebase Authentication UID, that document ID identifies the user.
+
+For example, the profile might be stored at `users/abc123`, where `abc123` is the user's UID. When reading the document, the app can use the document ID as the profile ID. If the app's model needs the ID, map it from the document rather than requiring a duplicate field in the stored document.
+
+---
+
+## Prompt #036 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How is the profile ID checked against the campsite ID?
+
+### Answer
+
+Compare the campsite's `ownerId` with the profile ID or the current user's Firebase UID. They must use the same identifier format.
+
+```kotlin
+fun isCampsiteOwnedByProfile(
+    campsite: Campsite,
+    profile: Profile
+): Boolean {
+    return campsite.ownerId == profile.id
+}
+```
+
+If the profile document ID is the Firebase UID, use that ID consistently when saving the campsite. Do not compare the campsite document ID with a profile ID; those identify different records.
+
+---
+
+## Prompt #037 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I test whether a campsite is connected to the correct owner's profile?
+
+### Answer
+
+Test that a campsite whose `ownerId` matches a profile ID is connected to that profile, and that a different ID does not match.
+
+```kotlin
+@Test
+fun campsiteMatchesItsOwnerProfile() {
+    val profile = Profile(id = "user123")
+    val campsite = Campsite(id = "site456", ownerId = "user123")
+
+    assertTrue(isCampsiteOwnedByProfile(campsite, profile))
+}
+
+@Test
+fun campsiteDoesNotMatchDifferentProfile() {
+    val profile = Profile(id = "user123")
+    val campsite = Campsite(id = "site456", ownerId = "user999")
+
+    assertFalse(isCampsiteOwnedByProfile(campsite, profile))
+}
+```
+
+You can also check Firestore directly to confirm that the campsite's `ownerId` matches the intended user's document ID.
+
+---
+
+## Prompt #038 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I remove a profile without changing unrelated code or spacing?
+
+### Answer
+
+Keep the deletion change limited to the profile action and its repository call. The UI should ask for confirmation, call the repository, and show a success or error result.
+
+```kotlin
+suspend fun deleteProfile(profileId: String) {
+    Firebase.firestore
+        .collection("users")
+        .document(profileId)
+        .delete()
+        .await()
+}
+```
+
+The UI should not assume deletion succeeded until Firebase confirms it. If the profile has related data, decide whether that data should also be deleted or retained before implementing cascading deletion. Keep unrelated layout and formatting unchanged.
+
+---
+
+## Prompt #039 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I troubleshoot profile removal when it gets stuck or Firebase reports a DNS or network error?
+
+### Answer
+
+First check whether the delete request reaches Firestore. Look at the error message in Logcat and confirm that the device or emulator has a network connection. A DNS error usually points to a connectivity or emulator configuration issue rather than a problem with the profile ID.
+
+Also check that:
+
+- The app is connected to the expected Firebase project.
+- The `google-services.json` file belongs to that project.
+- Firebase dependencies and initialization are configured.
+- The deletion coroutine reports exceptions instead of silently swallowing them.
+- The app shows a loading state while deletion is running and restores the UI if it fails.
+
+Do not permanently remove a profile from the screen before the database confirms deletion unless the UI can restore it after an error.
+
+---
+
+## Prompt #040 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-06-2026 |
+
+### Prompt
+
+> How can I check that profile removal has the correct Firebase authorization?
+
+### Answer
+
+Firestore security rules should allow only authorized users to delete profiles. An admin-only rule can check a trusted role stored in a protected user document or use custom claims. Do not rely on a role value that a user can freely edit in their own profile.
+
+A simplified rule might look like this, but it must be adapted to the project's actual role setup:
+
+```text
+match /users/{userId} {
+  allow delete: if request.auth != null
+                && get(/databases/$(database)/documents/users/$(request.auth.uid))
+                     .data.roles.hasAny(["admin"]);
+}
+```
+
+Test both an authorized admin account and a regular account. The admin deletion should succeed, while the regular account should be denied. Keep the authorization check in Firestore rules as well as in the UI, since hiding a delete button alone does not secure the data.
