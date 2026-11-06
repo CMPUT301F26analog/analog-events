@@ -10,20 +10,36 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.UserProfile
 import com.example.birchbark.UserRepository
+import com.example.birchbark.model.ProfileDeletionCoordinator
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
 import com.google.firebase.installations.FirebaseInstallations
 
 @Composable
 fun EditProfileScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDeleted: () -> Unit = {}
 ) {
     val repository = remember { UserRepository() }
+    val deletionCoordinator = remember {
+        ProfileDeletionCoordinator()
+    }
 
-    var profile by remember { mutableStateOf<UserProfile?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var saving by remember { mutableStateOf(false) }
-    var message by remember { mutableStateOf("") }
+    var profile by remember {
+        mutableStateOf<UserProfile?>(null)
+    }
+    var loading by remember {
+        mutableStateOf(true)
+    }
+    var saving by remember {
+        mutableStateOf(false)
+    }
+    var deleting by remember {
+        mutableStateOf(false)
+    }
+    var message by remember {
+        mutableStateOf("")
+    }
 
     LaunchedEffect(Unit) {
         FirebaseInstallations.getInstance().id
@@ -40,13 +56,15 @@ fun EditProfileScreen(
                     },
                     onFailure = { error ->
                         loading = false
-                        message = error.message ?: "Unable to load profile."
+                        message = error.message
+                            ?: "Unable to load profile."
                     }
                 )
             }
             .addOnFailureListener { error ->
                 loading = false
-                message = error.message ?: "Unable to identify device."
+                message = error.message
+                    ?: "Unable to identify device."
             }
     }
 
@@ -57,7 +75,10 @@ fun EditProfileScreen(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        TextButton(onClick = onBack) {
+        TextButton(
+            onClick = onBack,
+            enabled = !saving && !deleting
+        ) {
             Text("Back")
         }
 
@@ -74,10 +95,13 @@ fun EditProfileScreen(
             profile == null -> {
                 Text(message)
             }
+
             else -> {
+                val currentProfile = profile!!
+
                 EditProfileForm(
-                    profile = profile!!,
-                    saving = saving,
+                    profile = currentProfile,
+                    saving = saving || deleting,
                     message = message,
                     onSave = { edited ->
                         val cleaned = repository.cleanProfile(edited)
@@ -105,6 +129,57 @@ fun EditProfileScreen(
                         }
                     }
                 )
+
+                HorizontalDivider()
+
+                Text(
+                    text = "Delete Account",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    text = "Deleting your profile also removes you " +
+                            "from your lottery waitlists."
+                )
+
+                DeleteProfileSection(
+                    working = saving || deleting,
+                    onConfirmDelete = {
+                        deleting = true
+                        message = "Deleting profile..."
+
+                        deletionCoordinator.deleteProfile(
+                            profile = currentProfile,
+                            onSuccess = {
+                                deleting = false
+                                profile = null
+                                onDeleted()
+                            },
+                            onFailure = { error ->
+                                deleting = false
+                                message = "Deletion failed: " +
+                                        (error.localizedMessage
+                                            ?: "Unknown error") +
+                                        ". You can retry. Some waitlist " +
+                                        "memberships may already have " +
+                                        "been removed."
+                            }
+                        )
+                    }
+                )
+
+                if (deleting) {
+                    CircularProgressIndicator()
+                }
+
+                if (message.isNotBlank()) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.testTag(
+                            "deletionStatus"
+                        )
+                    )
+                }
             }
         }
     }
@@ -151,7 +226,7 @@ fun EditProfileForm(
         OutlinedTextField(
             value = lastName,
             onValueChange = { lastName = it },
-            label = { Text("Last Name") },
+            label = { Text("Last Name" ) },
             enabled = !saving,
             singleLine = true,
             colors = birchBarkFieldColors(),
@@ -199,7 +274,9 @@ fun EditProfileForm(
             colors = birchBarkButtonColors(),
             modifier = Modifier.testTag("saveProfileButton")
         ) {
-            Text(if (saving) "Saving..." else "Save Changes")
+            Text(
+                if (saving) "Saving..." else "Save Changes"
+            )
         }
 
         if (message.isNotBlank()) {

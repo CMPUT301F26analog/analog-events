@@ -40,6 +40,9 @@ import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 import com.example.birchbark.ui.screens.CampsiteDetailsScreen
 import com.example.birchbark.ui.owner.OwnerCampsitesApp
 import com.example.birchbark.ui.entrant.EntrantCampsitesApp
+import com.example.birchbark.ui.entrant.EditProfileScreen
+import androidx.compose.foundation.layout.statusBarsPadding
+
 
 
 // Set this flag to disable firestore access or enable temporary database functionality
@@ -90,7 +93,10 @@ private fun BirchBarkRoot() {
             fid = state.fid, authUid = state.authUid,
             onRegistered = { profile -> startup = Startup.Ready(profile) }
         )
-        is Startup.Ready -> RoleHome(profile = state.profile)
+        is Startup.Ready -> RoleHome(
+            profile = state.profile,
+            onProfileDeleted = { restart++ }
+        )
     }
 }
 
@@ -104,7 +110,10 @@ private fun CenterContent(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun RoleHome(profile: UserProfile) {
+private fun RoleHome(
+    profile: UserProfile,
+    onProfileDeleted: () -> Unit
+) {
     val roles = profile.roles.map { it.lowercase() }.distinct()
     // If admin is a role, it is the default homescreen when enterin the app
     val firstRole = when {
@@ -113,14 +122,44 @@ private fun RoleHome(profile: UserProfile) {
         else -> null
     }
     var activeRole by remember(profile.fid, roles) { mutableStateOf(firstRole) }
-
+    var viewingProfile by remember(profile.fid) {
+        mutableStateOf(false)
+    }
     val selected = activeRole
+
     if (selected == null) {
-        RoleSelectionScreen(roles = roles, onSelect = { activeRole = it })
+        RoleSelectionScreen(
+            roles = roles,
+            onSelect = { activeRole = it }
+        )
         return
     }
-    Column(modifier = Modifier.fillMaxSize()) {
+
+    if (viewingProfile) {
+        BackHandler { viewingProfile = false }
+
+        EditProfileScreen(
+            onBack = { viewingProfile = false },
+            onDeleted = onProfileDeleted
+        )
+        return
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
+
+        if (selected == "entrant" || selected == "owner") {
+            TextButton(
+                onClick = { viewingProfile = true }
+            ) {
+                Text("My Profile")
+            }
+        }
+
         if (roles.size > 1) {
+
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
