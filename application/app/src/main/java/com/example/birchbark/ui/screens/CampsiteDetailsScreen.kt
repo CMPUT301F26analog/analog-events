@@ -31,6 +31,7 @@ import com.example.birchbark.model.Lottery
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.birchbark.ui.entrant.EntrantWaitlistSection
 
 /**
  * Displays the complete details view for an individual campsite. Includes property details,
@@ -129,8 +130,9 @@ fun CampsiteDetailsScreen(
             onJoin = onJoin
         )
          */
+        EntrantWaitlistSection(lottery = lottery)
+        }
     }
-}
 
 @Composable
 private fun TabButton(
