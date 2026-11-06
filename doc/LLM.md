@@ -785,3 +785,21 @@ I would start with this instrumented test before introducing mocks or dependency
 
 
 ---
+
+
+## Prompt #013 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> Help me connect the edit lottery screen to Firestore for US 02.04.06: load the campsite's current lottery, save changes, and add an Edit Lottery button to the owner's campsite details screen.
+
+### Answer
+
+> Provided CurrentLottery (moving the "current lottery" rule into the model) and its unit tests, getLotteryForCampsite, EditLotteryRoute, and the Edit Lottery button changes to CampsiteDetailsScreen and OwnerCampsitesApp. I fixed the parameter name clash in EditLotteryRoute's onLoaded.
