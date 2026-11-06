@@ -5,6 +5,11 @@ CMPUT 301 Fall 2026 team repository for project development.
 
 # **WORK IN PROGRESS ** 
 
+## ADMIN GIF DEMO
+
+![](/doc/admin_demo.gif)
+
+
 ## Software V0.4.1
 
 
