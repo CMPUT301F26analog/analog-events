@@ -72,7 +72,7 @@ fun CampsiteSummary(
 }
 
 /*
-// See [1] in LLM.md, which was used for creating the preview function below
+// See [3] in LLM.md, which was used for creating the preview function below
 @Preview(showBackground = true, name = "Campsite Summary Preview")
 @Composable
 fun CampsiteSummaryPreview() {

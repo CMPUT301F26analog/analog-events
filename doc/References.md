@@ -38,7 +38,29 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 ## Website
 
-[1] “Tabs,” Android Developers, 2025. [Online]. Available: https://developer.android.com/develop/ui/compose/components/tabs [Accessed: Nov. 04/2026]
+[1] Android Developers, "Best practices for unique identifiers," Google. [Online]. Available: https://developer.android.com/identity/user-data-ids#kotlin [Accessed: Oct. 26/2026]
+
+[2] Firebase, "FirebaseInstallations," Google. [Online]. Available: https://firebase.google.com/docs/reference/android/com/google/firebase/installations/FirebaseInstallations [Accessed: Oct. 26/2026]
+
+[3] Firebase, "FirebaseFirestore Framework Reference DocumentID," Google. [Online]. Available: https://firebase.google.com/docs/reference/swift/firebasefirestore/api/reference/Structs/DocumentID [Accessed: Oct. 27/2026]
+
+[4] Android Developers, "Add repository and Manual DI," Google. [Online]. Available: https://developer.android.com/codelabs/basic-android-kotlin-compose-add-repository#0 [Accessed: Oct. 27/2026]
+
+[5] Firebase, "DocumentID," Google. [Online]. Available: https://firebase.google.com/docs/reference/android/com/google/firebase/firestore/DocumentId [Accessed: Oct. 27/2026]
+
+[6] Alessio Stalla, “Baeldung,” Baeldung on Kotlin, Feb. 13, 2018. Available: https://www.baeldung.com/kotlin/regular-expressions [Accessed: Nov. 4/2026]
+
+[7] w3resource, “Kotlin Program: Convert List of Strings to Uppercase With Lambda,” w3resource, Aug. 27, 2025. Available: https://www.w3resource.com/kotlin-exercises/lambda/kotlin-lambda-exercise-7.php [Accessed: Nov. 4/2026]
+
+[8] Wikipedia, “E.164,” Wikipedia, Nov. 29, 2020. Available:https://en.wikipedia.org/wiki/E.164 [Accessed: Nov. 4/2026]
+
+[9] Kotlin, “mapOf,” Kotlin Help, 2025. [Online] Available: https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/map-of.html [Accessed: Nov. 4/2026]
+
+[10] Firebase, “Add Data to Cloud Firestore | Firebase Documentation,” Firebase. [Online] Available: https://firebase.google.com/docs/firestore/manage-data/add-data [Accessed: Nov. 4/2026]
+
+[11] Firebase, “Delete Data From Cloud Firestore | Firebase,” Firebase, 2020. Available: https://firebase.google.com/docs/firestore/manage-data/delete-data [Accessed: Nov. 4/2026]
+
+[12] “Tabs,” Android Developers, 2025. [Online]. Available: https://developer.android.com/develop/ui/compose/components/tabs [Accessed: Nov. 04/2026]
 
 ## Text
 
