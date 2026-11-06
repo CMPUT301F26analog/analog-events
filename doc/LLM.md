@@ -45,4 +45,117 @@
 =======
 <!-- Copy the section beginnning at "Prompt #001..." for each new interaction. Increment as we go on -->
 
+## Prompt #003 (Eliza)
 
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> "Write Kotlin code to parse and validate a string occupancy (must be an integer >= 1) and a string rating (must be a double between 1.0 and 5.0, replacing commas with periods). Just give me the variable assignments and error flags."
+
+### Answer
+> See FilterScreen.kt file in main folder for full answer.
+
+## Prompt #004 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> ""I'm building a screen in Jetpack Compose and I want to add a button that opens a calendar/date picker when the user clicks it. How do I handle showing and hiding the pop-up dialog in Compose?"
+
+### Answer
+> In Jetpack Compose, you handle showing and hiding a pop-up dialog by using a boolean state variable. Because Compose is declarative, you don't "open" or "close" a dialog with a command. Instead, you conditionally show it based on whether that state variable is true or false.
+> Here is exactly how you handle this pattern:
+> 1. Define the Visibility State
+> At the top of your composable, create a state variable (often named something like showPicker). Initialize it to false so the calendar is hidden by default.
+  
+    kotlin
+    var showPicker by remember { mutableStateOf(false) }
+> 2. Trigger the State with a Button
+
+> When the user clicks your button, you simply flip that state variable to true. This tells Compose to redraw the screen and include the dialog.
+
+    kotlin
+    OutlinedButton(
+        onClick = { showPicker = true }, // Turns the dialog ON
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Choose dates")
+    }
+
+> 3. Conditionally Display the Dialog
+
+> Right below your button, use a standard Kotlin if statement. If showPicker is true, the dialog is rendered. To hide it, you just set showPicker = false inside the dialog's dismiss or confirm actions.
+
+    kotlin
+    if (showPicker) {
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false }, // Turns it OFF if user taps outside
+            confirmButton = {
+                TextButton(onClick = { showPicker = false }) { // Turns it OFF when they click OK
+                    Text("OK")
+                }
+            }
+        ) {
+            // Your actual DatePicker calendar content goes here
+        }
+    }
+
+## Prompt #005 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> ""I'm making a form field in Jetpack Compose for entering the number of guests. I want it to look red and show a message saying 'Enter a whole number, 1 or more' if the user types something invalid like letters or a number less than 1. How do I build that kind of validation layout?""
+
+### Answer
+> See FilterScreen.kt file in main folder for full answer.
+
+## Prompt #006 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-04   |
+
+### Prompt
+
+> "I am working with a DatePicker in Android that returns dates as a Long timestamp in UTC milliseconds, but the rest of my app uses Java LocalDate. Can you give me two simple helper functions to convert back and forth between UTC milliseconds and a LocalDate?"
+
+### Answer
+> See FilterScreen.kt file in main folder for full answer.
+
+## Prompt #007 (Eliza)
+
+|    Field     |  Details   |
+|:-------------|:-----------|
+|**Promptee**  | Eliza Lazar  |
+| **Agent**    | Claude |
+| **Model**    | Sonnet 5.5 |
+| **Date**     | 2026-11-05   |
+
+### Prompt
+
+> "Can you provide me with unit tests in android studio based on this function structure [INSERT CODE], in kotlin?"
+
+### Answer
+> See CampsiteFilterTest.kt file in Test folder for full answer.
