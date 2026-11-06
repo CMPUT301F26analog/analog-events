@@ -44,7 +44,7 @@
 
 ---
 
-## Prompt #003
+## Prompt #003 (Eliza)
 
 |    Field     |  Details   |
 |:-------------|:-----------|
