@@ -38,7 +38,7 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 ## Website
 
-[1]
+[1] “Tabs,” Android Developers, 2025. [Online]. Available: https://developer.android.com/develop/ui/compose/components/tabs [Accessed: Nov. 04/2026]
 
 ## Text
 
