@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
-// See [TBD] in LLM.md, used to help write Test for CampsiteSummary.kt
+// See [8] in LLM.md, used to help write Test for CampsiteFilter.kt
 
 /**
  * Unit tests for filtering campsites.
