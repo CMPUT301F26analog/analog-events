@@ -49,13 +49,18 @@ import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
 
 //Displays user profiles loaded from the Firestore `users` collection.
- //Loads campsites from `campsites` and matches each campsite's `ownerId`
- //to a user document ID. Shows loading and error messages, lets the admin
- //filter and sort profiles, and opens a profile's details when its card is tapped.
+//Loads campsites from `campsites` and matches each campsite's `ownerId`
+//to a user document ID. Shows loading and error messages, lets the admin
+//filter and sort profiles, and opens a profile's details when its card is tapped.
 
 @Composable
 fun AdminProfilesScreen() {
-
+    // This holds the profile that the admin picked to delete.
+    var profileToDelete by remember {
+        mutableStateOf<ProfilePreview?>(null)
+    }
+    // This is used to show an error if Firebase cannot delete the profile.
+    var deleteError by remember { mutableStateOf<String?>(null) }
     var profiles by remember { mutableStateOf(emptyList<ProfilePreview>()) }
     var campsiteData by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -92,6 +97,7 @@ fun AdminProfilesScreen() {
                                 .orEmpty()
 
                             ProfilePreview(
+                                userId = user.id,
                                 name = listOfNotNull(
                                     user.getString("firstName"),
                                     user.getString("lastName")
@@ -100,21 +106,14 @@ fun AdminProfilesScreen() {
                                 phone = user.getString("phoneNumber") ?: "",
                                 role = roles.joinToString(", ").ifBlank { "Unknown" },
                                 campsite = ownedCampsite?.first ?: "",
-                                area = ownedCampsite?.second ?: ""
-                            )
-                        }
-                        isLoading = false
-                    }
+                                area = ownedCampsite?.second ?: "") }
+                        isLoading = false }
                     .addOnFailureListener { error ->
                         loadError = error.localizedMessage ?: "Could not load profiles."
-                        isLoading = false
-                    }
-            }
+                        isLoading = false } }
             .addOnFailureListener { error ->
                 loadError = error.localizedMessage ?: "Could not load campsites."
-                isLoading = false
-            }
-    }
+                isLoading = false } }
 
     val campsiteOptions = listOf("All campsites") +
             campsiteData.map { it.first }.distinct()
@@ -125,15 +124,14 @@ fun AdminProfilesScreen() {
     var draftFilters by remember { mutableStateOf(ProfileFilters()) }
     var showFilters by remember { mutableStateOf(false) }
     var selectedProfile by remember {
-        mutableStateOf<ProfilePreview?>(null)
-    }
+        mutableStateOf<ProfilePreview?>(null) }
 
 
 
     val matchingProfiles = profiles.filter { profile -> (appliedFilters.campsite == "All campsites" ||
-                profile.campsite == appliedFilters.campsite) &&
-                (appliedFilters.area == "All areas" ||
-                        profile.area == appliedFilters.area) }
+            profile.campsite == appliedFilters.campsite) &&
+            (appliedFilters.area == "All areas" ||
+                    profile.area == appliedFilters.area) }
 
     val sortedProfiles = when (appliedFilters.sortBy) {
         "Last name" -> matchingProfiles.sortedBy { it.name.substringAfterLast(" ") }
@@ -150,19 +148,19 @@ fun AdminProfilesScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) { Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, top = 16.dp, end = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) { Text(text = "Profiles",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = ProfileGold)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 16.dp, end = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) { Text(text = "Profiles",
+            style = MaterialTheme.typography.titleLarge,
+            color = ProfileGold)
 
-                TextButton(onClick = {
-                    draftFilters = appliedFilters
-                    showFilters = true
-                }) { Text("Filter", color = ProfileGold) } }
+            TextButton(onClick = {
+                draftFilters = appliedFilters
+                showFilters = true
+            }) { Text("Filter", color = ProfileGold) } }
 
             if (isLoading) {
                 Text("Loading profiles...", color = ProfileCream)
@@ -194,52 +192,49 @@ fun AdminProfilesScreen() {
             onDismissRequest = { showFilters = false },
             containerColor = ProfileCardColor,
             title = {
-                Text("Filter profiles", color = ProfileCream)
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 450.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Sort by", color = ProfileCream)
+                Text("Filter profiles", color = ProfileCream) },
+            text = { Column(
+                modifier = Modifier
+                    .heightIn(max = 450.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Sort by", color = ProfileCream)
 
-                    ProfileFilterDropdown(
-                        label = "Name",
-                        value = draftFilters.sortBy,
-                        options = listOf("First name", "Last name"),
-                        onSelect = {
-                            draftFilters = draftFilters.copy(sortBy = it) })
+                ProfileFilterDropdown(
+                    label = "Name",
+                    value = draftFilters.sortBy,
+                    options = listOf("First name", "Last name"),
+                    onSelect = {
+                        draftFilters = draftFilters.copy(sortBy = it) })
 
-                    ProfileFilterDropdown(
-                        label = "Order",
-                        value = draftFilters.sortOrder,
-                        options = listOf("A–Z", "Z–A"),
-                        onSelect = {
-                            draftFilters = draftFilters.copy(sortOrder = it)})
+                ProfileFilterDropdown(
+                    label = "Order",
+                    value = draftFilters.sortOrder,
+                    options = listOf("A–Z", "Z–A"),
+                    onSelect = {
+                        draftFilters = draftFilters.copy(sortOrder = it)})
 
-                    Text("Campsite", color = ProfileCream)
+                Text("Campsite", color = ProfileCream)
 
-                    ProfileFilterDropdown(
-                        label = "Choose campsite",
-                        value = draftFilters.campsite,
-                        options = campsiteOptions,
-                        onSelect = { draftFilters = draftFilters.copy(campsite = it) })
+                ProfileFilterDropdown(
+                    label = "Choose campsite",
+                    value = draftFilters.campsite,
+                    options = campsiteOptions,
+                    onSelect = { draftFilters = draftFilters.copy(campsite = it) })
 
-                    Text("Area", color = ProfileCream)
+                Text("Area", color = ProfileCream)
 
-                    ProfileFilterDropdown(
-                        label = "Choose area",
-                        value = draftFilters.area,
-                        options = areaOptions,
-                        onSelect = {
-                            draftFilters = draftFilters.copy(area = it) })} },
+                ProfileFilterDropdown(
+                    label = "Choose area",
+                    value = draftFilters.area,
+                    options = areaOptions,
+                    onSelect = {
+                        draftFilters = draftFilters.copy(area = it) })} },
             confirmButton = {
                 TextButton(onClick = {
                     appliedFilters = draftFilters
                     showFilters = false }) { Text("Apply Filters", color = ProfileGold) }
             },
+
             dismissButton = {
                 TextButton(onClick = {
                     showFilters = false
@@ -254,14 +249,68 @@ fun AdminProfilesScreen() {
                 Text(profile.name, color = ProfileCream)
             },
             text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Email: ${profile.email}", color = ProfileCream)
-                    Text("Phone: ${profile.phone}", color = ProfileCream)
-                    Text("Role: ${profile.role}", color = ProfileCream)
-                    Text("Campsite: ${profile.campsite}", color = ProfileCream)
-                    Text("Area: ${profile.area}", color = ProfileCream) } },
+                Text("Email: ${profile.email}", color = ProfileCream)
+                Text("Phone: ${profile.phone}", color = ProfileCream)
+                Text("Role: ${profile.role}", color = ProfileCream)
+                Text("Campsite: ${profile.campsite}", color = ProfileCream)
+                Text("Area: ${profile.area}", color = ProfileCream) } },
+
+            dismissButton = {
+                TextButton(onClick = {
+                    // Opens the delete confirmation for this profile.
+                    profileToDelete = profile
+                    deleteError = null
+                    selectedProfile = null }) {
+                    Text("Delete profile", color = ProfileGold) } },
             confirmButton = {
                 TextButton(onClick = { selectedProfile = null }) {
-                    Text("Close", color = ProfileGold) } }) } }
+                    Text("Close", color = ProfileGold) } }) }
+    // This dialog asks one more time before deleting the profile from Firebase.
+    profileToDelete?.let { profile ->
+        AlertDialog(
+            onDismissRequest = {
+                profileToDelete = null
+                deleteError = null },
+            containerColor = ProfileCardColor,
+            title = {
+                Text("Delete profile?", color = ProfileCream) },
+            text = {
+                Column {
+                    Text("Delete ${profile.name} from the profiles?",
+                        color = ProfileCream)
+                    // If Firebase gives an error, it shows up here.
+                    deleteError?.let { error ->
+                        Text(error, color = ProfileCream) } } },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Deletes the user's document from the Firestore users collection.
+                        Firebase.firestore
+                            .collection("users")
+                            .document(profile.userId)
+                            .delete()
+                            .addOnSuccessListener {
+                                // The profile disappears from the screen after Firebase says it worked.
+                                profiles = profiles.filterNot {
+                                    it.userId == profile.userId
+                                }
+                                profileToDelete = null
+                                deleteError = null
+                            }
+                            .addOnFailureListener { error ->
+                                // Keeps the dialog open and shows the error if the delete fails.
+                                deleteError =
+                                    error.localizedMessage ?: "Could not delete profile." } }) {
+                    Text("Delete", color = ProfileGold) } },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        // Cancel closes the dialog and does not delete the profile.
+                        profileToDelete = null
+                        deleteError = null }) {
+                    Text("Cancel", color = ProfileCream) } }) }
+
+}
 
 //Displays a read-only dropdown field for choosing a profile filter.
 
@@ -299,19 +348,19 @@ private fun ProfileFilterDropdown(
 
         // This layer opens the choices when you tap the field.
         Box(modifier = Modifier
-                .matchParentSize()
-                .clickable { expanded = true })
+            .matchParentSize()
+            .clickable { expanded = true })
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(ProfileCardColor)
         ) { options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option, color = ProfileCream) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false }) } } } }
+            DropdownMenuItem(
+                text = { Text(option, color = ProfileCream) },
+                onClick = {
+                    onSelect(option)
+                    expanded = false }) } } } }
 
 //Displays a profile's initials and name on a card.
 @Composable
@@ -319,46 +368,47 @@ private fun ProfileCard(
     profile: ProfilePreview,
     onDetailsClick: () -> Unit
 ) { Card(   modifier = Modifier
-            .width(290.dp)
-            .height(460.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = ProfileTeal)) {
-        Box(modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(110.dp)
-                        .background(ProfileCream, CircleShape),
-                    contentAlignment = Alignment.Center)
+    .width(290.dp)
+    .height(460.dp),
+    shape = RoundedCornerShape(24.dp),
+    colors = CardDefaults.cardColors(
+        containerColor = ProfileTeal)) {
+    Box(modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .background(ProfileCream, CircleShape),
+                contentAlignment = Alignment.Center)
 
-                {
-                    Text(
-                        text = profile.name
-                            .split(" ")
-                            .mapNotNull { it.firstOrNull() }
-                            .joinToString(""),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = ProfileBackground) }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
+            {
                 Text(
-                    text = profile.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = ProfileCream)
+                    text = profile.name
+                        .split(" ")
+                        .mapNotNull { it.firstOrNull() }
+                        .joinToString(""),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = ProfileBackground) }
 
-                Button(
-                    onClick = onDetailsClick,
-                    modifier = Modifier.padding(top = 24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ProfileGold,
-                        contentColor = ProfileBackground))
-                { Text("→") } } } } }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.titleLarge,
+                color = ProfileCream)
+
+            Button(
+                onClick = onDetailsClick,
+                modifier = Modifier.padding(top = 24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ProfileGold,
+                    contentColor = ProfileBackground))
+            { Text("→") } } } } }
 //Holds the profile details used by the admin profiles screen.
 private data class ProfilePreview(
+    val userId: String,
     val name: String,
     val email: String,
     val phone: String,

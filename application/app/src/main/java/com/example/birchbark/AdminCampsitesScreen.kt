@@ -54,6 +54,12 @@ fun AdminCampsitesScreen() {
     var campsites by remember {
         mutableStateOf(emptyList<CampsitePreview>())
     }
+    // This saves the campsite that the admin wants to delete.
+    var campsiteToDelete by remember {
+        mutableStateOf<CampsitePreview?>(null)
+    }
+    // This shows an error if Firebase cannot delete the campsite.
+    var deleteError by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
 
@@ -69,6 +75,7 @@ fun AdminCampsitesScreen() {
                         (document.get("ratingTotal") as? Number)?.toDouble() ?: 0.0
 
                     CampsitePreview(
+                        campsiteId = document.id,
                         name = name,
                         location = document.getString("location") ?: "",
                         rating = if (ratingCount > 0) ratingTotal / ratingCount else 0.0,
@@ -137,17 +144,17 @@ fun AdminCampsitesScreen() {
                     .padding(start = 20.dp, top = 16.dp, end = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) { Text(
-                    text = "Campsites",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Gold
-                )
+                text = "Campsites",
+                style = MaterialTheme.typography.titleLarge,
+                color = Gold
+            )
 
                 TextButton(
                     modifier = Modifier.testTag("campsite-filter-button"),
                     onClick = {
-                    draftFilters = appliedFilters
-                    showFilters = true
-                }) { Text("Filter", color = Gold) } }
+                        draftFilters = appliedFilters
+                        showFilters = true
+                    }) { Text("Filter", color = Gold) } }
 
             if (isLoading) {
                 Text("Loading campsites...", color = Cream)
@@ -188,14 +195,14 @@ fun AdminCampsitesScreen() {
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp))
                 { OutlinedTextField(
-                        modifier = Modifier.testTag("campsite-location-field"),
-                        value = draftFilters.location,
+                    modifier = Modifier.testTag("campsite-location-field"),
+                    value = draftFilters.location,
 
-                        onValueChange = {
-                            draftFilters = draftFilters.copy(location = it)
-                        },
-                        label = { Text("Location") },
-                        singleLine = true,colors = filterFieldColors)
+                    onValueChange = {
+                        draftFilters = draftFilters.copy(location = it)
+                    },
+                    label = { Text("Location") },
+                    singleLine = true,colors = filterFieldColors)
 
                     OutlinedTextField(modifier = Modifier.testTag("campsite-keywords-field"),
                         value = draftFilters.keywords,
@@ -245,9 +252,9 @@ fun AdminCampsitesScreen() {
             confirmButton = {
                 TextButton(modifier = Modifier.testTag("apply-campsite-filters"),
                     onClick = {
-                    appliedFilters = draftFilters
-                    showFilters = false
-                }) {
+                        appliedFilters = draftFilters
+                        showFilters = false
+                    }) {
                     Text("Apply Filters", color = Gold) } },
             dismissButton = {
                 TextButton(onClick = { showFilters = false }) {
@@ -267,9 +274,61 @@ fun AdminCampsitesScreen() {
                     Text("Site type: ${campsite.siteType}", color = Cream)
                     Text("Capacity: ${campsite.capacity}", color = Cream)
                     Text("Status: ${campsite.status}", color = Cream) } },
+            dismissButton = {
+                TextButton(onClick = {
+                    // Opens the confirmation before deleting this campsite.
+                    campsiteToDelete = campsite
+                    deleteError = null
+                    selectedCampsite = null }) {
+                    Text("Delete campsite", color = Gold) } },
             confirmButton = {
                 TextButton(onClick = { selectedCampsite = null }) {
-                    Text("Close", color = Gold) } }) } }
+                    Text("Close", color = Gold) } }) }
+
+    // This asks the admin to confirm the delete before it is sent to Firebase.
+    campsiteToDelete?.let { campsite ->
+        AlertDialog(
+            onDismissRequest = {
+                campsiteToDelete = null
+                deleteError = null },
+            containerColor = TealCard,
+            title = {
+                Text("Delete campsite?", color = Cream) },
+            text = {
+                Column {
+                    Text("Delete ${campsite.name} from the campsites?",
+                        color = Cream)
+                    // Shows the Firebase error in the dialog if there is one.
+                    deleteError?.let { error ->
+                        Text(error, color = Cream) } } },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Deletes this campsite document from Firestore.
+                        Firebase.firestore
+                            .collection("campsites")
+                            .document(campsite.campsiteId)
+                            .delete()
+                            .addOnSuccessListener {
+                                // Takes the campsite off the screen after Firebase deletes it.
+                                campsites = campsites.filterNot {
+                                    it.campsiteId == campsite.campsiteId
+                                }
+                                campsiteToDelete = null
+                                deleteError = null
+                            }
+                            .addOnFailureListener { error ->
+                                // Shows the error if the delete does not work.
+                                deleteError =
+                                    error.localizedMessage ?: "Could not delete campsite." } }) {
+                    Text("Delete", color = Gold) } },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        // Cancel closes this dialog without deleting the campsite.
+                        campsiteToDelete = null
+                        deleteError = null }) {
+                    Text("Cancel", color = Cream) } }) } }
 
 //Displays one campsite's photo placeholder, rating, name, and location.
 //@param onDetailsClick action to run when the details button is tapped
@@ -278,63 +337,64 @@ private fun CampsiteCard(
     campsite: CampsitePreview,
     onDetailsClick: () -> Unit
 ) { Card(
+    modifier = Modifier
+        .width(290.dp)
+        .height(460.dp),
+    shape = RoundedCornerShape(24.dp),
+    colors = CardDefaults.cardColors(containerColor = TealCard)) {
+    Box(
         modifier = Modifier
-            .width(290.dp)
-            .height(460.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = TealCard)) {
-        Box(
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF547B75),
+                        Color(0xFF294B47),
+                        Color(0xFF172D2C))))) {
+        Text(
+            text = "Campsite photo",
+            color = Cream,
+            modifier = Modifier.align(Alignment.Center))
+        Text(
+            text = "★ ${campsite.rating}",
+            color = DarkGreen,
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF547B75),
-                            Color(0xFF294B47),
-                            Color(0xFF172D2C))))) {
-            Text(
-                text = "Campsite photo",
-                color = Cream,
-                modifier = Modifier.align(Alignment.Center))
-            Text(
-                text = "★ ${campsite.rating}",
-                color = DarkGreen,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .background(Gold, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp))
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .background(Color(0x990F2221))
-                    .padding(18.dp))
-            {  Text(
-                    text = campsite.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Cream)
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .background(Gold, RoundedCornerShape(20.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp))
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(Color(0x990F2221))
+                .padding(18.dp))
+        {  Text(
+            text = campsite.name,
+            style = MaterialTheme.typography.headlineSmall,
+            color = Cream)
 
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = campsite.location,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Cream)
-                Button(
-                    onClick = onDetailsClick,
-                    modifier = Modifier
-                        .testTag("campsite-details-${campsite.name}")
-                        .align(Alignment.End)
-                        .padding(top = 12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Gold,
-                        contentColor = DarkGreen
-                    ))
-                { Text("→") } } } } }
+            Text(
+                text = campsite.location,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Cream)
+            Button(
+                onClick = onDetailsClick,
+                modifier = Modifier
+                    .testTag("campsite-details-${campsite.name}")
+                    .align(Alignment.End)
+                    .padding(top = 12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Gold,
+                    contentColor = DarkGreen
+                ))
+            { Text("→") } } } } }
 
 
 private data class CampsitePreview(
+    val campsiteId: String,
     val name: String,
     val location: String,
     val rating: Double,
@@ -358,7 +418,7 @@ private val DarkGreen = Color(0xFF1B3232)
 private val TealCard = Color(0xFF244746)
 private val Gold = Color(0xFFD6A266)
 private val Cream = Color(0xFFFFFBF5)
-
+//Previews the admin campsites screen in Android Studio.
 @Preview(showBackground = true)
 @Composable
 private fun AdminCampsitesScreenPreview() {
