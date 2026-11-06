@@ -54,6 +54,21 @@ class LotteryRepository {
         fun onError(error: Exception)
     }
 
+    /** Receives the result of [getLotteriesForCampsite]. Exactly one function is called. */
+    interface ListCallback {
+        /**
+         * The lotteries were loaded.
+         * @param lotteries every lottery that includes the campsite. Empty if there aren't any.
+         */
+        fun onLoaded(lotteries: List<Lottery>)
+
+        /**
+         * Firestore failed, e.g. no network or no permission.
+         * @param error the exception Firestore reported.
+         */
+        fun onError(error: Exception)
+    }
+
     /**
      * Loads one lottery by its document ID.
      *
@@ -141,5 +156,44 @@ class LotteryRepository {
             .addOnFailureListener { error ->
                 callback.onError(error)
             }
+    }
+
+    /**
+     * US 02.04.01: loads every lottery that includes a campsite, so the campsite
+     * details screen can show whether a lottery is open.
+     *
+     * @param campsiteId the campsite's Firestore document ID, as stored in [Lottery.campsiteIds].
+     * @param callback receives the lotteries, or an error.
+     */
+    fun getLotteriesForCampsite(campsiteId: String, callback: ListCallback) {
+        db.collection("lotteries").whereArrayContains("campsiteIds", campsiteId).get()
+            .addOnSuccessListener { result ->
+                callback.onLoaded(result.toObjects(Lottery::class.java))
+            }
+            .addOnFailureListener { error -> callback.onError(error) }
+    }
+
+    /**
+     * US 02.04.06: loads the campsite's current lottery (see [CurrentLottery]).
+     *
+     * @param campsiteId the campsite's Firestore document ID.
+     * @param callback onLoaded with the current lottery, onNotFound if the
+     *   campsite has none, or onError if Firestore fails.
+     */
+    fun getLotteryForCampsite(campsiteId: String, callback: LoadCallback) {
+        getLotteriesForCampsite(campsiteId, object : ListCallback {
+            override fun onLoaded(lotteries: List<Lottery>) {
+                val current = CurrentLottery.pick(lotteries)
+                if (current == null) {
+                    callback.onNotFound()
+                } else {
+                    callback.onLoaded(current)
+                }
+            }
+
+            override fun onError(error: Exception) {
+                callback.onError(error)
+            }
+        })
     }
 }
