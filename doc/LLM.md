@@ -1004,3 +1004,140 @@ Enable Anonymous Authentication in Firebase Console, confirm the Firebase Authen
 
 The ZIP contains source replacements, not a complete Android Studio project. I verified its contents but have not compiled it against your full Gradle project.
 
+---
+
+## Prompt #015 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-04-2026 |
+
+### Prompt
+
+> How do I stop updateCampsite from overwriting ownerId and the ratings with an old copy, or bringing back a campsite an admin already deleted?
+
+### Answer
+
+> Suggested switching from set() to update() with only the fields an owner can edit, and handling the NOT_FOUND error so it shows a message instead of recreating the campsite. Provided the updated updateCampsite.
+
+```kotlin
+//only the fields an owner can edit, not id, ownerId or the ratings
+val changes = hashMapOf<String, Any?>(
+    "name" to campsite.name,
+    "location" to campsite.location,
+    "maxOccupancy" to campsite.maxOccupancy,
+    // ...the rest of the editable fields
+)
+
+//update() fails if the document doesn't exist, unlike set() which would recreate it
+db.collection("campsites").document(campsite.id).update(changes)
+```
+
+---
+
+## Prompt #016 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-04-2026 |
+
+### Prompt
+
+> How can I write intent tests for my owner campsite screens when they load their data from Firestore?
+
+### Answer
+
+> Suggested splitting each screen into a part that loads from Firestore and a part that only draws what it's given, so the tests can use fake campsites. Provided the split and OwnerCampsiteScreensTest.kt.
+
+---
+
+## Prompt #017 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> How do I turn the dates typed into the create lottery form (US 02.04.01) into what Akshat's lottery rules expect?
+
+### Answer
+
+> Explained that lottery dates are stored as epoch millis and registration has to stay open all of its last day, and suggested converting with Time.startOfDay and Time.endOfDay before calling createLottery. Provided the form, getLotteriesForCampsite, and the tests.
+
+```kotlin
+registrationStart = Time.startOfDay(regStart),
+//end of day so registration stays open all of its last day
+registrationEnd = Time.endOfDay(regEnd),
+```
+
+---
+
+## Prompt #018 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> How can my search screen work with the filter screen without depending on the filter code?
+
+### Answer
+
+> Suggested passing an optional filter function and an optional onFilterClick into the search screen, so results have to match both and the Filters button only shows when there's a filter screen. Provided the updated SearchCampsitesScreen and its tests.
+
+```kotlin
+//has to match the search and pass the filter
+val results = campsites.filter { it.matchesSearch(keyword) && filter(it) }
+```
+
+---
+
+## Prompt #019 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-04-2026 |
+
+### Prompt
+
+> How should I check the required campsite fields (name, location, max occupancy) for US 02.01.02 so it matches how the lottery rules are done?
+
+### Answer
+
+> Suggested one rule object per required field (CampsiteNameRule, CampsiteLocationRule, MaxOccupancyRule) run by a CampsiteValidator, like LotteryValidator, so the owner sees every problem at once. Provided the rule objects, the validator and their unit tests.
+
+---
+
+## Prompt #020 (Yash)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Yash Rawat |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-05-2026 |
+
+### Prompt
+
+> How can I make the register campsite screen (US 02.01.01) without copying the whole edit form?
+
+### Answer
+
+> Suggested reusing EditCampsiteForm with a blank campsite and passing in the title and button text, then showing a Registration Complete or Failed screen after saving. Provided RegisterCampsiteScreen and RegisterCampsiteTest.kt.
