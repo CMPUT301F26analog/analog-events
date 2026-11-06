@@ -821,7 +821,7 @@ I would start with this instrumented test before introducing mocks or dependency
 
 ### Answer
 
-I have received and reviewed the two reference materials. I will examine how the implementation fits together, focusing on:
+> I have received and reviewed the two reference materials. I will examine how the implementation fits together, focusing on:
 - Project structure: Packages, Kotlin files, Gradle configuration, and dependencies.
 - Classes and functions: Each component's purpose, responsibilities, and relationships.
 - Data flow: How information moves between UI screens, ViewModels, repositories, and Firebase.
