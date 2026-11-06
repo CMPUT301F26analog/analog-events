@@ -60,9 +60,7 @@ For any sources not forum, AI, or verbal, we will utilize IEEE (engineering refe
 
 [11] Firebase, “Delete Data From Cloud Firestore | Firebase,” Firebase, 2020. Available: https://firebase.google.com/docs/firestore/manage-data/delete-data [Accessed: Nov. 4/2026]
 
-
-
-
+[12] “Tabs,” Android Developers, 2025. [Online]. Available: https://developer.android.com/develop/ui/compose/components/tabs [Accessed: Nov. 04/2026]
 
 ## Text
 
