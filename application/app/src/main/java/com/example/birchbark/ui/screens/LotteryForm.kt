@@ -27,6 +27,13 @@ data class LotteryFormResult(val lottery: Lottery?, val errors: List<String>)
 /**
  * This class just holds the raw text values from the input fields on the screen.
  * Everything starts as a String because that is what users type into the text boxes.
+ *
+ * @property registrationStart The text input representing the start date of the registration period.
+ * @property registrationEnd The text input representing the end date of the registration period.
+ * @property bookingStart The text input representing the start date of the booking window.
+ * @property bookingEnd The text input representing the end date of the booking window.
+ * @property numWinners The text input representing the target number of selected lottery winners.
+ * @property waitlistCapacity The text input representing the max waiting list slots, or blank if unlimited.
  */
 data class LotteryForm(
     val registrationStart: String = "",
@@ -82,7 +89,15 @@ data class LotteryForm(
         return LotteryFormResult(updated, emptyList())
     }
 
-    // Helper function to correctly parse the date
+    /**
+     * Safely reads and converts a raw text string into a [LocalDate].
+     * Appends a user-friendly message to [errors] if formatting fails.
+     *
+     * @param text The raw string token containing a date.
+     * @param label The form label used to construct the validation error message.
+     * @param errors The collection accumulating parsing and typing issues.
+     * @return A valid [LocalDate] if parsed perfectly, or null if syntax is broken.
+     */
     private fun readDate(text: String, label: String, errors: MutableList<String>): LocalDate? {
         return try {
             LocalDate.parse(text.trim())
@@ -93,8 +108,11 @@ data class LotteryForm(
     }
 }
 
-/** Extension helper to initialize inputs when editing existing lotteries */
-fun Lottery.toForm(): LotteryForm = LotteryForm(
+/**
+ * Extension helper to initialize form text inputs from an existing [Lottery] domain instance.
+ *
+ * @return A new [LotteryForm] containing pre-filled string representations of the lottery's criteria.
+ */fun Lottery.toForm(): LotteryForm = LotteryForm(
     registrationStart = Time.toLocalDate(this.registrationStart).toString(),
     registrationEnd = Time.lastDayOf(this.registrationEnd).toString(),
     bookingStart = Time.toLocalDate(this.bookingStart).toString(),
