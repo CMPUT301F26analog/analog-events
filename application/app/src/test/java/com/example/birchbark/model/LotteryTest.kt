@@ -35,6 +35,15 @@ class LotteryTest {
     // US 02.04.04: booking period
 
     @Test
+    fun bookingValid_whenStartsRightWhenRegistrationEnds() {
+        val lottery = Lottery(
+            registrationStart = 100L, registrationEnd = 200L,
+            bookingStart = 200L, bookingEnd = 400L
+        )
+        assertTrue(BookingPeriodRule.isValid(lottery))
+    }
+
+    @Test
     fun bookingValid_whenAfterRegistration() {
         val lottery = Lottery(
             registrationStart = 100L, registrationEnd = 200L,

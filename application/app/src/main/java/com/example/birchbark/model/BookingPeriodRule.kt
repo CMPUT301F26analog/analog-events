@@ -18,6 +18,6 @@ object BookingPeriodRule : LotteryRule {
      */
     override fun isValid(lottery: Lottery): Boolean {
         return lottery.bookingEnd > lottery.bookingStart &&
-                lottery.bookingStart > lottery.registrationEnd
+                lottery.bookingStart >= lottery.registrationEnd
     }
 }
