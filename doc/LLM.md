@@ -2120,3 +2120,22 @@ fun DeleteCampsiteDialog(
 ### Answer
 
 > Claude listed the cases to cover (winner count, distinct winners from the waitlist, fewer entrants than slots, empty waitlist, zero/negative winners, same seed gives same result, reservation IDs, campsiteId for single vs multi-campsite lotteries, copied fields and PENDING status). I wrote the first tests; Claude corrected a test that asserted the wrong result and provided the remaining tests, including comparing two runs with the same seed instead of hardcoding winners.
+
+---
+
+## Prompt #046 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Write a ReservationRepository that runs the winner draw (US 02.05.01) and saves the results to Firestore, plus queries for entrant and owner reservations and a status update.
+
+### Answer
+
+> Claude provided ReservationRepository: runDrawIfDue reads the waitlist after registration closes, picks winners with LotteryDraw, and in a transaction re-checks the lottery's drawn flag before saving the reservations and setting drawn = true, so only one device can run the draw. Also getReservationsForEntrant, getReservationsForOwner (sorted in Kotlin to avoid a Firestore composite index) and updateStatus.
