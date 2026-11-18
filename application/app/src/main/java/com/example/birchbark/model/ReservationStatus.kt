@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// LLM assistance: see doc/LLM.md, Prompt #0XX (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #043 (Akshat)
 
 /**
  * Where a reservation is in its lifecycle. Stored in Firestore as the
