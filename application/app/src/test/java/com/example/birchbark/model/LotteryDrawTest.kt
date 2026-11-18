@@ -6,7 +6,7 @@ import kotlin.random.Random
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 
-// LLM assistance: see doc/LLM.md, Prompt #044 (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #045 (Akshat)
 /**
  * Unit tests for the lottery winner draw.
  * Covers US 02.05.01.
