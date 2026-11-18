@@ -34,7 +34,7 @@ import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.util.Time
 import com.example.birchbark.model.ReservationRepository
-
+import android.util.Log
 /**
  * US 02.01.04 View campsite details. The owner's campsite details screen from
  * the My Campgrounds mockup. Opens when the owner taps a campsite in their
@@ -126,7 +126,7 @@ fun CampsiteDetailsScreen(
                             }
                         },
                         //nothing saved on failure, so it just tries again next time the screen opens
-                        onFailure = {}
+                        onFailure = { error -> Log.e("LotteryDraw", "Draw failed for ${lottery.id}", error) }
                     )
                 }
             }
