@@ -2063,3 +2063,22 @@ fun DeleteCampsiteDialog(
         }
     )
 }
+
+---
+
+## Prompt #043 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Review the team's progress for Project Part 4 and help me design a Reservation model for the winner draw (US 02.05.01), so reservations can be stored in Firestore and used by the entrant and owner reservation stories.
+
+### Answer
+
+> Suggested a top-level "reservations" collection with document ID "${lotteryId}_${entrantId}" so a re-run draw can't create duplicates, and the fields lotteryId, entrantId, ownerId, nullable campsiteId/startDate/endDate, status and createdAt. I wrote a first draft of Reservation; Claude reviewed it (data class needs a primary constructor, enum instead of String for status, null instead of 0L for unpicked dates, camelCase naming) and provided the corrected Reservation and the ReservationStatus enum (PENDING, CONFIRMED, DECLINED, CANCELLED, REJECTED) with KDoc.

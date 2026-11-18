@@ -1,5 +1,5 @@
 package com.example.birchbark.model
-// LLM assistance: see doc/LLM.md, Prompt #0XX (Akshat)
+// LLM assistance: see doc/LLM.md, Prompt #43 (Akshat)
 
 /**
  * A lottery win, as stored in the top-level Firestore "reservations" collection.
@@ -22,7 +22,7 @@ package com.example.birchbark.model
 data class Reservation (
     val id: String = "",
     val lotteryId: String = "",
-    val campsiteId: String? = "",
+    val campsiteId: String? = null,
     val entrantId: String = "",
     val ownerId: String = "",
     val startDate: Long? = null,
