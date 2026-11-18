@@ -2100,4 +2100,23 @@ fun DeleteCampsiteDialog(
 
 ### Answer
 
-> Suggested a LotteryDraw object with two pure
+> Suggested a LotteryDraw object with two pure functions: drawWinners (takes a Random parameter so tests can use a fixed seed) and buildReservations. I wrote drawWinners (shuffled + take, with a guard for numWinners <= 0) and buildReservationId. Claude reviewed my attempts at buildReservations (entrant ID used as campsite ID, status set to CONFIRMED instead of PENDING, current time read inside the function) and provided the corrected version, which takes the whole Lottery, sets campsiteId with singleOrNull() for single-campsite lotteries, and uses a passed-in timestamp.
+
+---
+
+## Prompt #045 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Help me write unit tests for LotteryDraw (US 02.05.01) covering drawWinners and buildReservations.
+
+### Answer
+
+> Claude listed the cases to cover (winner count, distinct winners from the waitlist, fewer entrants than slots, empty waitlist, zero/negative winners, same seed gives same result, reservation IDs, campsiteId for single vs multi-campsite lotteries, copied fields and PENDING status). I wrote the first tests; Claude corrected a test that asserted the wrong result and provided the remaining tests, including comparing two runs with the same seed instead of hardcoding winners.
