@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.example.birchbark.util.Time
+import java.time.LocalDate
 
 // LLM assistance: see doc/LLM.md, Prompt #001 (Akshat)
 /**
@@ -33,47 +35,46 @@ class LotteryTest {
     }
 
     // US 02.04.04: booking period
+    // Dates are built the same way the lottery form builds them.
+
+    private val regLastDay = LocalDate.of(2026, 11, 18)
+
+    private fun bookingLottery(firstDay: LocalDate, lastDay: LocalDate) = Lottery(
+        registrationStart = Time.startOfDay(regLastDay.minusDays(3)),
+        registrationEnd = Time.endOfDay(regLastDay),
+        bookingStart = Time.startOfDay(firstDay),
+        bookingEnd = Time.endOfDay(lastDay)
+    )
 
     @Test
-    fun bookingValid_whenStartsRightWhenRegistrationEnds() {
-        val lottery = Lottery(
-            registrationStart = 100L, registrationEnd = 200L,
-            bookingStart = 200L, bookingEnd = 400L
-        )
-        assertTrue(BookingPeriodRule.isValid(lottery))
+    fun bookingValid_whenStartsDayAfterRegistrationEnds() {
+        assertTrue(BookingPeriodRule.isValid(bookingLottery(regLastDay.plusDays(1), regLastDay.plusDays(3))))
     }
 
     @Test
-    fun bookingValid_whenAfterRegistration() {
-        val lottery = Lottery(
-            registrationStart = 100L, registrationEnd = 200L,
-            bookingStart = 300L, bookingEnd = 400L
-        )
-        assertTrue(BookingPeriodRule.isValid(lottery))
+    fun bookingInvalid_whenStartsOnRegistrationLastDay() {
+        assertFalse(BookingPeriodRule.isValid(bookingLottery(regLastDay, regLastDay.plusDays(3))))
     }
 
     @Test
     fun bookingInvalid_whenStartsDuringRegistration() {
-        val lottery = Lottery(
-            registrationStart = 100L, registrationEnd = 200L,
-            bookingStart = 150L, bookingEnd = 400L
-        )
-        assertFalse(BookingPeriodRule.isValid(lottery))
+        assertFalse(BookingPeriodRule.isValid(bookingLottery(regLastDay.minusDays(2), regLastDay.plusDays(3))))
+    }
+
+    @Test
+    fun bookingInvalid_whenStartAndEndSameDay() {
+        val day = regLastDay.plusDays(2)
+        assertFalse(BookingPeriodRule.isValid(bookingLottery(day, day)))
     }
 
     @Test
     fun bookingInvalid_whenEndBeforeStart() {
-        val lottery = Lottery(
-            registrationStart = 100L, registrationEnd = 200L,
-            bookingStart = 400L, bookingEnd = 300L
-        )
-        assertFalse(BookingPeriodRule.isValid(lottery))
+        assertFalse(BookingPeriodRule.isValid(bookingLottery(regLastDay.plusDays(4), regLastDay.plusDays(2))))
     }
 
     @Test
     fun bookingInvalid_whenDatesNotSet() {
-        val lottery = Lottery()
-        assertFalse(BookingPeriodRule.isValid(lottery))
+        assertFalse(BookingPeriodRule.isValid(Lottery()))
     }
 
     // US 02.04.05: number of winners
