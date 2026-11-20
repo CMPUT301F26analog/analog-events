@@ -12,6 +12,8 @@ import org.junit.Assert.assertNull
  * Covers US 02.05.01.
  */
 class LotteryDrawTest {
+
+    // US 02.05.01: drawing winners
     @Test
     fun drawPicksNumWinners_whenEnoughEntrants() {
         val entrants = listOf("a", "b", "c", "d", "e")
@@ -68,9 +70,11 @@ class LotteryDrawTest {
 
 // buildReservations
 
+    // US 02.05.01: building reservations
     @Test
     fun buildMakesOneReservationPerWinner_withCombinedId() {
         val lottery = Lottery(id = "L1", ownerId = "O1", campsiteIds = listOf("C1"))
+
         val reservations = LotteryDraw.buildReservations(lottery, listOf("E1", "E2"), 1000L)
         assertEquals(listOf("L1_E1", "L1_E2"), reservations.map { it.id })
     }

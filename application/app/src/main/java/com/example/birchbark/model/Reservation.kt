@@ -2,8 +2,8 @@ package com.example.birchbark.model
 // LLM assistance: see doc/LLM.md, Prompt #043 (Akshat)
 
 /**
- * A lottery win, as stored in the top-level Firestore "reservations" collection.
- * Created by the winner draw (US 02.05.01). Plain data only, like [Lottery].
+ * US 02.05.01: A lottery win, as stored in the top-level Firestore "reservations" collection.
+ * Created by the winner draw. Plain data only, like [Lottery].
  *
  * Document ID is "${lotteryId}_${entrantId}", so the same entrant can't get
  * two reservations from one lottery even if the draw runs twice.
