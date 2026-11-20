@@ -3,7 +3,7 @@ package com.example.birchbark.model
 // LLM assistance: see doc/LLM.md, Prompt #043 (Akshat)
 
 /**
- * Where a reservation is in its lifecycle. Stored in Firestore as the
+ * US 02.05.01: Where a reservation is in its lifecycle. Stored in Firestore as the
  * constant's name (e.g. "PENDING"), so renaming a value breaks existing data.
  */
 enum class ReservationStatus {
