@@ -2063,3 +2063,60 @@ fun DeleteCampsiteDialog(
         }
     )
 }
+
+---
+
+## Prompt #043 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Review the team's progress for Project Part 4 and help me design a Reservation model for the winner draw (US 02.05.01), so reservations can be stored in Firestore and used by the entrant and owner reservation stories.
+
+### Answer
+
+> Suggested a top-level "reservations" collection with document ID "${lotteryId}_${entrantId}" so a re-run draw can't create duplicates, and the fields lotteryId, entrantId, ownerId, nullable campsiteId/startDate/endDate, status and createdAt. I wrote a first draft of Reservation; Claude reviewed it (data class needs a primary constructor, enum instead of String for status, null instead of 0L for unpicked dates, camelCase naming) and provided the corrected Reservation and the ReservationStatus enum (PENDING, CONFIRMED, DECLINED, CANCELLED, REJECTED) with KDoc.
+
+---
+
+## Prompt #044 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Help me write the winner draw logic for US 02.05.01: pick random winners from a lottery waitlist and turn them into Reservation objects, without depending on Firestore so it can be unit tested.
+
+### Answer
+
+> Suggested a LotteryDraw object with two pure functions: drawWinners (takes a Random parameter so tests can use a fixed seed) and buildReservations. I wrote drawWinners (shuffled + take, with a guard for numWinners <= 0) and buildReservationId. Claude reviewed my attempts at buildReservations (entrant ID used as campsite ID, status set to CONFIRMED instead of PENDING, current time read inside the function) and provided the corrected version, which takes the whole Lottery, sets campsiteId with singleOrNull() for single-campsite lotteries, and uses a passed-in timestamp.
+
+---
+
+## Prompt #045 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Help me write unit tests for LotteryDraw (US 02.05.01) covering drawWinners and buildReservations.
+
+### Answer
+
+> Claude listed the cases to cover (winner count, distinct winners from the waitlist, fewer entrants than slots, empty waitlist, zero/negative winners, same seed gives same result, reservation IDs, campsiteId for single vs multi-campsite lotteries, copied fields and PENDING status). I wrote the first tests; Claude corrected a test that asserted the wrong result and provided the remaining tests, including comparing two runs with the same seed instead of hardcoding winners.
