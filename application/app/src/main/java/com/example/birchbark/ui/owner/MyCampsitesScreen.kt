@@ -55,12 +55,14 @@ import com.example.birchbark.model.CampsiteRepository
  * @param ownerId the owner's ID, used to only load the campsites they registered.
  * @param onCampsiteClick called with the campsite the owner tapped.
  * @param onRegisterClick called when the owner taps Register a Campsite.
+ * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  */
 @Composable
 fun MyCampsitesScreen(
     ownerId: String,
     onCampsiteClick: (Campsite) -> Unit,
-    onRegisterClick: () -> Unit = {}
+    onRegisterClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
     var myCampsites by remember { mutableStateOf<List<Campsite>?>(null) }
@@ -101,7 +103,8 @@ fun MyCampsitesScreen(
         MyCampsitesList(
             campsites = list,
             onCampsiteClick = onCampsiteClick,
-            onRegisterClick = onRegisterClick
+            onRegisterClick = onRegisterClick,
+            onReservationsClick = onReservationsClick
         )
     }
 }
@@ -114,12 +117,14 @@ fun MyCampsitesScreen(
  * @param campsites the campsites to show.
  * @param onCampsiteClick called with the campsite the owner tapped.
  * @param onRegisterClick called when the owner taps Register a Campsite.
+ * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  */
 @Composable
 fun MyCampsitesList(
     campsites: List<Campsite>,
     onCampsiteClick: (Campsite) -> Unit,
-    onRegisterClick: () -> Unit = {}
+    onRegisterClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text("Your Campsites", style = MaterialTheme.typography.headlineSmall)
@@ -129,6 +134,13 @@ fun MyCampsitesList(
             modifier = Modifier.testTag("registerButton")
         ) {
             Text("Register a Campsite")
+        }
+        //US 02.07.01-03: reservations across all the owner's campsites
+        OutlinedButton(
+            onClick = onReservationsClick,
+            modifier = Modifier.testTag("reservationsButton")
+        ) {
+            Text("My Reservations")
         }
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -164,4 +176,4 @@ fun MyCampsitesList(
             }
         }
     }
-}
+}

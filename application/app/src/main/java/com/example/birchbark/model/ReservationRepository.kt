@@ -114,6 +114,37 @@ class ReservationRepository {
     }
 
     /**
+     * US 01.04.01, 02.07.01: the entrant accepts their reservation. Marks it
+     * CONFIRMED and copies their contact details into it, so the owner can see
+     * who booked without being able to read the entrant's whole profile.
+     *
+     * @param reservationId the reservation's document ID ([Reservation.id]).
+     * @param name the entrant's full name.
+     * @param email the entrant's email.
+     * @param phone the entrant's phone number.
+     */
+    fun confirm(
+        reservationId: String,
+        name: String,
+        email: String,
+        phone: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        db.collection("reservations").document(reservationId)
+            .update(
+                mapOf(
+                    "status" to ReservationStatus.CONFIRMED.name,
+                    "entrantName" to name,
+                    "entrantEmail" to email,
+                    "entrantPhone" to phone
+                )
+            )
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
      * Changes a reservation's status: confirm (US 02.11.01), decline
      * (US 01.04.03), cancel (US 01.07.01) or reject (US 02.08.01).
      *
@@ -130,4 +161,4 @@ class ReservationRepository {
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { error -> onFailure(error) }
     }
-}
+}
