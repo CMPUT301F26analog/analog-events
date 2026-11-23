@@ -37,4 +37,4 @@ data class Reservation (
     val entrantName: String? = null,
     val entrantEmail: String? = null,
     val entrantPhone: String? = null,
-)
+)
