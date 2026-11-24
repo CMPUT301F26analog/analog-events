@@ -2161,6 +2161,101 @@ fun DeleteCampsiteDialog(
 
 ---
 
+## Prompt #048 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Build the shared notification foundation for Project Part 4: a notification model, a repository to send and read notifications, opt-out preferences, and the win/lose notifications for the lottery draw.
+
+### Answer
+
+> Claude provided AppNotification (named to avoid clashing with android.app.Notification), NotificationType (one value per user story), NotificationRepository (opt-out stored in notificationPrefs/{fid}; send skips opted-out users; inbox, sent-by, admin all, mark read), DrawNotifications (builds win/lose notifications, skipping opted-out entrants) with 6 unit tests, and the Firestore rules for notifications and notificationPrefs. I chose a readable opt-out preference so senders can skip users who turned notifications off.
+
+---
+
+## Prompt #049 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Build the owner's reservations screen with active, past and cancelled tabs (US 02.07.01-03), and show the entrant's details on each reservation as the TA asked.
+
+### Answer
+
+> Claude provided OwnerReservationTabs (decides which tab a reservation belongs in) with 6 unit tests, OwnerReservationsScreen, a My Reservations button on the owner's campsite list, and ReservationRepository.confirm. Because Firestore rules don't let owners read entrants' profiles, the entrant's name, email and phone are copied into the reservation when they confirm (entrantName/entrantEmail/entrantPhone), and the reservations rule was updated to allow those fields.
+
+---
+
+## Prompt #050 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Show a campsite's booked dates on the owner's campsite details screen (US 02.06.01).
+
+### Answer
+
+> Claude provided BookedDates (confirmed reservations with dates for one campsite, earliest first, formatted as date ranges) with 7 unit tests, and a Booked dates row on the owner's CampsiteDetailsScreen.
+
+---
+
+## Prompt #051 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Let lottery winners see which dates are still available to reserve (US 01.04.01) without exposing who booked the other dates.
+
+### Answer
+
+> Claude suggested two options and I chose a separate campsiteBookings collection that holds only campsite and dates, readable by every user. Claude provided CampsiteBooking and AvailableDates (free date ranges in the lottery's booking period, and checking the days a winner picks) with 11 unit tests.
+
+---
+
+## Prompt #052 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> When a campsite has no open lottery, the entrant details screen shows nothing, which made joining look broken in the Part 3 demo. Show why the entrant can't join instead (US 01.01.06).
+
+### Answer
+
+> Claude provided lotteryMessage, which returns a message for no lottery, a scheduled lottery, closed registration or a drawn lottery (null while open, when the join button shows), changed the entrant details route to pass the latest lottery even when it isn't open, and added 5 unit tests in LotteryMessageTest.
+
+---
+
 ## Prompt #053 (Eliza)
 
 | Field | Details |
