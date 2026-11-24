@@ -42,6 +42,7 @@ import com.example.birchbark.ui.owner.OwnerCampsitesApp
 import com.example.birchbark.ui.entrant.EntrantCampsitesApp
 import com.example.birchbark.ui.entrant.EditProfileScreen
 import androidx.compose.foundation.layout.statusBarsPadding
+import com.example.birchbark.ui.entrant.EntrantApp
 
 
 
@@ -115,7 +116,7 @@ private fun RoleHome(
     onProfileDeleted: () -> Unit
 ) {
     val roles = profile.roles.map { it.lowercase() }.distinct()
-    // If admin is a role, it is the default homescreen when enterin the app
+    // If admin is a role, it is the default homescreen when entering the app
     val firstRole = when {
         "admin" in roles -> "admin"
         roles.size == 1 -> roles.first()
@@ -150,7 +151,7 @@ private fun RoleHome(
             .statusBarsPadding()
     ) {
 
-        if (selected == "entrant" || selected == "owner") {
+        if (selected == "owner") {  // selected == 'entrant'
             TextButton(
                 onClick = { viewingProfile = true }
             ) {
@@ -171,7 +172,10 @@ private fun RoleHome(
         Box(modifier = Modifier.weight(1f)) {
             key(selected) {
                 when (selected) {
-                    "entrant" -> EntrantCampsitesApp()
+                    "entrant" -> EntrantApp(      // Was EntrantCampsitesApp()
+                            profile = profile,
+                            onProfileDeleted = onProfileDeleted
+                    )
                     "owner" -> OwnerCampsitesApp(ownerId = profile.fid)
                     "admin" -> AdminBrowseScreen(
                         adminName = listOf(profile.firstName, profile.lastName)
