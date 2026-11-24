@@ -2063,7 +2063,7 @@ fun DeleteCampsiteDialog(
         }
     )
 }
-
+```
 ---
 
 ## Prompt #043 (Akshat)
@@ -2120,3 +2120,24 @@ fun DeleteCampsiteDialog(
 ### Answer
 
 > Claude listed the cases to cover (winner count, distinct winners from the waitlist, fewer entrants than slots, empty waitlist, zero/negative winners, same seed gives same result, reservation IDs, campsiteId for single vs multi-campsite lotteries, copied fields and PENDING status). I wrote the first tests; Claude corrected a test that asserted the wrong result and provided the remaining tests, including comparing two runs with the same seed instead of hardcoding winners.
+
+---
+
+## Prompt #053 (Eliza)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Gemini |
+| **Model** | Gemini |
+| **Date** | 11-24-2026 |
+
+### Prompt
+
+> Can you help me write JUnit unit tests for my AppPolicy object (US 01.11.01) to make sure the title and sections aren't blank, section titles are unique, and it covers key entrant topics like lotteries, cancellations, notifications, and personal information? Here's my AppPolicy model [INSERT CODE]
+
+### Answer
+
+> Provided the AppPolicyTest JUnit test suite verifying that AppPolicy.TITLE and AppPolicy.sections are non-empty, every section has a non-blank title and body, section titles are unique (comparing list size to toSet().size), and the combined section titles cover "lottery", "cancel", "notification", and "information".
+
+---
