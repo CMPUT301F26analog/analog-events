@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,9 +30,11 @@ import com.example.birchbark.util.priceLabel
 import com.example.birchbark.util.ratingLabel
 import com.example.birchbark.model.Lottery
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.birchbark.ui.entrant.EntrantWaitlistSection
+import com.example.birchbark.ui.theme.BirchBarkColors
 
 /**
  * Displays the complete details view for an individual campsite. Includes property details,
@@ -59,6 +62,7 @@ fun CampsiteDetailsScreen(
     onBack: () -> Unit,
     onJoin: () -> Unit,
     onLeave: () -> Unit,
+    onReviewsClick: () -> Unit,     // TBD: Have to adjust with Entrant Screens update
     modifier: Modifier = Modifier
 ) {
     // Setting up the tabs : See [1] in References.md, which was used for documentation
@@ -105,6 +109,18 @@ fun CampsiteDetailsScreen(
         Text(campsite.priceLabel())
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // TBD: Update with entrant screens
+        TextButton(
+            onClick = onReviewsClick,
+            contentPadding = PaddingValues(0.dp) // Keeps left alignment flush with Name/Location
+        ) {
+            Text(
+                text = "${campsite.ratingLabel()}  ›",
+                color = BirchBarkColors.Gold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
 
         // Details : Description, rules, cancellation policy
         Row(modifier = Modifier.fillMaxWidth()) {
