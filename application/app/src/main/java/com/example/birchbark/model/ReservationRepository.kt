@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-//git checkout feature/issue-45-reservation-repo
+// See #046 in LLM.md
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
