@@ -5,25 +5,19 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.Alignment
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import com.example.birchbark.model.Campsite
-import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.priceLabel
 import com.example.birchbark.util.ratingLabel
@@ -34,22 +28,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.PhotoCard
 import com.example.birchbark.ui.theme.StatusChip
-import com.example.birchbark.ui.entrant.EntrantWaitlistSection
 import com.example.birchbark.ui.theme.BirchBarkColors
-
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Displays the complete details view for an individual campsite, styled like the
@@ -59,7 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
  *
  * US 01.01.05 See details of a campsite
  *
- * Outstanding issues. The photo is a placeholder until image upload is done.
+ * Outstanding issues. TBD. The photo is a placeholder until image upload is done.
  * [joined], [isFull], [message], [onJoin] and [onLeave] aren't used yet, the
  * lottery part is drawn by [EntrantWaitlistSection], which has its own join button.
  *
@@ -102,7 +86,7 @@ fun CampsiteDetailsScreen(
             Text("Back", color = BirchBarkColors.Gold)
         }
 
-        // Photo card: rating on top, then name, location and max occupancy
+        // Photo card with details: rating on top, then name, location and max occupancy
         PhotoCard(
             height = 240.dp,
             topRow = {
@@ -127,25 +111,12 @@ fun CampsiteDetailsScreen(
             }
         )
 
-        /*
-        // Details: Rating, Name, Location, Max occupancy, Prince
-        // Rating
-        Text(campsite.ratingLabel())
-        // Name
-        Text(text = campsite.name, style = MaterialTheme.typography.headlineMedium)
-        // Location
-        Text(text = campsite.location)
-        // Max occupancy
-        Text(text = "Up to ${campsite.maxOccupancy} guests")
-         */
         // Price
         Text(
             text = campsite.priceLabel(),
             style = MaterialTheme.typography.titleMedium,
             color = BirchBarkColors.Gold
         )
-
-        // Spacer(modifier = Modifier.height(16.dp))
 
         // Details : Description, rules, cancellation policy
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -197,44 +168,8 @@ private fun TabButton(
         }
     }
 
-@Preview(showBackground = true)
-@Composable
-fun CampsiteDetailsScreenPreview() {
-    val sampleCampsite = Campsite(
-        id = "1",
-        name = "Pine Ridge Overlook",
-        location = "Banff National Park, AB",
-        maxOccupancy = 6,
-        description = "A secluded ridge-top campsite with panoramic views of the Bow Valley, " +
-                "flat tent pads, and direct access to alpine hiking trails.",
-        rules = "• Quiet hours from 10:00 PM to 7:00 AM.\n" +
-                "• Store all food in bear-proof lockers.\n" +
-                "• Fires in designated rings only.",
-        cancellationPolicy = "Free cancellation up to 48 hours before check-in."
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BirchBarkColors.DarkGreen)
-            .safeDrawingPadding()
-    ) {
-        CampsiteDetailsScreen(
-            campsite = sampleCampsite,
-            lottery = null,
-            joined = false,
-            isFull = false,
-            message = null,
-            onBack = {},
-            onJoin = {},
-            onLeave = {}
-        )
-    }
-}
-
-
 /*
-// See [3] in LLM.md, used to help create the preview function below
+// See [3] in LLM.md
 @Preview(showBackground = true, name = "Campsite Details Screen Preview")
 @Composable
 fun CampsiteDetailsScreenPreview() {

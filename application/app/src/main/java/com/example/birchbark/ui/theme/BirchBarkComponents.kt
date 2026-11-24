@@ -34,7 +34,7 @@ import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.util.ratingLabel
 
-// See [TBD] in LLM.md
+// See [TBD 6] in LLM.md
 
 /**
  * Makes initials from the first letters of up to two words
@@ -111,7 +111,7 @@ fun UserHeader(
         }
         if (onNotificationsClick != null) {
             Text(
-                "🔔",
+                "࿄",
                 modifier = Modifier
                     .clickable(onClick = onNotificationsClick)
                     .padding(8.dp)

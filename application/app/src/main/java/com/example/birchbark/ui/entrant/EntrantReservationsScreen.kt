@@ -1,11 +1,7 @@
 package com.example.birchbark.ui.entrant
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -32,16 +28,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.ChipKind
 import com.example.birchbark.ui.theme.PhotoCard
 import com.example.birchbark.ui.theme.ScreenTitle
 import com.example.birchbark.ui.theme.StatusChip
 import com.example.birchbark.ui.theme.BirchBarkColors
-
-import androidx.compose.ui.tooling.preview.Preview
 
 private enum class ReservationTab {
     ACTIVE, PAST
@@ -134,13 +126,13 @@ fun EntrantReservationsScreen(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 //the selected tab is the disabled one, and its disabled colours are the gold "selected" look
-                TabPill(
+                TabButton(
                     text = "Active",
                     selected = selectedTab == ReservationTab.ACTIVE,
                     onClick = { selectedTab = ReservationTab.ACTIVE },
                     modifier = Modifier.testTag("activeTab")
                 )
-                TabPill(
+                TabButton(
                     text = "Past",
                     selected = selectedTab == ReservationTab.PAST,
                     onClick = { selectedTab = ReservationTab.PAST },
@@ -206,7 +198,7 @@ fun EntrantReservationsScreen(
 
 /** A rounded tab button. The selected one is disabled and drawn gold. */
 @Composable
-private fun TabPill(
+private fun TabButton(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -228,6 +220,7 @@ private fun TabPill(
     }
 }
 
+// See [TBD 4] in LLM.md
 /**
  * Works out the status marker for a reservation. The words are in capitals so
  * they don't clash with the "Active" and "Past" tab buttons.
@@ -241,46 +234,3 @@ private fun statusOf(item: ReservationListItem, today: LocalDate): Pair<String, 
     item.endDate.isBefore(today) -> "PAST" to ChipKind.PAST
     else -> "ACTIVE" to ChipKind.ACTIVE
 }
-
-/*
-@Preview(showBackground = true)
-@Composable
-fun EntrantReservationsScreenPreview() {
-    val fakeToday = LocalDate.of(2026, 7, 15)
-    val sampleReservations = listOf(
-        ReservationListItem(
-            id = "res-1",
-            campsiteName = "Pine Ridge Overlook",
-            startDate = LocalDate.of(2026, 7, 20),
-            endDate = LocalDate.of(2026, 7, 23),
-            cancelled = false
-        ),
-        ReservationListItem(
-            id = "res-2",
-            campsiteName = "Whispering Pines",
-            startDate = LocalDate.of(2026, 8, 5),
-            endDate = LocalDate.of(2026, 8, 8),
-            cancelled = true
-        ),
-        ReservationListItem(
-            id = "res-3",
-            campsiteName = "Crystal Lake Camp",
-            startDate = LocalDate.of(2026, 6, 10),
-            endDate = LocalDate.of(2026, 6, 12),
-            cancelled = false
-        )
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BirchBarkColors.DarkGreen)
-            .safeDrawingPadding()
-    ) {
-        EntrantReservationsScreen(
-            reservations = sampleReservations,
-            today = fakeToday
-        )
-    }
-}
- */

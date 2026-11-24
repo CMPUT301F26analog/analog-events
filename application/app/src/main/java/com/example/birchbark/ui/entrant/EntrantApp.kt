@@ -37,16 +37,8 @@ import com.example.birchbark.ui.theme.MenuRow
 import com.example.birchbark.ui.theme.ScreenTitle
 import com.example.birchbark.ui.theme.UserHeader
 import com.example.birchbark.ui.notifications.NotificationSettingsScreen
-//import com.example.birchbark.ui.screens.PolicyScreen
-import com.example.birchbark.ui.theme.BirchBarkColors
-
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.birchbark.ui.screens.BlankEntrantScreen
-import java.time.LocalDate
-
-
-// See [] in LLM.md
+import com.example.birchbark.ui.theme.BirchBarkColors
 
 /**
  * The entrant's whole app: a header, the current tab, and the bottom navigation.
@@ -76,6 +68,7 @@ fun EntrantApp(
         .joinToString(" ")
         .ifBlank { "Entrant" }
 
+    // See [TBD 1] in LLM.md
     Scaffold(
         containerColor = BirchBarkColors.DarkGreen,
         //MainActivity already leaves room for the status bar
@@ -120,6 +113,7 @@ fun EntrantApp(
     }
 }
 
+// See [TBD 2] in LLM.md
 /** The bottom navigation bar, styled like the admin one (gold selected tab). */
 @Composable
 private fun EntrantBottomBar(selected: EntrantTab, onSelect: (EntrantTab) -> Unit) {
@@ -148,6 +142,7 @@ private fun EntrantBottomBar(selected: EntrantTab, onSelect: (EntrantTab) -> Uni
     }
 }
 
+// TBD
 /** The Home tab, "Your Lotteries" in the mockup. Only the empty message for now. */
 @Composable
 private fun YourLotteries() {
@@ -161,6 +156,7 @@ private fun YourLotteries() {
     }
 }
 
+// See [TBD 3] in LLM.md
 /** The Profile tab: a menu, and the pages it opens. System back returns to the menu. */
 @Composable
 private fun ProfileTab(
@@ -203,7 +199,6 @@ private fun ProfileTab(
             onBack = { onPage(ProfilePage.MENU) }
         )
         // TBD
-
         ProfilePage.POLICY -> BlankEntrantScreen(
             title = "App Policy & Guidelines",
             onBack = { onPage(ProfilePage.MENU) }
@@ -242,40 +237,5 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
         MenuRow("Ratings & Reviews") { onPage(ProfilePage.WAITLIST  ) }
         MenuRow("Settings") { onPage(ProfilePage.SETTINGS) }
         MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun EntrantAppPreview() {
-    val sampleProfile = UserProfile(
-        firstName = "Alex",
-        lastName = "Rivera",
-        email = "alex.rivera@example.com"
-    )
-
-    val sampleReservations = listOf(
-        ReservationListItem(
-            id = "res-1",
-            campsiteName = "Pine Ridge Overlook",
-            startDate = LocalDate.of(2026, 12, 10),
-            endDate = LocalDate.of(2026, 12, 13),
-            cancelled = false
-        ),
-        ReservationListItem(
-            id = "res-2",
-            campsiteName = "Jasper National Park",
-            startDate = LocalDate.of(2026, 9, 15),
-            endDate = LocalDate.of(2026, 9, 18),
-            cancelled = false
-        )
-    )
-
-    Box(modifier = Modifier.safeDrawingPadding()) {
-        EntrantApp(
-            profile = sampleProfile,
-            onProfileDeleted = {},
-            reservations = sampleReservations
-        )
     }
 }

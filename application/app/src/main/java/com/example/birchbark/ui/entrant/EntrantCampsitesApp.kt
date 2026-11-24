@@ -36,6 +36,8 @@ fun selectOpenLottery(
 /**
  * Whether a campsite passes the entrant's filters (US 01.01.02).
  *
+ * See [TBD 7] in LLM.md
+ *
  * Location is a case-insensitive "contains", guests means the campsite holds at
  * least that many, and rating means at least that rating. Dates are not checked
  * here, because that needs availability data a campsite doesn't carry.

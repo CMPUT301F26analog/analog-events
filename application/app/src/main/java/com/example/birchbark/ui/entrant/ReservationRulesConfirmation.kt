@@ -1,8 +1,5 @@
 package com.example.birchbark.ui.entrant
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -32,12 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkColors
-
-import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * US 02.11.01: the campsite rules and cancellation policy the entrant has to
@@ -76,7 +69,6 @@ fun ReservationRulesConfirmation(
             color = BirchBarkColors.Gold
         )
 
-        //long policies scroll inside the panel so the checkbox and button stay on screen
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,6 +112,7 @@ fun ReservationRulesConfirmation(
             )
         }
 
+        // See [TBD 5] in LLM.md
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = agreed,
@@ -154,33 +147,5 @@ fun ReservationRulesConfirmation(
         ) {
             Text("Confirm Reservation")
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ReservationRulesConfirmationPreview() {
-    val sampleCampsite = Campsite(
-        id = "1",
-        name = "Pine Ridge Overlook",
-        location = "Banff National Park, AB",
-        rules = "• Quiet hours are from 10:00 PM to 7:00 AM.\n" +
-                "• Keep all food and scented items stored in bear-proof lockers.\n" +
-                "• Campfires are permitted in designated fire rings only.\n" +
-                "• Pack out all garbage and leave the site clean.",
-        cancellationPolicy = "Free cancellation up to 48 hours before check-in. " +
-                "Cancellations made within 48 hours of check-in will forfeit the first night's fee."
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BirchBarkColors.DarkGreen)
-            .safeDrawingPadding()
-    ) {
-        ReservationRulesConfirmation(
-            campsite = sampleCampsite,
-            onConfirm = {}
-        )
     }
 }

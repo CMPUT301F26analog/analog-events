@@ -1,23 +1,18 @@
 package com.example.birchbark.ui.entrant
 
-// import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-// import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-// import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
-// import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-// import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,9 +35,6 @@ import com.example.birchbark.ui.theme.CampsiteCard
 import com.example.birchbark.ui.theme.birchBarkFieldColors
 import androidx.compose.foundation.BorderStroke
 
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material3.Surface
-
 /**
  * US 01.01.01 Search for campsites. The entrant search page from the Entrant
  * Search mockup. There's a search bar where the entrant types a keyword, and
@@ -61,7 +53,7 @@ import androidx.compose.material3.Surface
  *
  * Styled like the mockup: a rounded search bar and photo cards from
  * BirchBarkComponents. It no longer adds its own status bar padding, the
- *  entrant shell (EntrantApp) takes care of that.
+ * entrant shell (EntrantApp) takes care of that.
  *
  * Outstanding issues. Recommended campsites and recommended searches from the
  * mockup aren't here yet. The result cards are plain for now and can be swapped
@@ -198,33 +190,3 @@ fun SearchCampsitesContent(
         }
     }
 }
-
-@Preview(showBackground = true, backgroundColor = 0xFF141815) // Adjust hex to match your app's dark background
-@Composable
-fun SearchCampsitesContentPreview() {
-    val sampleCampsites = listOf(
-        Campsite(
-            id = "1",
-            name = "Pine Ridge Overlook",
-            location = "Banff National Park, AB"
-            // Add any other required fields from your Campsite model here
-        ),
-        Campsite(
-            id = "2",
-            name = "Whispering Pines",
-            location = "Jasper, AB"
-        ),
-        Campsite(
-            id = "3",
-            name = "Crystal Lake Camp",
-            location = "Kananaskis, AB"
-        )
-    )
-
-    SearchCampsitesContent(
-        campsites = sampleCampsites,
-        onCampsiteClick = {},
-        onFilterClick = {}
-    )
-}
-

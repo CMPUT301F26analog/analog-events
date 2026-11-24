@@ -26,7 +26,7 @@ import com.example.birchbark.ui.theme.CampsiteCard
 /**
  * Displays a summary card for a specific campsite, including its name, location,
  * rating, and max occupancy, with a gold "View" button at the bottom right like
- *  * the cards in the mockup.
+ *  the cards in the mockup.
  *
  * US 01.01.04 See campsite summary information including name, location, maximum
  * occupancy, and rating
