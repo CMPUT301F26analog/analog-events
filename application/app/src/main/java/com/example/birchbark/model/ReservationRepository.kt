@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// LLM assistance: see doc/LLM.md, Prompt #046 (Akshat)
+//git checkout feature/issue-45-reservation-repo
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
