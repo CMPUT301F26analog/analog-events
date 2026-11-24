@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.model.CampsiteRepository
+import com.example.birchbark.util.MapUtils
 
 /**
  * US 02.01.03 Update campsite details. The "Update my Campsite" screen from the
@@ -37,9 +38,11 @@ import com.example.birchbark.model.CampsiteRepository
  * the intent tests can check it without needing Firestore. The register screen
  * (US 02.01.01) uses the same form with a blank campsite.
  *
- * Outstanding issues. The mockup also has Replace Camp Pin and Add more images
- * buttons, those need the map and image upload so they aren't here yet. Map
- * location and image just keep whatever was saved before.
+ * The owner sets the campsite's map location by tapping the map to drop a
+ * camp pin (US 02.01.02). Photos are added from the gallery on the details
+ * screen instead of here.
+ *
+ * Outstanding issues. None.
  */
 
 /**
@@ -118,6 +121,9 @@ fun EditCampsiteForm(
     var rules by remember { mutableStateOf(campsite.rules) }
     var cancellationPolicy by remember { mutableStateOf(campsite.cancellationPolicy) }
     var priceError by remember { mutableStateOf<String?>(null) }
+    //the camp pin, null until the owner taps the map
+    var latitude by remember { mutableStateOf(campsite.latitude) }
+    var longitude by remember { mutableStateOf(campsite.longitude) }
 
     Column(
         modifier = Modifier
@@ -183,6 +189,38 @@ fun EditCampsiteForm(
             modifier = Modifier.fillMaxWidth()
         )
 
+        //US 02.01.02: map location, the owner taps the map to drop their camp pin
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Place your Camp Pin on Maps!", style = MaterialTheme.typography.titleMedium)
+        Text(
+            if (MapUtils.isValidLocation(latitude, longitude)) {
+                "Pin at " + MapUtils.locationText(latitude, longitude)
+            } else {
+                "Tap the map where your campsite is"
+            },
+            modifier = Modifier.testTag("pinText")
+        )
+        CampsiteMap(
+            latitude = latitude,
+            longitude = longitude,
+            modifier = Modifier.fillMaxWidth().height(250.dp).testTag("mapPicker"),
+            onPick = { pickedLatitude, pickedLongitude ->
+                latitude = pickedLatitude
+                longitude = pickedLongitude
+            }
+        )
+        if (latitude != null) {
+            TextButton(
+                onClick = {
+                    latitude = null
+                    longitude = null
+                },
+                modifier = Modifier.testTag("removePinButton")
+            ) {
+                Text("Remove pin")
+            }
+        }
+
         //rule errors from the validator, plus the price check below
         val shownPriceError = priceError
         val allErrors = if (shownPriceError != null) errors + shownPriceError else errors
@@ -214,7 +252,9 @@ fun EditCampsiteForm(
                         price = priceNumber,
                         tags = tags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
                         rules = rules.trim(),
-                        cancellationPolicy = cancellationPolicy.trim()
+                        cancellationPolicy = cancellationPolicy.trim(),
+                        latitude = latitude,
+                        longitude = longitude
                     )
                     onSave(updated)
                 }

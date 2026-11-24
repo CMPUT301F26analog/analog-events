@@ -32,6 +32,7 @@ import com.example.birchbark.model.CampsiteRepository
 import com.example.birchbark.model.CurrentLottery
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
+import com.example.birchbark.util.MapUtils
 import com.example.birchbark.util.Time
 
 /**
@@ -49,9 +50,11 @@ import com.example.birchbark.util.Time
  * The View Gallery button opens the campsite's photos, where the owner can
  * add or remove them (US 02.01.02).
  *
+ * If the owner set a map location, it shows on a small map with the camp pin
+ * (US 02.01.02).
+ *
  * Outstanding issues. The mockup also has a Generate QR Code button, that
- * belongs to another story so it isn't here yet. Map location just shows the
- * coordinates for now.
+ * belongs to another story so it isn't here yet.
  */
 
 /**
@@ -228,14 +231,24 @@ fun CampsiteDetailsContent(
         DetailRow("Price per night", campsite.price?.let { "$" + String.format("%.2f", it) } ?: "")
         DetailRow("Rules", campsite.rules)
         DetailRow("Cancellation policy", campsite.cancellationPolicy)
-        DetailRow(
-            "Map location",
-            if (campsite.latitude != null && campsite.longitude != null) {
-                "${campsite.latitude}, ${campsite.longitude}"
-            } else {
-                ""
+        //US 02.01.02: the camp pin on a map, or Not set if there isn't one
+        if (MapUtils.isValidLocation(campsite.latitude, campsite.longitude)) {
+            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                Text("Map location", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    MapUtils.locationText(campsite.latitude, campsite.longitude),
+                    modifier = Modifier.testTag("mapLocationText")
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                CampsiteMap(
+                    latitude = campsite.latitude,
+                    longitude = campsite.longitude,
+                    modifier = Modifier.fillMaxWidth().height(200.dp).testTag("detailsMap")
+                )
             }
-        )
+        } else {
+            DetailRow("Map location", "")
+        }
         DetailRow(
             "Rating",
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
