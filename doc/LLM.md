@@ -2063,7 +2063,7 @@ fun DeleteCampsiteDialog(
         }
     )
 }
-
+```
 ---
 
 ## Prompt #043 (Akshat)
@@ -2158,3 +2158,24 @@ fun DeleteCampsiteDialog(
 ### Answer
 
 > Claude provided the drawDueLotteries call in the owner's CampsiteDetailsScreen and replaced the silent onFailure with Log.e, which showed PERMISSION_DENIED. The Firestore rules had no match for the new "reservations" collection. Claude wrote the reservations rule: owners create reservations only in the same transaction that sets the lottery's drawn flag (get/getAfter), entrants read and update only their own, owners can only reject. Published in the Firebase console and tested end to end.
+
+---
+
+## Prompt #053 (Eliza)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Gemini |
+| **Model** | Gemini |
+| **Date** | 11-24-2026 |
+
+### Prompt
+
+> Can you help me write JUnit unit tests for my AppPolicy object (US 01.11.01) to make sure the title and sections aren't blank, section titles are unique, and it covers key entrant topics like lotteries, cancellations, notifications, and personal information? Here's my AppPolicy model [INSERT CODE]
+
+### Answer
+
+> Provided the AppPolicyTest JUnit test suite verifying that AppPolicy.TITLE and AppPolicy.sections are non-empty, every section has a non-blank title and body, section titles are unique (comparing list size to toSet().size), and the combined section titles cover "lottery", "cancel", "notification", and "information".
+
+---
