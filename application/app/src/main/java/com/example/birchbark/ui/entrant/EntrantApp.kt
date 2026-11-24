@@ -40,6 +40,11 @@ import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 //import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
 
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.ui.tooling.preview.Preview
+import java.time.LocalDate
+
+
 // See [] in LLM.md
 
 /**
@@ -229,5 +234,40 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
         //MenuRow("Current Waitlists") { onPage(ProfilePage.WAITLIST  ) }
         MenuRow("Settings") { onPage(ProfilePage.SETTINGS) }
         //MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EntrantAppPreview() {
+    val sampleProfile = UserProfile(
+        firstName = "Alex",
+        lastName = "Rivera",
+        email = "alex.rivera@example.com"
+    )
+
+    val sampleReservations = listOf(
+        ReservationListItem(
+            id = "res-1",
+            campsiteName = "Pine Ridge Overlook",
+            startDate = LocalDate.of(2026, 12, 10),
+            endDate = LocalDate.of(2026, 12, 13),
+            cancelled = false
+        ),
+        ReservationListItem(
+            id = "res-2",
+            campsiteName = "Jasper National Park",
+            startDate = LocalDate.of(2026, 9, 15),
+            endDate = LocalDate.of(2026, 9, 18),
+            cancelled = false
+        )
+    )
+
+    Box(modifier = Modifier.safeDrawingPadding()) {
+        EntrantApp(
+            profile = sampleProfile,
+            onProfileDeleted = {},
+            reservations = sampleReservations
+        )
     }
 }
