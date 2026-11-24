@@ -46,9 +46,11 @@ import com.example.birchbark.util.Time
  * CampsiteDetailsContent just draws what it's given so the intent tests can use
  * fake data.
  *
- * Outstanding issues. The mockup also has View Gallery and Generate QR Code
- * buttons, those belong to other stories so they aren't here yet. The image
- * isn't shown since image upload isn't done, and map location just shows the
+ * The View Gallery button opens the campsite's photos, where the owner can
+ * add or remove them (US 02.01.02).
+ *
+ * Outstanding issues. The mockup also has a Generate QR Code button, that
+ * belongs to another story so it isn't here yet. Map location just shows the
  * coordinates for now.
  */
 
@@ -61,6 +63,7 @@ import com.example.birchbark.util.Time
  * @param onBack called when the owner taps back.
  * @param onLotteryClick called with the campsite when the owner taps Campsite Lottery.
  * @param onEditLotteryClick called with the campsite when the owner taps Edit Lottery (US 02.04.06).
+ * @param onGalleryClick called with the campsite when the owner taps View Gallery (US 02.01.02).
  */
 @Composable
 fun CampsiteDetailsScreen(
@@ -69,8 +72,9 @@ fun CampsiteDetailsScreen(
     onBack: () -> Unit,
     onLotteryClick: (Campsite) -> Unit = {},
     onEditLotteryClick: (Campsite) -> Unit = {},
-    onViewWaitlist: (String) -> Unit = {}
-  ) {
+    onViewWaitlist: (String) -> Unit = {},
+    onGalleryClick: (Campsite) -> Unit = {}
+) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
     var loadedCampsite by remember { mutableStateOf<Campsite?>(null) }
@@ -141,33 +145,34 @@ fun CampsiteDetailsScreen(
             lotteryStatusText(lotteryList, now)
         }
         //only let them make a new lottery if there isn't one going already
-    val canCreateLottery = lotteryList != null &&
-        currentLottery(lotteryList, now) == null
+        val canCreateLottery = lotteryList != null &&
+                currentLottery(lotteryList, now) == null
 
-    val canEditLottery = lotteryList != null &&
-        CurrentLottery.pick(lotteryList) != null
+        val canEditLottery = lotteryList != null &&
+                CurrentLottery.pick(lotteryList) != null
 
-    val selectedLottery = lotteryList?.let { list ->
-        currentLottery(list, now)
-            ?: list.maxByOrNull { it.registrationStart }
-    }
-
-    CampsiteDetailsContent(
-        campsite = shown,
-        onEditClick = { onEditClick(shown) },
-        onBack = onBack,
-        lotteryText = lotteryText,
-        canCreateLottery = canCreateLottery,
-        onLotteryClick = { onLotteryClick(shown) },
-        canEditLottery = canEditLottery,
-        onEditLotteryClick = { onEditLotteryClick(shown) },
-        canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
-        onViewWaitlist = {
-            selectedLottery?.id
-                ?.takeIf { it.isNotBlank() }
-                ?.let { lotteryId -> onViewWaitlist(lotteryId) }
+        val selectedLottery = lotteryList?.let { list ->
+            currentLottery(list, now)
+                ?: list.maxByOrNull { it.registrationStart }
         }
-    )
+
+        CampsiteDetailsContent(
+            campsite = shown,
+            onEditClick = { onEditClick(shown) },
+            onBack = onBack,
+            lotteryText = lotteryText,
+            canCreateLottery = canCreateLottery,
+            onLotteryClick = { onLotteryClick(shown) },
+            canEditLottery = canEditLottery,
+            onEditLotteryClick = { onEditLotteryClick(shown) },
+            onGalleryClick = { onGalleryClick(shown) },
+            canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
+            onViewWaitlist = {
+                selectedLottery?.id
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { lotteryId -> onViewWaitlist(lotteryId) }
+            }
+        )
     }
 }
 
@@ -183,6 +188,7 @@ fun CampsiteDetailsScreen(
  * @param onLotteryClick called when the owner taps Campsite Lottery.
  * @param canEditLottery true to show the Edit Lottery button.
  * @param onEditLotteryClick called when the owner taps Edit Lottery.
+ * @param onGalleryClick called when the owner taps View Gallery (US 02.01.02).
  */
 @Composable
 fun CampsiteDetailsContent(
@@ -194,6 +200,7 @@ fun CampsiteDetailsContent(
     onLotteryClick: () -> Unit = {},
     canEditLottery: Boolean = false,
     onEditLotteryClick: () -> Unit = {},
+    onGalleryClick: () -> Unit = {},
     canViewWaitlist: Boolean = false,
     onViewWaitlist: () -> Unit = {}
 ) {
@@ -249,6 +256,14 @@ fun CampsiteDetailsContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        //US 02.01.02: the campsite's photos, same spot as the mockup
+        OutlinedButton(
+            onClick = onGalleryClick,
+            modifier = Modifier.fillMaxWidth().testTag("viewGalleryButton")
+        ) {
+            Text("View Gallery")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onEditClick,
             modifier = Modifier.fillMaxWidth().testTag("editButton")
