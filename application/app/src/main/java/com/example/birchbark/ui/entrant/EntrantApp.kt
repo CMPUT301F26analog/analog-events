@@ -42,6 +42,7 @@ import com.example.birchbark.ui.theme.BirchBarkColors
 
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.birchbark.ui.screens.BlankEntrantScreen
 import java.time.LocalDate
 
 
@@ -104,7 +105,7 @@ fun EntrantApp(
                         hint = "Campsites you bookmark will show up here",
                         modifier = Modifier.fillMaxSize()
                     )
-                    //EntrantTab.MESSAGES -> EntrantMessages()
+                    EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = profile,
                         name = name,
@@ -184,14 +185,11 @@ private fun ProfileTab(
             }
             EntrantReservationsScreen(reservations = reservations)
         }
-        /*ProfilePage.WAITLIST -> Column(modifier = Modifier.fillMaxSize()) {
-            TextButton(onClick = { onPage(ProfilePage.MENU) }) {
-                Text("Back", color = BirchBarkColors.Gold)
-            }
-            EntrantWaitlistScreen(waitlists = waitlist)
-        }
-
-         */
+        // TBD
+        ProfilePage.WAITLIST -> BlankEntrantScreen(
+            title = "Current Waitlists",
+            onBack = { onPage(ProfilePage.MENU) }
+        )
         //US 01.10.01, the notifications on/off switch
         ProfilePage.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
             TextButton(onClick = { onPage(ProfilePage.MENU) }) {
@@ -199,8 +197,17 @@ private fun ProfileTab(
             }
             NotificationSettingsScreen()
         }
-        //from US 01.11.01, remove this page and its menu row if you haven't added PolicyScreen
-        //ProfilePage.POLICY -> PolicyScreen(onBack = { onPage(ProfilePage.MENU) })
+        // TBD
+        ProfilePage.REVIEWS -> BlankEntrantScreen(
+            title = "Ratings & Reviews",
+            onBack = { onPage(ProfilePage.MENU) }
+        )
+        // TBD
+
+        ProfilePage.POLICY -> BlankEntrantScreen(
+            title = "App Policy & Guidelines",
+            onBack = { onPage(ProfilePage.MENU) }
+        )
     }
 }
 
@@ -231,9 +238,10 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
 
         MenuRow("Your Profile") { onPage(ProfilePage.EDIT) }
         MenuRow("Reservations History") { onPage(ProfilePage.RESERVATIONS) }
-        //MenuRow("Current Waitlists") { onPage(ProfilePage.WAITLIST  ) }
+        MenuRow("Current Waitlists") { onPage(ProfilePage.WAITLIST  ) }
+        MenuRow("Ratings & Reviews") { onPage(ProfilePage.WAITLIST  ) }
         MenuRow("Settings") { onPage(ProfilePage.SETTINGS) }
-        //MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
+        MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
     }
 }
 

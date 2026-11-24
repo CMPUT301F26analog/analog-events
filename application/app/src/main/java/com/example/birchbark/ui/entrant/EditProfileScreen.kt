@@ -278,12 +278,5 @@ fun EditProfileForm(
                 if (saving) "Saving..." else "Save Changes"
             )
         }
-
-        if (message.isNotBlank()) {
-            Text(
-                text = message,
-                modifier = Modifier.testTag("profileMessage")
-            )
-        }
     }
 }

@@ -11,6 +11,6 @@ enum class EntrantTab(val label: String, val icon: String) {
     HOME("Home", "⌂"),
     BROWSE("Browse", "⌕"),
     BOOKMARKS("Bookmarks", "☆"),
-    //MESSAGES("Messages", "✉"),
+    MESSAGES("Messages", "✉"),
     PROFILE("Profile", "⚙")
 }

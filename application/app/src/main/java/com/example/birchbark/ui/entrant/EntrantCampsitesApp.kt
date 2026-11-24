@@ -18,6 +18,8 @@ import com.example.birchbark.model.RegistrationChecker
 import com.example.birchbark.ui.screens.CampsiteDetailsScreen
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
+import com.example.birchbark.model.EntrantFilters
+
 
 fun selectOpenLottery(
     lotteries: List<Lottery>,
@@ -31,31 +33,66 @@ fun selectOpenLottery(
         .maxByOrNull { it.registrationStart }
 }
 
+/**
+ * Whether a campsite passes the entrant's filters (US 01.01.02).
+ *
+ * Location is a case-insensitive "contains", guests means the campsite holds at
+ * least that many, and rating means at least that rating. Dates are not checked
+ * here, because that needs availability data a campsite doesn't carry.
+ *
+ * */
+fun Campsite.passesFilters(filters: EntrantFilters): Boolean {
+    if (filters.location.isNotBlank() &&
+        !location.contains(filters.location.trim(), ignoreCase = true)
+    ) return false
+    filters.minOccupancy?.let { if (maxOccupancy < it) return false }
+    filters.minRating?.let { min ->
+        val avg = averageRating() ?: return false // Unrated campsites fail a minimum rating filter
+        if (avg < min) return false
+    }
+    return true
+}
+
+/**
+ * The Browse tab: search results, the filter screen, and campsite details.
+ * System back closes the filter screen or the details first.
+ */
 @Composable
 fun EntrantCampsitesApp() {
-    var selectedCampsite by remember {
-        mutableStateOf<Campsite?>(null)
-    }
+    var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var filters by remember { mutableStateOf(EntrantFilters()) }
+    var showFilters by remember { mutableStateOf(false) }
 
     val campsite = selectedCampsite
 
-    if (campsite == null) {
-        SearchCampsitesScreen(
-            onCampsiteClick = {
-                selectedCampsite = it
-            }
-        )
-    } else {
-        BackHandler {
-            selectedCampsite = null
+    when {
+        showFilters -> {
+            BackHandler { showFilters = false }
+            FilterScreen(
+                currentFilters = filters,
+                onApply = {
+                    filters = it
+                    showFilters = false
+                },
+                onCancel = { showFilters = false }
+            )
         }
 
-        EntrantCampsiteDetailsRoute(
-            campsite = campsite,
-            onBack = {
-                selectedCampsite = null
-            }
-        )
+        campsite == null -> {
+            SearchCampsitesScreen(
+                onCampsiteClick = { selectedCampsite = it },
+                filter = { it.passesFilters(filters) },
+                onFilterClick = { showFilters = true }
+            )
+        }
+
+        else -> {
+            BackHandler { selectedCampsite = null }
+            EntrantCampsiteDetailsRoute(
+                campsite = campsite,
+                onBack = { selectedCampsite = null }
+            )
+        }
     }
 }
 
