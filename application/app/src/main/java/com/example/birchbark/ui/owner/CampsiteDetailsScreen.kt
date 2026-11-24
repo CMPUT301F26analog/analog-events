@@ -33,6 +33,8 @@ import com.example.birchbark.model.CurrentLottery
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.util.Time
+import com.example.birchbark.model.BookedDates
+import com.example.birchbark.model.Reservation
 import com.example.birchbark.model.ReservationRepository
 import android.util.Log
 /**
@@ -79,12 +81,20 @@ fun CampsiteDetailsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var lotteries by remember { mutableStateOf<List<Lottery>?>(null) }
     var lotteryLoadFailed by remember { mutableStateOf(false) }
+    //US 02.06.01: confirmed reservations for this campsite, null while loading
+    var booked by remember { mutableStateOf<List<Reservation>?>(null) }
 
     //load every time the screen opens
     LaunchedEffect(campsiteId) {
         repository.getCampsite(campsiteId, object : CampsiteRepository.LoadCallback {
             override fun onLoaded(campsite: Campsite) {
                 loadedCampsite = campsite
+                //US 02.06.01: needs the owner's ID, so load once the campsite is here
+                reservationRepository.getReservationsForOwner(
+                    campsite.ownerId,
+                    onResult = { found -> booked = BookedDates.forCampsite(found, campsite.id) },
+                    onFailure = { booked = emptyList() }
+                )
             }
 
             override fun onNotFound() {
@@ -185,6 +195,7 @@ fun CampsiteDetailsScreen(
         onLotteryClick = { onLotteryClick(shown) },
         canEditLottery = canEditLottery,
         onEditLotteryClick = { onEditLotteryClick(shown) },
+        bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
         canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
         onViewWaitlist = {
             selectedLottery?.id
@@ -207,6 +218,7 @@ fun CampsiteDetailsScreen(
  * @param onLotteryClick called when the owner taps Campsite Lottery.
  * @param canEditLottery true to show the Edit Lottery button.
  * @param onEditLotteryClick called when the owner taps Edit Lottery.
+ * @param bookedDatesText the campsite's booked date ranges, one per line (US 02.06.01).
  */
 @Composable
 fun CampsiteDetailsContent(
@@ -218,6 +230,7 @@ fun CampsiteDetailsContent(
     onLotteryClick: () -> Unit = {},
     canEditLottery: Boolean = false,
     onEditLotteryClick: () -> Unit = {},
+    bookedDatesText: String = "No booked dates yet",
     canViewWaitlist: Boolean = false,
     onViewWaitlist: () -> Unit = {}
 ) {
@@ -258,6 +271,7 @@ fun CampsiteDetailsContent(
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
         )
         DetailRow("Lottery", lotteryText)
+        DetailRow("Booked dates", bookedDatesText)
         if (canViewWaitlist) {
 
             Spacer(modifier = Modifier.height(8.dp))
