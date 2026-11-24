@@ -1,4 +1,4 @@
-package com.example.birchbark.ui.screens
+package com.example.birchbark.ui.entrant
 
 // Importing required libraries
 import androidx.compose.runtime.Composable
@@ -18,8 +18,6 @@ import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.ratingLabel
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-
 
 
 /**
