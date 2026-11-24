@@ -2123,6 +2123,44 @@ fun DeleteCampsiteDialog(
 
 ---
 
+## Prompt #046 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Write a ReservationRepository that runs the winner draw (US 02.05.01) and saves the results to Firestore, plus queries for entrant and owner reservations and a status update.
+
+### Answer
+
+> Claude provided ReservationRepository: runDrawIfDue reads the waitlist after registration closes, picks winners with LotteryDraw, and in a transaction re-checks the lottery's drawn flag before saving the reservations and setting drawn = true, so only one device can run the draw. Also getReservationsForEntrant, getReservationsForOwner (sorted in Kotlin to avoid a Firestore composite index) and updateStatus.
+
+---
+
+## Prompt #047 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Run the winner draw when the owner opens campsite details, and debug why it failed with PERMISSION_DENIED.
+
+### Answer
+
+> Claude provided the drawDueLotteries call in the owner's CampsiteDetailsScreen and replaced the silent onFailure with Log.e, which showed PERMISSION_DENIED. The Firestore rules had no match for the new "reservations" collection. Claude wrote the reservations rule: owners create reservations only in the same transaction that sets the lottery's drawn flag (get/getAfter), entrants read and update only their own, owners can only reject. Published in the Firebase console and tested end to end.
+
+---
+
 ## Prompt #053 (Eliza)
 
 | Field | Details |
