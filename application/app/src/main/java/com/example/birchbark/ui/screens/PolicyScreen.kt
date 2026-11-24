@@ -30,9 +30,6 @@ import androidx.compose.ui.tooling.preview.Preview
  * scrolls. It's a plain Column (not a LazyColumn) because the policy is short,
  * and that keeps every section on the page for the tests to find.
  *
- * See [TBD] in References.md
- * // https://developer.android.com/develop/ui/compose/touch-input/pointer-input/scroll
- *
  * @param onBack called when the entrant taps Back, to return to the menu.
  * @param modifier modifier from the parent layout.
  */

@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
@@ -70,7 +71,7 @@ fun RegisterProfileScreen(
 
     BackHandler(enabled = termsVisible) { termsVisible = false }
     if (termsVisible) {
-        TermsPlaceholder(onBack = { termsVisible = false })
+        PolicyScreen(onBack = { termsVisible = false })
         return
     }
 
