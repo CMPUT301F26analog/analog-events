@@ -92,12 +92,12 @@ fun EntrantApp(
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
                     EntrantTab.HOME -> YourLotteries()
-                    EntrantTab.BROWSE -> EntrantCampsitesApp()
                     EntrantTab.BOOKMARKS -> EmptyState(
                         title = "Nothing saved yet",
                         hint = "Campsites you bookmark will show up here",
                         modifier = Modifier.fillMaxSize()
                     )
+                    EntrantTab.BROWSE -> EntrantCampsitesApp()
                     EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = profile,
