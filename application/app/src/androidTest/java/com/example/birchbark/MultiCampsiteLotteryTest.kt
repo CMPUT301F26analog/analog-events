@@ -1,5 +1,6 @@
 package com.example.birchbark
 
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -36,12 +37,18 @@ class MultiCampsiteLotteryTest {
     private val pocahontas = Campsite(id = "c3", ownerId = "owner123", name = "Pocahontas Campground", location = "Jasper National Park", maxOccupancy = 8)
     private val allThree = listOf(whistlers, wapiti, pocahontas)
 
-    /** Shows the form opened from Whistlers, with all three campsites to pick from. */
-    private fun showForm(onSave: (Lottery) -> Unit = {}) {
+    /**
+     * Shows the form opened from Whistlers, with all three campsites to pick from.
+     *
+     * @param busyIds campsites that are already in a lottery.
+     * @param onSave gets the lottery when Set Lottery is tapped.
+     */
+    private fun showForm(busyIds: Set<String> = setOf(), onSave: (Lottery) -> Unit = {}) {
         composeRule.setContent {
             CreateLotteryForm(
                 campsite = whistlers,
                 ownerCampsites = allThree,
+                busyIds = busyIds,
                 errors = listOf(),
                 saving = false,
                 onSave = onSave,
@@ -115,5 +122,24 @@ class MultiCampsiteLotteryTest {
         fillTheRest()
         composeRule.onNodeWithTag("setLotteryButton").performScrollTo().performClick()
         assertEquals("owner123", saved?.ownerId)
+    }
+
+    @Test
+    fun form_flagsCampsiteAlreadyInLottery() {
+        //Wapiti already has a lottery that isn't drawn yet
+        showForm(busyIds = setOf("c2"))
+        composeRule.onNodeWithTag("busyFlag_c2").assertExists()
+        composeRule.onNodeWithTag("campsiteCheckbox_c2").assertIsNotEnabled()
+        composeRule.onNodeWithTag("busyFlag_c3").assertDoesNotExist()
+    }
+
+    @Test
+    fun form_neverSavesFlaggedCampsite() {
+        var saved: Lottery? = null
+        showForm(busyIds = setOf("c2"), onSave = { saved = it })
+        composeRule.onNodeWithTag("campsiteCheckbox_c3").performClick()
+        fillTheRest()
+        composeRule.onNodeWithTag("setLotteryButton").performScrollTo().performClick()
+        assertEquals(listOf("c1", "c3"), saved?.campsiteIds)
     }
 }

@@ -1,5 +1,7 @@
 package com.example.birchbark.model
 
+// See #TBD1 in LLM.md
+
 /**
  * US 02.04.02: a lottery has to have at least one campsite in it. A lottery
  * can have more than one campsite (a multi campsite lottery), but never none.
