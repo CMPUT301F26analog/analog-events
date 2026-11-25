@@ -3,6 +3,7 @@ package com.example.birchbark.model
 // See #046 in LLM.md
 // See #054 in LLM.md (confirm with dates, decline, bookings)
 
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
 
@@ -26,6 +27,16 @@ class ReservationRepository {
      * Safe to call every time a screen opens: it does nothing before
      * registration ends, and the transaction makes sure only one device
      * ever runs the draw.
+     *
+     * US 01.03.01, 01.03.02: everyone on the waitlist gets a win or lose
+     * notification ([DrawNotifications]), except entrants who opted out
+     * (US 01.10.01). The notifications are written in the same transaction as
+     * the reservations and the drawn flag, so they're saved together or not at
+     * all: if the app closes mid-draw nothing is saved, and the next device to
+     * open the campsite runs the whole draw again. See #055 in LLM.md.
+     *
+     * A Firestore transaction holds at most 500 writes, so this supports
+     * waitlists of up to about 490 entrants.
      *
      * @param lottery the lottery to draw. Must have its [Lottery.id].
      * @param now current time in epoch ms.
@@ -53,28 +64,56 @@ class ReservationRepository {
         lotteryRef.collection("waitlist").get(Source.SERVER)
             .addOnSuccessListener { snapshot ->
                 val entrantIds = snapshot.documents.map { it.id }
-                val winners = LotteryDraw.drawWinners(entrantIds, lottery.numWinners)
-                val reservations = LotteryDraw.buildReservations(lottery, winners, now)
-
-                db.runTransaction { transaction ->
-                    // Re-check inside the transaction: another device may
-                    // have drawn since this lottery was loaded.
-                    val fresh = transaction.get(lotteryRef)
-                    if (fresh.getBoolean("drawn") == true) {
-                        return@runTransaction DrawResult.ALREADY_DRAWN
-                    }
-
-                    for (reservation in reservations) {
-                        val ref = db.collection("reservations").document(reservation.id)
-                        transaction.set(ref, reservation)
-                    }
-                    transaction.update(lotteryRef, "drawn", true)
-
-                    DrawResult.DRAWN
-                }
-                    .addOnSuccessListener { result -> onResult(result) }
-                    .addOnFailureListener { error -> onFailure(error) }
+                //opt-outs are read before the transaction too, it can't run queries
+                NotificationRepository().getOptedOut(
+                    entrantIds,
+                    onResult = { optedOut ->
+                        saveDraw(lottery, lotteryRef, entrantIds, optedOut, now, onResult, onFailure)
+                    },
+                    onFailure = onFailure
+                )
             }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
+     * Picks the winners and saves the draw in one transaction: the
+     * reservations, the win/lose notifications and the drawn flag.
+     */
+    private fun saveDraw(
+        lottery: Lottery,
+        lotteryRef: DocumentReference,
+        entrantIds: List<String>,
+        optedOut: Set<String>,
+        now: Long,
+        onResult: (DrawResult) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val winners = LotteryDraw.drawWinners(entrantIds, lottery.numWinners)
+        val reservations = LotteryDraw.buildReservations(lottery, winners, now)
+        val notifications = DrawNotifications.build(lottery, entrantIds, winners, optedOut, now)
+
+        db.runTransaction { transaction ->
+            // Re-check inside the transaction: another device may
+            // have drawn since this lottery was loaded.
+            val fresh = transaction.get(lotteryRef)
+            if (fresh.getBoolean("drawn") == true) {
+                return@runTransaction DrawResult.ALREADY_DRAWN
+            }
+
+            for (reservation in reservations) {
+                val ref = db.collection("reservations").document(reservation.id)
+                transaction.set(ref, reservation)
+            }
+            for (notification in notifications) {
+                val ref = db.collection("notifications").document(notification.id)
+                transaction.set(ref, notification)
+            }
+            transaction.update(lotteryRef, "drawn", true)
+
+            DrawResult.DRAWN
+        }
+            .addOnSuccessListener { result -> onResult(result) }
             .addOnFailureListener { error -> onFailure(error) }
     }
 
