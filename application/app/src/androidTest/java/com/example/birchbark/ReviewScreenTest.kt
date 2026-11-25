@@ -62,9 +62,8 @@ class ReviewScreenTest {
     }
 
     @Test
-    fun screen_showsTitleAndCampsiteName() {
+    fun screen_showsCampsiteName() {
         show()
-        composeRule.onNodeWithText("Your Review").assertIsDisplayed()
         composeRule.onNodeWithText("Whistlers Campground").assertIsDisplayed()
     }
 

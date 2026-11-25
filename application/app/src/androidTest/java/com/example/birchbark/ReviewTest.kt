@@ -1,5 +1,10 @@
-package com.example.birchbark.model
+package com.example.birchbark
 
+import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.RatingCalculator
+import com.example.birchbark.model.Review
+import com.example.birchbark.model.ReviewRepository
+import com.example.birchbark.model.ReviewValidator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
