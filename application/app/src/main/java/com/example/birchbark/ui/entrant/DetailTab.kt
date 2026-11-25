@@ -1,4 +1,4 @@
-package com.example.birchbark.ui.screens
+package com.example.birchbark.ui.entrant
 
 /**
  * The informational categories shown on the campsite details screen.

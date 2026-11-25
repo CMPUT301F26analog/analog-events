@@ -15,9 +15,11 @@ import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.model.LotteryStatus
 import com.example.birchbark.model.LotteryStatusCalculator
 import com.example.birchbark.model.RegistrationChecker
-import com.example.birchbark.ui.screens.CampsiteDetailsScreen
+// import com.example.birchbark.ui.screens.CampsiteDetailsScreen // TBD remove this in a bug pr
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
+import com.example.birchbark.model.EntrantFilters
+import com.example.birchbark.model.CampsiteFilter
 
 fun selectOpenLottery(
     lotteries: List<Lottery>,
@@ -31,31 +33,57 @@ fun selectOpenLottery(
         .maxByOrNull { it.registrationStart }
 }
 
+/**
+ * The Browse tab: search results, the filter screen, and campsite details.
+ * System back closes the filter screen or the details first.
+ */
 @Composable
 fun EntrantCampsitesApp() {
-    var selectedCampsite by remember {
-        mutableStateOf<Campsite?>(null)
+    var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var filters by remember { mutableStateOf(EntrantFilters()) }
+    var showFilters by remember { mutableStateOf(false) }
+    var lotteries by remember { mutableStateOf<List<Lottery>>(emptyList()) }
+
+    // Load lotteries once so CampsiteFilter can match booking dates
+    LaunchedEffect(Unit) {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("lotteries")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                lotteries = snapshot.toObjects(Lottery::class.java)
+            }
     }
 
     val campsite = selectedCampsite
 
-    if (campsite == null) {
-        SearchCampsitesScreen(
-            onCampsiteClick = {
-                selectedCampsite = it
-            }
-        )
-    } else {
-        BackHandler {
-            selectedCampsite = null
+    when {
+        showFilters -> {
+            BackHandler { showFilters = false }
+            FilterScreen(
+                currentFilters = filters,
+                onApply = {
+                    filters = it
+                    showFilters = false
+                },
+                onCancel = { showFilters = false }
+            )
         }
 
-        EntrantCampsiteDetailsRoute(
-            campsite = campsite,
-            onBack = {
-                selectedCampsite = null
-            }
-        )
+        campsite == null -> {
+            SearchCampsitesScreen(
+                onCampsiteClick = { selectedCampsite = it },
+                filter = { CampsiteFilter.matches(it, filters, lotteries) },
+                onFilterClick = { showFilters = true }
+            )
+        }
+
+        else -> {
+            BackHandler { selectedCampsite = null }
+            EntrantCampsiteDetailsRoute(
+                campsite = campsite,
+                onBack = { selectedCampsite = null }
+            )
+        }
     }
 }
 

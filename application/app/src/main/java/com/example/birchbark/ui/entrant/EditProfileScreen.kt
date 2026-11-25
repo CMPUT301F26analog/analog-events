@@ -18,7 +18,8 @@ import com.google.firebase.installations.FirebaseInstallations
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
-    onDeleted: () -> Unit = {}
+    onDeleted: () -> Unit = {},
+    onProfileUpdated: (UserProfile) -> Unit = {}
 ) {
     val repository = remember { UserRepository() }
     val deletionCoordinator = remember {
@@ -119,6 +120,7 @@ fun EditProfileScreen(
                                     profile = cleaned
                                     saving = false
                                     message = "Profile updated successfully."
+                                    onProfileUpdated(cleaned)
                                 },
                                 onFailure = { exception ->
                                     saving = false
@@ -170,15 +172,6 @@ fun EditProfileScreen(
 
                 if (deleting) {
                     CircularProgressIndicator()
-                }
-
-                if (message.isNotBlank()) {
-                    Text(
-                        text = message,
-                        modifier = Modifier.testTag(
-                            "deletionStatus"
-                        )
-                    )
                 }
             }
         }
@@ -278,7 +271,6 @@ fun EditProfileForm(
                 if (saving) "Saving..." else "Save Changes"
             )
         }
-
         if (message.isNotBlank()) {
             Text(
                 text = message,
