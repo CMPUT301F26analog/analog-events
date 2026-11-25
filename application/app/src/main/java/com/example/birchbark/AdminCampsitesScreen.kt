@@ -49,8 +49,14 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 //The admin can filter the campsites, open the details, and remove a campsite.
 //This composable has no parameters because it loads its campsite data from Firebase.
 //It keeps track of the campsite list, loading state, filters, and open dialogs.
+/**
+ * US 03.04.01 implemented.
+ * Displays the admin campsite browser.
+ *
+ * Loads campsite data and owner names from Firestore, lets the admin filter
+ * the list, view campsite details, and delete a campsite.
+ */
 @Composable
-
 fun AdminCampsitesScreen() {
 
 
@@ -69,41 +75,60 @@ fun AdminCampsitesScreen() {
     var loadError by remember { mutableStateOf<String?>(null) }
 
     // Loads the campsite documents when this screen first appears.
+    // Loads the campsite documents when this screen first appears.
     LaunchedEffect(Unit) {
         // Reads all campsite documents from the Firestore campsites collection.
         Firebase.firestore.collection("campsites")
             .get()
             .addOnSuccessListener { result ->
-                // Turns each Firestore document into the smaller object used by the UI.
-                // Documents without a name are skipped because the card needs a name.
-                campsites = result.documents.mapNotNull { document ->
-                    val name = document.getString("name") ?: return@mapNotNull null
-                    val ratingCount =
-                        (document.get("ratingCount") as? Number)?.toInt() ?: 0
-                    val ratingTotal =
-                        (document.get("ratingTotal") as? Number)?.toDouble() ?: 0.0
+                Firebase.firestore.collection("users")
+                    .get()
+                    .addOnSuccessListener { userResult ->
+                        val usersByFid = userResult.documents.associateBy { it.id }
 
-                    // Uses the Firestore field names to fill in the campsite card details.
-                    CampsitePreview(
-                        campsiteId = document.id,
-                        name = name,
-                        location = document.getString("location") ?: "",
-                        rating = if (ratingCount > 0) ratingTotal / ratingCount else 0.0,
-                        owner = document.getString("ownerId") ?: "",
-                        keywords = (document.get("tags") as? List<*>)
-                            ?.filterIsInstance<String>()
-                            ?.joinToString(" ") ?: "",
-                        capacity = (document.get("maxOccupancy") as? Number)?.toInt() ?: 0
-                    )
-                }
-                isLoading = false
+                        // Turns each Firestore document into the smaller object used by the UI.
+                        // Documents without a name are skipped because the card needs a name.
+                        campsites = result.documents.mapNotNull { document ->
+                            val name = document.getString("name") ?: return@mapNotNull null
+                            val ratingCount =
+                                (document.get("ratingCount") as? Number)?.toInt() ?: 0
+                            val ratingTotal =
+                                (document.get("ratingTotal") as? Number)?.toDouble() ?: 0.0
+
+                            val ownerProfile = document.getString("ownerId")
+                                ?.let { usersByFid[it] }
+                            val ownerName = listOfNotNull(
+                                ownerProfile?.getString("firstName"),
+                                ownerProfile?.getString("lastName")
+                            )
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+
+                            // Uses the Firestore field names to fill in the campsite card details.
+                            CampsitePreview(
+                                campsiteId = document.id,
+                                name = name,
+                                location = document.getString("location") ?: "",
+                                rating = if (ratingCount > 0) ratingTotal / ratingCount else 0.0,
+                                owner = ownerName.ifBlank { "Unknown owner" },
+                                keywords = (document.get("tags") as? List<*>)
+                                    ?.filterIsInstance<String>()
+                                    ?.joinToString(" ") ?: "",
+                                capacity = (document.get("maxOccupancy") as? Number)?.toInt() ?: 0
+                            )
+                        }
+                        isLoading = false
+                    }
+                    .addOnFailureListener { error ->
+                        loadError = error.localizedMessage ?: "Could not load owner profiles."
+                        isLoading = false
+                    }
             }
             .addOnFailureListener { error ->
                 loadError = error.localizedMessage ?: "Could not load campsites."
                 isLoading = false
             }
     }
-
     var appliedFilters by remember { mutableStateOf(CampsiteFilters()) }
     var draftFilters by remember { mutableStateOf(CampsiteFilters()) }
     var showFilters by remember { mutableStateOf(false) }
@@ -354,6 +379,12 @@ fun AdminCampsitesScreen() {
 // campsite contains the values displayed on the card.
 // onDetailsClick is called when the details button is tapped.
 // This composable displays the card UI; the parent screen handles the click result.
+/**
+ * Displays one campsite as a card with its name, location, rating, and details button.
+ *
+ * @param campsite The campsite information shown in the card.
+ * @param onDetailsClick Callback invoked when the details button is tapped.
+ */
 @Composable
 private fun CampsiteCard(
     campsite: CampsitePreview,
@@ -420,6 +451,19 @@ private fun CampsiteCard(
 // name and location are shown on the card and details dialog.
 // rating is the average rating, and owner is the campsite owner's ID.
 // keywords, siteType, capacity, and status are also used by the filters or details.
+/**
+ * Holds the campsite information used by the admin campsite screen.
+ *
+ * @property campsiteId Firestore document ID for the campsite.
+ * @property name Campsite name.
+ * @property location Campsite location.
+ * @property rating Average campsite rating.
+ * @property owner Owner's displayed name.
+ * @property keywords Searchable campsite keywords.
+ * @property siteType Campsite type used for filtering and details.
+ * @property capacity Maximum campsite occupancy.
+ * @property status Campsite status used for filtering and details.
+ */
 private data class CampsitePreview(
     val campsiteId: String,
     val name: String,
@@ -435,6 +479,18 @@ private data class CampsitePreview(
 // location, keywords, siteType, and status are matched against campsite details.
 // minCapacity, maxCapacity, and minRating are Strings because they come from text fields.
 // Empty filter values mean that the filter should not restrict the results.
+
+/**
+ * Holds the filter values entered by the admin.
+ *
+ * @property location Location text to match.
+ * @property keywords Keywords to match against campsite details.
+ * @property siteType Campsite type to match.
+ * @property minCapacity Minimum occupancy capacity.
+ * @property maxCapacity Maximum occupancy capacity.
+ * @property status Campsite status to match.
+ * @property minRating Minimum campsite rating.
+ */
 private data class CampsiteFilters(
     val location: String = "",
     val keywords: String = "",
@@ -450,6 +506,9 @@ private val Gold = Color(0xFFD6A266)
 private val Cream = Color(0xFFFFFBF5)
 //Shows the campsite screen preview in Android Studio.
 // The preview calls the screen with its default state and does not need parameters.
+/**
+ * Renders the admin campsite screen in Android Studio's Compose preview.
+ */
 @Preview(showBackground = true)
 @Composable
 private fun AdminCampsitesScreenPreview() {

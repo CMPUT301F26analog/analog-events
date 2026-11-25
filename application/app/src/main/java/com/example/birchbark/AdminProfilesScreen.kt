@@ -1,7 +1,5 @@
 package com.example.birchbark
-import androidx.compose.runtime.LaunchedEffect
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.firestore
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.ui.theme.BirchBarkTheme
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 
 //Displays user profiles loaded from the Firestore `users` collection.
 //Loads campsites from `campsites` and matches each campsite's `ownerId`
@@ -60,14 +61,31 @@ fun AdminProfilesScreen() {
     var profileToDelete by remember {
         mutableStateOf<ProfilePreview?>(null)
     }
+
+    // Holds the owner the admin selected to block.
+    var profileToBlock by remember {
+        mutableStateOf<ProfilePreview?>(null)
+    }
+
+    // Shows an error if blocking the owner fails.
+    var blockError by remember { mutableStateOf<String?>(null) }
+
+    // Prevents repeated block requests while one is running.
+    var isBlocking by remember { mutableStateOf(false) }
+
     // This is used to show an error if Firebase cannot delete the profile.
     var deleteError by remember { mutableStateOf<String?>(null) }
     var profiles by remember { mutableStateOf(emptyList<ProfilePreview>()) }
-    var campsiteData by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
+    var campsiteData by remember {
+        mutableStateOf(emptyList<Pair<String, String>>())
+    }
+
     // Tracks whether the profile and campsite information is still being loaded.
     var isLoading by remember { mutableStateOf(true) }
+
     // Stores a message to show if either Firebase request fails.
     var loadError by remember { mutableStateOf<String?>(null) }
+
     // Runs the Firebase requests when this screen first appears.
     LaunchedEffect(Unit) {
         val db = Firebase.firestore
@@ -76,79 +94,111 @@ fun AdminProfilesScreen() {
         db.collection("campsites")
             .get()
             .addOnSuccessListener { campsiteResult ->
-                val campsiteByOwnerId = campsiteResult.documents.mapNotNull { campsite ->
-                    val ownerId = campsite.getString("ownerId")
-                        ?: return@mapNotNull null
-                    val name = campsite.getString("name")
-                        ?: return@mapNotNull null
-                    val location = campsite.getString("location") ?: ""
+                val campsiteByOwnerId =
+                    campsiteResult.documents.mapNotNull { campsite ->
+                        val ownerId = campsite.getString("ownerId")
+                            ?: return@mapNotNull null
+                        val name = campsite.getString("name")
+                            ?: return@mapNotNull null
+                        val location = campsite.getString("location") ?: ""
 
-                    ownerId to (name to location)
-                }.toMap()
+                        ownerId to (name to location)
+                    }.toMap()
 
-                campsiteData = campsiteResult.documents.mapNotNull { campsite ->
-                    val name = campsite.getString("name")
-                        ?: return@mapNotNull null
-                    name to (campsite.getString("location") ?: "")
-                }
+                campsiteData =
+                    campsiteResult.documents.mapNotNull { campsite ->
+                        val name = campsite.getString("name")
+                            ?: return@mapNotNull null
+                        name to (campsite.getString("location") ?: "")
+                    }
 
                 // Each users document ID is compared with campsite ownerId values.
                 db.collection("users")
                     .get()
                     .addOnSuccessListener { userResult ->
                         profiles = userResult.documents.map { user ->
-                            val ownedCampsite = campsiteByOwnerId[user.id]
-                            val roles = (user.get("roles") as? List<*>)
-                                ?.filterIsInstance<String>()
-                                .orEmpty()
+                            val ownedCampsite =
+                                campsiteByOwnerId[user.id]
+                            val roles =
+                                (user.get("roles") as? List<*>)
+                                    ?.filterIsInstance<String>()
+                                    .orEmpty()
 
                             ProfilePreview(
+                                // In this app, users/{documentId} is keyed by the FID.
                                 userId = user.id,
+                                authUid = user.getString("authUid").orEmpty(),
                                 name = listOfNotNull(
                                     user.getString("firstName"),
                                     user.getString("lastName")
-                                ).joinToString(" ").ifBlank { "Unnamed user" },
+                                ).joinToString(" ").ifBlank {
+                                    "Unnamed user"
+                                },
                                 email = user.getString("email") ?: "",
                                 phone = user.getString("phoneNumber") ?: "",
-                                role = roles.joinToString(", ").ifBlank { "Unknown" },
+                                role = roles.joinToString(", ").ifBlank {
+                                    "Unknown"
+                                },
                                 campsite = ownedCampsite?.first ?: "",
-                                area = ownedCampsite?.second ?: "") }
-                        isLoading = false }
+                                area = ownedCampsite?.second ?: ""
+                            )
+                        }
+                        isLoading = false
+                    }
                     .addOnFailureListener { error ->
-                        loadError = error.localizedMessage ?: "Could not load profiles."
-                        isLoading = false } }
+                        loadError =
+                            error.localizedMessage ?: "Could not load profiles."
+                        isLoading = false
+                    }
+            }
             .addOnFailureListener { error ->
-                loadError = error.localizedMessage ?: "Could not load campsites."
-                isLoading = false } }
+                loadError =
+                    error.localizedMessage ?: "Could not load campsites."
+                isLoading = false
+            }
+    }
 
     // Builds the campsite and area choices shown in the filter dropdowns.
     val campsiteOptions = listOf("All campsites") +
             campsiteData.map { it.first }.distinct()
 
     val areaOptions = listOf("All areas") +
-            campsiteData.map { it.second }.filter { it.isNotBlank() }.distinct()
+            campsiteData.map { it.second }
+                .filter { it.isNotBlank() }
+                .distinct()
+
     var appliedFilters by remember { mutableStateOf(ProfileFilters()) }
     var draftFilters by remember { mutableStateOf(ProfileFilters()) }
     var showFilters by remember { mutableStateOf(false) }
     var selectedProfile by remember {
-        mutableStateOf<ProfilePreview?>(null) }
-
-
+        mutableStateOf<ProfilePreview?>(null)
+    }
 
     // Keeps profiles that match the campsite and area filters selected by the admin.
-    val matchingProfiles = profiles.filter { profile -> (appliedFilters.campsite == "All campsites" ||
-            profile.campsite == appliedFilters.campsite) &&
-            (appliedFilters.area == "All areas" ||
-                    profile.area == appliedFilters.area) }
+    val matchingProfiles = profiles.filter { profile ->
+        (appliedFilters.campsite == "All campsites" ||
+                profile.campsite == appliedFilters.campsite) &&
+                (appliedFilters.area == "All areas" ||
+                        profile.area == appliedFilters.area)
+    }
 
     // Sorts the filtered profiles by first or last name and applies the chosen order.
     val sortedProfiles = when (appliedFilters.sortBy) {
-        "Last name" -> matchingProfiles.sortedBy { it.name.substringAfterLast(" ") }
+        "Last name" ->
+            matchingProfiles.sortedBy {
+                it.name.substringAfterLast(" ")
+            }
 
-        else -> matchingProfiles.sortedBy { it.name.substringBefore(" ") }
+        else ->
+            matchingProfiles.sortedBy {
+                it.name.substringBefore(" ")
+            }
     }.let { profilesInOrder ->
-        if (appliedFilters.sortOrder == "Z–A") { profilesInOrder.reversed() }
-        else { profilesInOrder }
+        if (appliedFilters.sortOrder == "Z–A") {
+            profilesInOrder.reversed()
+        } else {
+            profilesInOrder
+        }
     }
 
     // Provides the screen background and the padding used by its content.
@@ -157,45 +207,62 @@ fun AdminProfilesScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-        ) { Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, top = 16.dp, end = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) { Text(text = "Profiles",
-            style = MaterialTheme.typography.titleLarge,
-            color = ProfileGold)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, top = 16.dp, end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Profiles",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = ProfileGold
+                )
 
-            TextButton(onClick = {
-                draftFilters = appliedFilters
-                showFilters = true
-            }) { Text("Filter", color = ProfileGold) } }
+                TextButton(onClick = {
+                    draftFilters = appliedFilters
+                    showFilters = true
+                }) {
+                    Text("Filter", color = ProfileGold)
+                }
+            }
 
             if (isLoading) {
                 Text("Loading profiles...", color = ProfileCream)
             } else if (loadError != null) {
-                Text(loadError ?: "Could not load profiles.", color = ProfileCream)
+                Text(
+                    loadError ?: "Could not load profiles.",
+                    color = ProfileCream
+                )
             } else if (sortedProfiles.isEmpty()) {
                 Text(
                     "No profiles match these filters.",
                     color = ProfileCream,
                     modifier = Modifier.padding(20.dp)
                 )
-            }
-            else {
+            } else {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentPadding = PaddingValues(
                         horizontal = 20.dp,
-                        vertical = 12.dp),
+                        vertical = 12.dp
+                    ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     items(sortedProfiles) { profile ->
                         ProfileCard(profile) {
-                            selectedProfile = profile } } } } } }
+                            selectedProfile = profile
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Shows the filter dialog while the admin is choosing profile filters.
     if (showFilters) {
@@ -203,54 +270,79 @@ fun AdminProfilesScreen() {
             onDismissRequest = { showFilters = false },
             containerColor = ProfileCardColor,
             title = {
-                Text("Filter profiles", color = ProfileCream) },
-            text = { Column(
-                modifier = Modifier
-                    .heightIn(max = 450.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Sort by", color = ProfileCream)
+                Text("Filter profiles", color = ProfileCream)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 450.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Sort by", color = ProfileCream)
 
-                ProfileFilterDropdown(
-                    label = "Name",
-                    value = draftFilters.sortBy,
-                    options = listOf("First name", "Last name"),
-                    onSelect = {
-                        draftFilters = draftFilters.copy(sortBy = it) })
+                    ProfileFilterDropdown(
+                        label = "Name",
+                        value = draftFilters.sortBy,
+                        options = listOf("First name", "Last name"),
+                        onSelect = {
+                            draftFilters =
+                                draftFilters.copy(sortBy = it)
+                        }
+                    )
 
-                ProfileFilterDropdown(
-                    label = "Order",
-                    value = draftFilters.sortOrder,
-                    options = listOf("A–Z", "Z–A"),
-                    onSelect = {
-                        draftFilters = draftFilters.copy(sortOrder = it)})
+                    ProfileFilterDropdown(
+                        label = "Order",
+                        value = draftFilters.sortOrder,
+                        options = listOf("A–Z", "Z–A"),
+                        onSelect = {
+                            draftFilters =
+                                draftFilters.copy(sortOrder = it)
+                        }
+                    )
 
-                Text("Campsite", color = ProfileCream)
+                    Text("Campsite", color = ProfileCream)
 
-                ProfileFilterDropdown(
-                    label = "Choose campsite",
-                    value = draftFilters.campsite,
-                    options = campsiteOptions,
-                    onSelect = { draftFilters = draftFilters.copy(campsite = it) })
+                    ProfileFilterDropdown(
+                        label = "Choose campsite",
+                        value = draftFilters.campsite,
+                        options = campsiteOptions,
+                        onSelect = {
+                            draftFilters =
+                                draftFilters.copy(campsite = it)
+                        }
+                    )
 
-                Text("Area", color = ProfileCream)
+                    Text("Area", color = ProfileCream)
 
-                ProfileFilterDropdown(
-                    label = "Choose area",
-                    value = draftFilters.area,
-                    options = areaOptions,
-                    onSelect = {
-                        draftFilters = draftFilters.copy(area = it) })} },
+                    ProfileFilterDropdown(
+                        label = "Choose area",
+                        value = draftFilters.area,
+                        options = areaOptions,
+                        onSelect = {
+                            draftFilters =
+                                draftFilters.copy(area = it)
+                        }
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
                     appliedFilters = draftFilters
-                    showFilters = false }) { Text("Apply Filters", color = ProfileGold) }
+                    showFilters = false
+                }) {
+                    Text("Apply Filters", color = ProfileGold)
+                }
             },
-
             dismissButton = {
                 TextButton(onClick = {
                     showFilters = false
                 }) {
-                    Text("Cancel", color = ProfileCream) } }) }
+                    Text("Cancel", color = ProfileCream)
+                }
+            }
+        )
+    }
 
     // Shows details for the profile whose card was selected.
     selectedProfile?.let { profile ->
@@ -260,40 +352,157 @@ fun AdminProfilesScreen() {
             title = {
                 Text(profile.name, color = ProfileCream)
             },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Email: ${profile.email}", color = ProfileCream)
-                Text("Phone: ${profile.phone}", color = ProfileCream)
-                Text("Role: ${profile.role}", color = ProfileCream)
-                Text("Campsite: ${profile.campsite}", color = ProfileCream)
-                Text("Area: ${profile.area}", color = ProfileCream) } },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Email: ${profile.email}", color = ProfileCream)
+                    Text("Phone: ${profile.phone}", color = ProfileCream)
+                    Text("Role: ${profile.role}", color = ProfileCream)
+                    Text("Campsite: ${profile.campsite}", color = ProfileCream)
+                    Text("Area: ${profile.area}", color = ProfileCream)
 
+                    // Only show the block option for profiles that have the owner role.
+                    if (profile.role.split(",").any {
+                            it.trim().equals("owner", ignoreCase = true)
+                        }
+                    ) {
+                        TextButton(onClick = {
+                            selectedProfile = null
+                            profileToBlock = profile
+                            blockError = null
+                        }) {
+                            Text(
+                                "Block owner and remove profile",
+                                color = ProfileGold
+                            )
+                        }
+                    }
+                }
+            },
             dismissButton = {
                 TextButton(onClick = {
                     // Opens the delete confirmation for this profile.
                     profileToDelete = profile
                     deleteError = null
-                    selectedProfile = null }) {
-                    Text("Delete profile", color = ProfileGold) } },
+                    selectedProfile = null
+                }) {
+                    Text("Delete profile", color = ProfileGold)
+                }
+            },
             confirmButton = {
-                TextButton(onClick = { selectedProfile = null }) {
-                    Text("Close", color = ProfileGold) } }) }
+                TextButton(onClick = {
+                    selectedProfile = null
+                }) {
+                    Text("Close", color = ProfileGold)
+                }
+            }
+        )
+    }
+
+    // Asks for confirmation before adding an owner to the block list and removing their profile.
+    profileToBlock?.let { profile ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!isBlocking) {
+                    profileToBlock = null
+                    blockError = null
+                }
+            },
+            containerColor = ProfileCardColor,
+            title = {
+                Text("Block owner?", color = ProfileCream)
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Block ${profile.name} and remove their profile?",
+                        color = ProfileCream
+                    )
+
+                    blockError?.let { error ->
+                        Text(error, color = ProfileCream)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isBlocking,
+                    onClick = {
+                        if (profile.authUid.isBlank()) {
+                            blockError =
+                                "This profile has no authUid in Firestore."
+                            return@TextButton
+                        }
+
+                        isBlocking = true
+                        blockError = null
+
+                        ViolatingOwnerRepository().blockOwnerAndRemoveProfile(
+                            fid = profile.userId,
+                            onSuccess = {
+                                // Remove the profile from the displayed list after the operation succeeds.
+                                profiles = profiles.filterNot {
+                                    it.userId == profile.userId
+                                }
+                                isBlocking = false
+                                profileToBlock = null
+                            },
+                            onError = { error ->
+                                isBlocking = false
+                                blockError = error.localizedMessage
+                                    ?: "Could not block this owner."
+                            }
+                        )
+                    }
+                ) {
+                    Text(
+                        if (isBlocking) "Blocking..." else "Block owner",
+                        color = ProfileGold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !isBlocking,
+                    onClick = {
+                        profileToBlock = null
+                        blockError = null
+                    }
+                ) {
+                    Text("Cancel", color = ProfileCream)
+                }
+            }
+        )
+    }
+
     // This dialog asks one more time before deleting the profile from Firebase.
     // profile is the profile selected in the details dialog for removal.
     profileToDelete?.let { profile ->
         AlertDialog(
             onDismissRequest = {
                 profileToDelete = null
-                deleteError = null },
+                deleteError = null
+            },
             containerColor = ProfileCardColor,
             title = {
-                Text("Delete profile?", color = ProfileCream) },
+                Text("Delete profile?", color = ProfileCream)
+            },
             text = {
                 Column {
-                    Text("Delete ${profile.name} from the profiles?",
-                        color = ProfileCream)
+                    Text(
+                        "Delete ${profile.name} from the profiles?",
+                        color = ProfileCream
+                    )
+
                     // If Firebase gives an error, it shows up here.
                     deleteError?.let { error ->
-                        Text(error, color = ProfileCream) } } },
+                        Text(error, color = ProfileCream)
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -313,16 +522,27 @@ fun AdminProfilesScreen() {
                             .addOnFailureListener { error ->
                                 // Keeps the dialog open and shows the error if the delete fails.
                                 deleteError =
-                                    error.localizedMessage ?: "Could not delete profile." } }) {
-                    Text("Delete", color = ProfileGold) } },
+                                    error.localizedMessage
+                                        ?: "Could not delete profile."
+                            }
+                    }
+                ) {
+                    Text("Delete", color = ProfileGold)
+                }
+            },
             dismissButton = {
                 TextButton(
                     onClick = {
                         // Cancel closes the dialog and does not delete the profile.
                         profileToDelete = null
-                        deleteError = null }) {
-                    Text("Cancel", color = ProfileCream) } }) }
-
+                        deleteError = null
+                    }
+                ) {
+                    Text("Cancel", color = ProfileCream)
+                }
+            }
+        )
+    }
 }
 
 //Displays a read-only dropdown field for choosing a profile filter.
@@ -337,9 +557,7 @@ private fun ProfileFilterDropdown(
     value: String,
     options: List<String>,
     onSelect: (String) -> Unit
-)
-
-{
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Box {
@@ -364,20 +582,31 @@ private fun ProfileFilterDropdown(
         )
 
         // This layer opens the choices when you tap the field.
-        Box(modifier = Modifier
-            .matchParentSize()
-            .clickable { expanded = true })
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { expanded = true }
+        )
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             modifier = Modifier.background(ProfileCardColor)
-        ) { options.forEach { option ->
-            DropdownMenuItem(
-                text = { Text(option, color = ProfileCream) },
-                onClick = {
-                    onSelect(option)
-                    expanded = false }) } } } }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(option, color = ProfileCream)
+                    },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
 
 //Displays a profile's initials and name on a card.
 // profile contains the information displayed on this card.
@@ -387,51 +616,69 @@ private fun ProfileFilterDropdown(
 private fun ProfileCard(
     profile: ProfilePreview,
     onDetailsClick: () -> Unit
-) { Card(   modifier = Modifier
-    .width(290.dp)
-    .height(460.dp),
-    shape = RoundedCornerShape(24.dp),
-    colors = CardDefaults.cardColors(
-        containerColor = ProfileTeal)) {
-    Box(modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .size(110.dp)
-                    .background(ProfileCream, CircleShape),
-                contentAlignment = Alignment.Center)
+) {
+    Card(
+        modifier = Modifier
+            .width(290.dp)
+            .height(460.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ProfileTeal
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .background(ProfileCream, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = profile.name
+                            .split(" ")
+                            .mapNotNull { it.firstOrNull() }
+                            .joinToString(""),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = ProfileBackground
+                    )
+                }
 
-            {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = profile.name
-                        .split(" ")
-                        .mapNotNull { it.firstOrNull() }
-                        .joinToString(""),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = ProfileBackground) }
+                    text = profile.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = ProfileCream
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onDetailsClick,
+                    modifier = Modifier.padding(top = 24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ProfileGold,
+                        contentColor = ProfileBackground
+                    )
+                ) {
+                    Text("→")
+                }
+            }
+        }
+    }
+}
 
-            Text(
-                text = profile.name,
-                style = MaterialTheme.typography.titleLarge,
-                color = ProfileCream)
-
-            Button(
-                onClick = onDetailsClick,
-                modifier = Modifier.padding(top = 24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ProfileGold,
-                    contentColor = ProfileBackground))
-            { Text("→") } } } } }
 //Holds the profile details used by the admin profiles screen.
 // userId is the Firestore document ID used to identify this user.
 // name, email, and phone are the user's contact details shown to the admin.
 // role is the user's role or roles; campsite and area describe an owned campsite.
 private data class ProfilePreview(
     val userId: String,
+    val authUid: String,
     val name: String,
     val email: String,
     val phone: String,
@@ -439,6 +686,7 @@ private data class ProfilePreview(
     val campsite: String,
     val area: String
 )
+
 //Holds the current campsite, area, and sorting choices for the profiles list.
 // The default values mean no campsite or area filter is applied.
 private data class ProfileFilters(
@@ -453,9 +701,13 @@ private val ProfileCardColor = Color(0xFF244746)
 private val ProfileTeal = Color(0xFF168F83)
 private val ProfileGold = Color(0xFFD6A266)
 private val ProfileCream = Color(0xFFFFFBF5)
+
 //Previews the admin profiles screen in Android Studio.
 // It uses the screen's normal default state without needing a signed-in Firebase user.
 @Preview(showBackground = true)
 @Composable
 private fun AdminProfilesScreenPreview() {
-    BirchBarkTheme { AdminProfilesScreen() } }
+    BirchBarkTheme {
+        AdminProfilesScreen()
+    }
+}
