@@ -239,7 +239,7 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
         MenuRow("Your Profile") { onPage(ProfilePage.EDIT) }
         MenuRow("Reservations History") { onPage(ProfilePage.RESERVATIONS) }
         MenuRow("Current Waitlists") { onPage(ProfilePage.WAITLIST  ) }
-        MenuRow("Ratings & Reviews") { onPage(ProfilePage.WAITLIST  ) }
+        MenuRow("Ratings & Reviews") { onPage(ProfilePage.REVIEWS  ) }
         MenuRow("Settings") { onPage(ProfilePage.SETTINGS) }
         MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
     }

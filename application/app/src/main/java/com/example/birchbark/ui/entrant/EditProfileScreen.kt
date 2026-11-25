@@ -173,15 +173,6 @@ fun EditProfileScreen(
                 if (deleting) {
                     CircularProgressIndicator()
                 }
-
-                if (message.isNotBlank()) {
-                    Text(
-                        text = message,
-                        modifier = Modifier.testTag(
-                            "deletionStatus"
-                        )
-                    )
-                }
             }
         }
     }
@@ -278,6 +269,12 @@ fun EditProfileForm(
         ) {
             Text(
                 if (saving) "Saving..." else "Save Changes"
+            )
+        }
+        if (message.isNotBlank()) {
+            Text(
+                text = message,
+                modifier = Modifier.testTag("profileMessage")
             )
         }
     }

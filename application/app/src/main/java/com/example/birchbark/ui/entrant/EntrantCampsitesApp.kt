@@ -19,7 +19,7 @@ import com.example.birchbark.model.RegistrationChecker
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
 import com.example.birchbark.model.EntrantFilters
-
+import com.example.birchbark.model.CampsiteFilter
 
 fun selectOpenLottery(
     lotteries: List<Lottery>,
@@ -34,28 +34,6 @@ fun selectOpenLottery(
 }
 
 /**
- * Whether a campsite passes the entrant's filters (US 01.01.02).
- *
- * See [TBD 7] in LLM.md
- *
- * Location is a case-insensitive "contains", guests means the campsite holds at
- * least that many, and rating means at least that rating. Dates are not checked
- * here, because that needs availability data a campsite doesn't carry.
- *
- * */
-fun Campsite.passesFilters(filters: EntrantFilters): Boolean {
-    if (filters.location.isNotBlank() &&
-        !location.contains(filters.location.trim(), ignoreCase = true)
-    ) return false
-    filters.minOccupancy?.let { if (maxOccupancy < it) return false }
-    filters.minRating?.let { min ->
-        val avg = averageRating() ?: return false // Unrated campsites fail a minimum rating filter
-        if (avg < min) return false
-    }
-    return true
-}
-
-/**
  * The Browse tab: search results, the filter screen, and campsite details.
  * System back closes the filter screen or the details first.
  */
@@ -64,6 +42,17 @@ fun EntrantCampsitesApp() {
     var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
     var filters by remember { mutableStateOf(EntrantFilters()) }
     var showFilters by remember { mutableStateOf(false) }
+    var lotteries by remember { mutableStateOf<List<Lottery>>(emptyList()) }
+
+    // Load lotteries once so CampsiteFilter can match booking dates
+    LaunchedEffect(Unit) {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("lotteries")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                lotteries = snapshot.toObjects(Lottery::class.java)
+            }
+    }
 
     val campsite = selectedCampsite
 
@@ -83,7 +72,7 @@ fun EntrantCampsitesApp() {
         campsite == null -> {
             SearchCampsitesScreen(
                 onCampsiteClick = { selectedCampsite = it },
-                filter = { it.passesFilters(filters) },
+                filter = { CampsiteFilter.matches(it, filters, lotteries) },
                 onFilterClick = { showFilters = true }
             )
         }
