@@ -1,6 +1,6 @@
 package com.example.birchbark.ui.owner
 
-// See #055 in LLM.md
+// See #TBD7 in LLM.md
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -70,7 +70,7 @@ fun CampsiteMap(
 
     val mapView = remember {
         //osmdroid asks every app to load its settings and give its name before downloading map tiles
-        // See #056 in LLM.md
+        // See #TBD8 in LLM.md
         val settings = Configuration.getInstance()
         settings.load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
         settings.userAgentValue = USER_AGENT
@@ -127,7 +127,7 @@ fun CampsiteMap(
     AndroidView(
         factory = { mapView },
         //keep the map inside its own box so it doesn't draw over the text above it
-        // See #057 in LLM.md
+        // See #TBD9 in LLM.md
         modifier = modifier.clipToBounds(),
         update = { map ->
             //redraw the pin every time the location changes
@@ -148,7 +148,7 @@ fun CampsiteMap(
  * The name the map gives OpenStreetMap when it downloads map tiles, so they
  * know which app is asking. Can't start with com.example or it gets blocked.
  */
-// See #056 in LLM.md
+// See #TBD8 in LLM.md
 private const val USER_AGENT = "BirchBark/1.0 (CMPUT 301 student project, University of Alberta)"
 
 /**
