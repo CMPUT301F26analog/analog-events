@@ -46,7 +46,7 @@ object AppPolicy {
         ),
         PolicySection(
             title = "Your information",
-            body = "Your profile (name, email, phone number, location, and photo) is only used to run your " +
+            body = "Your profile (name, email, phone number, and photo) is only used to run your " +
                     "reservations. The app knows you by your device, so you don't need a password. " +
                     "You can update or delete your profile at any time."
         ),

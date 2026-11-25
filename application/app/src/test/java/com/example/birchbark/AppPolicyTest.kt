@@ -1,11 +1,8 @@
 package com.example.birchbark
 
 import com.example.birchbark.model.AppPolicy
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert
 import org.junit.Test
-
-// See [#53] in LLM.md
 
 /**
  * Unit tests for the app policy text.
@@ -16,19 +13,19 @@ class AppPolicyTest {
 
     @Test
     fun policy_hasSections() {
-        assertTrue(AppPolicy.sections.isNotEmpty())
+        Assert.assertTrue(AppPolicy.sections.isNotEmpty())
     }
 
     @Test
     fun policy_hasATitle() {
-        assertTrue(AppPolicy.TITLE.isNotBlank())
+        Assert.assertTrue(AppPolicy.TITLE.isNotBlank())
     }
 
     @Test
     fun everySection_hasTitleAndBody() {
         for (section in AppPolicy.sections) {
-            assertTrue("A section has a blank title", section.title.isNotBlank())
-            assertTrue("'${section.title}' has a blank body", section.body.isNotBlank())
+            Assert.assertTrue("A section has a blank title", section.title.isNotBlank())
+            Assert.assertTrue("'${section.title}' has a blank body", section.body.isNotBlank())
         }
     }
 
@@ -36,7 +33,7 @@ class AppPolicyTest {
     @Test
     fun sectionTitles_areUnique() {
         val titles = AppPolicy.sections.map { it.title }
-        assertEquals(titles.size, titles.toSet().size)
+        Assert.assertEquals(titles.size, titles.toSet().size)
     }
 
     // the policy should talk about the things entrants actually do in the app
@@ -44,7 +41,7 @@ class AppPolicyTest {
     fun policy_coversTheMainTopics() {
         val titles = AppPolicy.sections.joinToString(" ") { it.title }.lowercase()
         for (topic in listOf("lottery", "cancel", "notification", "information")) {
-            assertTrue("No section about '$topic'", titles.contains(topic))
+            Assert.assertTrue("No section about '$topic'", titles.contains(topic))
         }
     }
 }

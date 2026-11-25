@@ -20,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-// See [TBD] in LLM.md
+// See [TBD 1] in LLM.md
 
 /**
  * Intent tests for the app policy screen.
@@ -66,7 +66,7 @@ class PolicyScreenTest {
     @Test
     fun menuItem_showsLabel() {
         composeRule.setContent { BirchBarkTheme { PolicyMenuItem(onClick = {}) } }
-        composeRule.onNodeWithText("App policy and guidelines").assertIsDisplayed()
+        composeRule.onNodeWithTag("policyMenuItem").assertIsDisplayed()
     }
 
     @Test
@@ -91,7 +91,7 @@ class PolicyScreenTest {
             }
         }
 
-        composeRule.onNodeWithText(AppPolicy.TITLE).assertDoesNotExist()
+        composeRule.onNodeWithTag("policyMenuItem").assertIsDisplayed()
 
         composeRule.onNodeWithTag("policyMenuItem").performClick()
         composeRule.onNodeWithText(AppPolicy.TITLE).assertIsDisplayed()

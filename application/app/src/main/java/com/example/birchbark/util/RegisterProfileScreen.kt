@@ -182,16 +182,3 @@ fun RegisterProfileScreen(
         }
     }
 }
-
-@Composable
-private fun TermsPlaceholder(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(BirchBarkColors.DarkGreen)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TextButton(onClick = onBack) { Text("Back") }
-        Text("Terms of Service", style = MaterialTheme.typography.headlineMedium)
-        Text("The approved BirchBark policy will be added in a later user story.")
-    }
-}

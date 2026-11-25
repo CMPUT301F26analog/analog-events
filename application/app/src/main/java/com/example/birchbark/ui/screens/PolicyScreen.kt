@@ -20,9 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.AppPolicy
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 
-import androidx.compose.material3.Surface
-import androidx.compose.ui.tooling.preview.Preview
-
 /**
  * US 01.11.01: See the app policy and guidelines
  *
