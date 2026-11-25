@@ -33,7 +33,10 @@ import com.example.birchbark.model.CurrentLottery
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.util.Time
-
+import com.example.birchbark.model.BookedDates
+import com.example.birchbark.model.Reservation
+import com.example.birchbark.model.ReservationRepository
+import android.util.Log
 /**
  * US 02.01.04 View campsite details. The owner's campsite details screen from
  * the My Campgrounds mockup. Opens when the owner taps a campsite in their
@@ -77,16 +80,25 @@ fun CampsiteDetailsScreen(
 ) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
+    val reservationRepository = remember { ReservationRepository() }
     var loadedCampsite by remember { mutableStateOf<Campsite?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var lotteries by remember { mutableStateOf<List<Lottery>?>(null) }
     var lotteryLoadFailed by remember { mutableStateOf(false) }
+    //US 02.06.01: confirmed reservations for this campsite, null while loading
+    var booked by remember { mutableStateOf<List<Reservation>?>(null) }
 
     //load every time the screen opens
     LaunchedEffect(campsiteId) {
         repository.getCampsite(campsiteId, object : CampsiteRepository.LoadCallback {
             override fun onLoaded(campsite: Campsite) {
                 loadedCampsite = campsite
+                //US 02.06.01: needs the owner's ID, so load once the campsite is here
+                reservationRepository.getReservationsForOwner(
+                    campsite.ownerId,
+                    onResult = { found -> booked = BookedDates.forCampsite(found, campsite.id) },
+                    onFailure = { booked = emptyList() }
+                )
             }
 
             override fun onNotFound() {
@@ -100,6 +112,7 @@ fun CampsiteDetailsScreen(
         lotteryRepository.getLotteriesForCampsite(campsiteId, object : LotteryRepository.ListCallback {
             override fun onLoaded(lotteries: List<Lottery>) {
                 setLotteries(lotteries)
+                drawDueLotteries(lotteries)
             }
 
             override fun onError(error: Exception) {
@@ -109,6 +122,27 @@ fun CampsiteDetailsScreen(
             //the parameter is also called lotteries, so set the screen's one through this
             fun setLotteries(found: List<Lottery>) {
                 lotteries = found
+            }
+
+            //US 02.05.01: run the draw for any lottery whose registration has closed
+            fun drawDueLotteries(found: List<Lottery>) {
+                val now = System.currentTimeMillis()
+                for (lottery in found) {
+                    reservationRepository.runDrawIfDue(
+                        lottery,
+                        now,
+                        onResult = { result ->
+                            if (result == ReservationRepository.DrawResult.DRAWN) {
+                                //show it as drawn without reloading
+                                lotteries = lotteries?.map {
+                                    if (it.id == lottery.id) it.copy(drawn = true) else it
+                                }
+                            }
+                        },
+                        //nothing saved on failure, so it just tries again next time the screen opens
+                        onFailure = { error -> Log.e("LotteryDraw", "Draw failed for ${lottery.id}", error) }
+                    )
+                }
             }
         })
     }
@@ -166,6 +200,7 @@ fun CampsiteDetailsScreen(
             canEditLottery = canEditLottery,
             onEditLotteryClick = { onEditLotteryClick(shown) },
             onGalleryClick = { onGalleryClick(shown) },
+            bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
             canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
             onViewWaitlist = {
                 selectedLottery?.id
@@ -189,6 +224,7 @@ fun CampsiteDetailsScreen(
  * @param canEditLottery true to show the Edit Lottery button.
  * @param onEditLotteryClick called when the owner taps Edit Lottery.
  * @param onGalleryClick called when the owner taps View Gallery (US 02.01.02).
+ * @param bookedDatesText the campsite's booked date ranges, one per line (US 02.06.01).
  */
 @Composable
 fun CampsiteDetailsContent(
@@ -201,6 +237,7 @@ fun CampsiteDetailsContent(
     canEditLottery: Boolean = false,
     onEditLotteryClick: () -> Unit = {},
     onGalleryClick: () -> Unit = {},
+    bookedDatesText: String = "No booked dates yet",
     canViewWaitlist: Boolean = false,
     onViewWaitlist: () -> Unit = {}
 ) {
@@ -241,6 +278,7 @@ fun CampsiteDetailsContent(
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
         )
         DetailRow("Lottery", lotteryText)
+        DetailRow("Booked dates", bookedDatesText)
         if (canViewWaitlist) {
 
             Spacer(modifier = Modifier.height(8.dp))

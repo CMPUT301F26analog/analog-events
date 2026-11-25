@@ -1,6 +1,6 @@
 package com.example.birchbark.util
 
-// See #053 in LLM.md
+//See #TBD5 in LLM.md
 
 import android.content.Context
 import android.graphics.Bitmap
