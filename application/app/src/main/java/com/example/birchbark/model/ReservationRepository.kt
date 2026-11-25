@@ -1,6 +1,7 @@
 package com.example.birchbark.model
 
 // See #046 in LLM.md
+// See #054 in LLM.md (confirm with dates, decline, bookings)
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
@@ -114,33 +115,96 @@ class ReservationRepository {
     }
 
     /**
-     * US 01.04.01, 02.07.01: the entrant accepts their reservation. Marks it
-     * CONFIRMED and copies their contact details into it, so the owner can see
-     * who booked without being able to read the entrant's whole profile.
+     * US 01.04.01, 02.11.01, 02.07.01: the entrant accepts their reservation
+     * for the days they picked, after agreeing to the campsite rules.
      *
-     * @param reservationId the reservation's document ID ([Reservation.id]).
+     * In one batch it marks the reservation CONFIRMED with the campsite and
+     * dates, copies in the entrant's contact details (so the owner can see who
+     * booked without reading their profile), and saves a [CampsiteBooking] so
+     * other winners can see those days are taken. Check the days first with
+     * [AvailableDates.problemWith].
+     *
+     * @param reservation the PENDING reservation being accepted.
+     * @param campsiteId the campsite being booked.
+     * @param startDate first day of the stay (epoch ms, start of that day).
+     * @param endDate last day of the stay (epoch ms, end of that day).
      * @param name the entrant's full name.
      * @param email the entrant's email.
      * @param phone the entrant's phone number.
      */
     fun confirm(
-        reservationId: String,
+        reservation: Reservation,
+        campsiteId: String,
+        startDate: Long,
+        endDate: Long,
         name: String,
         email: String,
         phone: String,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        db.collection("reservations").document(reservationId)
-            .update(
-                mapOf(
-                    "status" to ReservationStatus.CONFIRMED.name,
-                    "entrantName" to name,
-                    "entrantEmail" to email,
-                    "entrantPhone" to phone
-                )
+        val batch = db.batch()
+        batch.update(
+            db.collection("reservations").document(reservation.id),
+            mapOf(
+                "status" to ReservationStatus.CONFIRMED.name,
+                "campsiteId" to campsiteId,
+                "startDate" to startDate,
+                "endDate" to endDate,
+                "entrantName" to name,
+                "entrantEmail" to email,
+                "entrantPhone" to phone
             )
+        )
+        //same ID as the reservation, so each reservation has at most one booking
+        batch.set(
+            db.collection("campsiteBookings").document(reservation.id),
+            mapOf(
+                "campsiteId" to campsiteId,
+                "startDate" to startDate,
+                "endDate" to endDate
+            )
+        )
+        batch.commit()
             .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
+     * US 01.04.03: the entrant turns down a reservation they won.
+     *
+     * @param reservationId the reservation's document ID ([Reservation.id]).
+     */
+    fun decline(
+        reservationId: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        updateStatus(reservationId, ReservationStatus.DECLINED, onSuccess, onFailure)
+    }
+
+    /**
+     * US 01.04.01: the days already booked at a campsite, for working out
+     * which days a winner can still pick ([AvailableDates]).
+     *
+     * @param campsiteId the campsite's document ID.
+     */
+    fun getBookingsForCampsite(
+        campsiteId: String,
+        onResult: (List<CampsiteBooking>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        db.collection("campsiteBookings").whereEqualTo("campsiteId", campsiteId).get()
+            .addOnSuccessListener { result ->
+                onResult(result.documents.map { document ->
+                    CampsiteBooking(
+                        id = document.id,
+                        campsiteId = document.getString("campsiteId") ?: "",
+                        startDate = document.getLong("startDate") ?: 0L,
+                        endDate = document.getLong("endDate") ?: 0L
+                    )
+                })
+            }
             .addOnFailureListener { error -> onFailure(error) }
     }
 
