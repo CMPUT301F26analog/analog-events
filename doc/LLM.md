@@ -2063,7 +2063,7 @@ fun DeleteCampsiteDialog(
         }
     )
 }
-
+```
 ---
 
 ## Prompt #043 (Akshat)
@@ -2120,3 +2120,157 @@ fun DeleteCampsiteDialog(
 ### Answer
 
 > Claude listed the cases to cover (winner count, distinct winners from the waitlist, fewer entrants than slots, empty waitlist, zero/negative winners, same seed gives same result, reservation IDs, campsiteId for single vs multi-campsite lotteries, copied fields and PENDING status). I wrote the first tests; Claude corrected a test that asserted the wrong result and provided the remaining tests, including comparing two runs with the same seed instead of hardcoding winners.
+
+---
+
+## Prompt #046 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Write a ReservationRepository that runs the winner draw (US 02.05.01) and saves the results to Firestore, plus queries for entrant and owner reservations and a status update.
+
+### Answer
+
+> Claude provided ReservationRepository: runDrawIfDue reads the waitlist after registration closes, picks winners with LotteryDraw, and in a transaction re-checks the lottery's drawn flag before saving the reservations and setting drawn = true, so only one device can run the draw. Also getReservationsForEntrant, getReservationsForOwner (sorted in Kotlin to avoid a Firestore composite index) and updateStatus.
+
+---
+
+## Prompt #047 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-18-2026 |
+
+### Prompt
+
+> Run the winner draw when the owner opens campsite details, and debug why it failed with PERMISSION_DENIED.
+
+### Answer
+
+> Claude provided the drawDueLotteries call in the owner's CampsiteDetailsScreen and replaced the silent onFailure with Log.e, which showed PERMISSION_DENIED. The Firestore rules had no match for the new "reservations" collection. Claude wrote the reservations rule: owners create reservations only in the same transaction that sets the lottery's drawn flag (get/getAfter), entrants read and update only their own, owners can only reject. Published in the Firebase console and tested end to end.
+
+---
+
+## Prompt #048 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Build the shared notification foundation for Project Part 4: a notification model, a repository to send and read notifications, opt-out preferences, and the win/lose notifications for the lottery draw.
+
+### Answer
+
+> Claude provided AppNotification (named to avoid clashing with android.app.Notification), NotificationType (one value per user story), NotificationRepository (opt-out stored in notificationPrefs/{fid}; send skips opted-out users; inbox, sent-by, admin all, mark read), DrawNotifications (builds win/lose notifications, skipping opted-out entrants) with 6 unit tests, and the Firestore rules for notifications and notificationPrefs. I chose a readable opt-out preference so senders can skip users who turned notifications off.
+
+---
+
+## Prompt #049 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Build the owner's reservations screen with active, past and cancelled tabs (US 02.07.01-03), and show the entrant's details on each reservation as the TA asked.
+
+### Answer
+
+> Claude provided OwnerReservationTabs (decides which tab a reservation belongs in) with 6 unit tests, OwnerReservationsScreen, a My Reservations button on the owner's campsite list, and ReservationRepository.confirm. Because Firestore rules don't let owners read entrants' profiles, the entrant's name, email and phone are copied into the reservation when they confirm (entrantName/entrantEmail/entrantPhone), and the reservations rule was updated to allow those fields.
+
+---
+
+## Prompt #050 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Show a campsite's booked dates on the owner's campsite details screen (US 02.06.01).
+
+### Answer
+
+> Claude provided BookedDates (confirmed reservations with dates for one campsite, earliest first, formatted as date ranges) with 7 unit tests, and a Booked dates row on the owner's CampsiteDetailsScreen.
+
+---
+
+## Prompt #051 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> Let lottery winners see which dates are still available to reserve (US 01.04.01) without exposing who booked the other dates.
+
+### Answer
+
+> Claude suggested two options and I chose a separate campsiteBookings collection that holds only campsite and dates, readable by every user. Claude provided CampsiteBooking and AvailableDates (free date ranges in the lottery's booking period, and checking the days a winner picks) with 11 unit tests.
+
+---
+
+## Prompt #052 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-23-2026 |
+
+### Prompt
+
+> When a campsite has no open lottery, the entrant details screen shows nothing, which made joining look broken in the Part 3 demo. Show why the entrant can't join instead (US 01.01.06).
+
+### Answer
+
+> Claude provided lotteryMessage, which returns a message for no lottery, a scheduled lottery, closed registration or a drawn lottery (null while open, when the join button shows), changed the entrant details route to pass the latest lottery even when it isn't open, and added 5 unit tests in LotteryMessageTest.
+
+---
+
+## Prompt #053 (Eliza)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Eliza Lazar |
+| **Agent** | Gemini |
+| **Model** | Gemini |
+| **Date** | 11-24-2026 |
+
+### Prompt
+
+> Can you help me write JUnit unit tests for my AppPolicy object (US 01.11.01) to make sure the title and sections aren't blank, section titles are unique, and it covers key entrant topics like lotteries, cancellations, notifications, and personal information? Here's my AppPolicy model [INSERT CODE]
+
+### Answer
+
+> Provided the AppPolicyTest JUnit test suite verifying that AppPolicy.TITLE and AppPolicy.sections are non-empty, every section has a non-blank title and body, section titles are unique (comparing list size to toSet().size), and the combined section titles cover "lottery", "cancel", "notification", and "information".
+
+---
