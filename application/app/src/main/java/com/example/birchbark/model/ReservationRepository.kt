@@ -26,6 +26,10 @@ class ReservationRepository {
      * registration ends, and the transaction makes sure only one device
      * ever runs the draw.
      *
+     * US 01.03.01, 01.03.02: once the draw is saved, everyone on the waitlist
+     * gets a win or lose notification ([DrawNotifications]), except entrants
+     * who opted out (US 01.10.01). See #055 in LLM.md.
+     *
      * @param lottery the lottery to draw. Must have its [Lottery.id].
      * @param now current time in epoch ms.
      */
@@ -71,10 +75,40 @@ class ReservationRepository {
 
                     DrawResult.DRAWN
                 }
-                    .addOnSuccessListener { result -> onResult(result) }
+                    .addOnSuccessListener { result ->
+                        //only the device that actually ran the draw sends the results
+                        if (result == DrawResult.DRAWN) {
+                            sendDrawNotifications(lottery, entrantIds, winners, now)
+                        }
+                        onResult(result)
+                    }
                     .addOnFailureListener { error -> onFailure(error) }
             }
             .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
+     * US 01.03.01, 01.03.02: tells every entrant on the waitlist whether they
+     * won. [NotificationRepository.send] skips anyone who opted out.
+     *
+     * The draw is already saved when this runs, so a failure here is only
+     * logged: it must not undo or block the draw itself.
+     */
+    private fun sendDrawNotifications(
+        lottery: Lottery,
+        entrantIds: List<String>,
+        winnerIds: List<String>,
+        now: Long
+    ) {
+        //opted-out entrants are filtered by send, so none are skipped here
+        val notifications = DrawNotifications.build(lottery, entrantIds, winnerIds, emptySet(), now)
+        NotificationRepository().send(
+            notifications,
+            onResult = {},
+            onFailure = { error ->
+                android.util.Log.e("LotteryDraw", "Draw notifications failed for ${lottery.id}", error)
+            }
+        )
     }
 
     /**
