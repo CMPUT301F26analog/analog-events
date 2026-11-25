@@ -15,7 +15,7 @@ import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.model.LotteryStatus
 import com.example.birchbark.model.LotteryStatusCalculator
 import com.example.birchbark.model.RegistrationChecker
-import com.example.birchbark.ui.screens.CampsiteDetailsScreen
+// import com.example.birchbark.ui.screens.CampsiteDetailsScreen // TBD remove this in a bug pr
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
 import com.example.birchbark.model.EntrantFilters

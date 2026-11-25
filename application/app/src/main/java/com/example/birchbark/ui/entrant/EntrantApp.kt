@@ -23,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,10 +61,11 @@ fun EntrantApp(
     onProfileDeleted: () -> Unit,
     reservations: List<ReservationListItem> = emptyList()
 ) {
+    var currentProfile by remember { mutableStateOf(profile) } // TBD
     var tab by rememberSaveable { mutableStateOf(EntrantTab.HOME) }
     var profilePage by rememberSaveable { mutableStateOf(ProfilePage.MENU) }
 
-    val name = listOf(profile.firstName, profile.lastName)
+    val name = listOf(currentProfile.firstName, currentProfile.lastName) // changed to var TBD
         .filter { it.isNotBlank() }
         .joinToString(" ")
         .ifBlank { "Entrant" }
@@ -100,11 +102,12 @@ fun EntrantApp(
                     EntrantTab.BROWSE -> EntrantCampsitesApp()
                     EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
-                        profile = profile,
+                        profile = currentProfile,
                         name = name,
                         page = profilePage,
                         onPage = { profilePage = it },
                         reservations = reservations,
+                        onProfileUpdated = { currentProfile = it },
                         onProfileDeleted = onProfileDeleted
                     )
                 }
@@ -165,6 +168,7 @@ private fun ProfileTab(
     page: ProfilePage,
     onPage: (ProfilePage) -> Unit,
     reservations: List<ReservationListItem>,
+    onProfileUpdated: (UserProfile) -> Unit,
     onProfileDeleted: () -> Unit
 ) {
     BackHandler(enabled = page != ProfilePage.MENU) { onPage(ProfilePage.MENU) }
@@ -173,6 +177,7 @@ private fun ProfileTab(
         ProfilePage.MENU -> ProfileMenu(profile, name, onPage)
         ProfilePage.EDIT -> EditProfileScreen(
             onBack = { onPage(ProfilePage.MENU) },
+            onProfileUpdated = onProfileUpdated,
             onDeleted = onProfileDeleted
         )
         ProfilePage.RESERVATIONS -> Column(modifier = Modifier.fillMaxSize()) {
