@@ -12,7 +12,9 @@ object LotteryValidator {
         RegistrationPeriodRule,
         BookingPeriodRule,
         NumWinnersRule,
-        WaitlistCapacityRule
+        WaitlistCapacityRule,
+        //US 02.04.02: at least one campsite in the lottery (added by Yash)
+        LotteryCampsitesRule
     )
 
     /**
