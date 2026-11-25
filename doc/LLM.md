@@ -2274,3 +2274,22 @@ fun DeleteCampsiteDialog(
 > Provided the AppPolicyTest JUnit test suite verifying that AppPolicy.TITLE and AppPolicy.sections are non-empty, every section has a non-blank title and body, section titles are unique (comparing list size to toSet().size), and the combined section titles cover "lottery", "cancel", "notification", and "information".
 
 ---
+
+## Prompt #054 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-24-2026 |
+
+### Prompt
+
+> Save the winner's picked dates when they accept a reservation, let them decline it (US 01.04.01, 01.04.03), and keep a record of booked dates that other winners can see without seeing who booked.
+
+### Answer
+
+> Claude changed ReservationRepository.confirm to take the campsite and dates and, in one Firestore batch, mark the reservation CONFIRMED, save the dates and contact details, and write a CampsiteBooking (dates only) with the same ID as the reservation. Claude also added decline (sets DECLINED) and getBookingsForCampsite, and wrote the Firestore rule for campsiteBookings: any registered user can read bookings, but only the reservation's entrant can create one, in the same write that confirms it.
+
+---
