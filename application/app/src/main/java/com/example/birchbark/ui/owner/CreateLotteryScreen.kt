@@ -2,6 +2,7 @@ package com.example.birchbark.ui.owner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,20 +13,25 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.CampsiteRepository
+import com.example.birchbark.model.CurrentLottery
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.util.Time
@@ -41,15 +47,23 @@ import java.time.format.DateTimeParseException
  * CreateLotteryScreen does the saving, and CreateLotteryForm is just the form so
  * the intent tests can check it without Firestore.
  *
+ * US 02.04.02 Multi-campsite lottery. The form lists all of the owner's
+ * campsites with a checkbox each, like the My Campsite Lotteries mockup. The
+ * campsite the owner opened it from starts ticked, and they can tick more to
+ * put several campsites in the same lottery. A campsite that's already in a
+ * lottery that hasn't been drawn yet gets flagged and can't be ticked, so one
+ * campsite never ends up in two lotteries at once.
+ *
  * Outstanding issues. Dates are typed in as year-month-day for now instead of a
- * date picker. Only one campsite per lottery, multi campsite lotteries are
- * US 02.04.02 (Part 4).
+ * date picker. The campsites in a lottery can't be changed after it's made,
+ * since Edit Lottery only changes the dates and numbers.
  */
 
 /**
- * Shows the lottery form and saves the lottery to Firestore.
+ * Loads the owner's campsites, shows the lottery form and saves the lottery
+ * to Firestore.
  *
- * @param campsite the campsite the lottery is for.
+ * @param campsite the campsite the owner opened the lottery from.
  * @param onCreated called once the lottery is saved.
  * @param onCancel called if the owner goes back without saving.
  */
@@ -58,9 +72,48 @@ fun CreateLotteryScreen(campsite: Campsite, onCreated: () -> Unit, onCancel: () 
     val repository = remember { LotteryRepository() }
     var saveErrors by remember { mutableStateOf<List<String>>(listOf()) }
     var saving by remember { mutableStateOf(false) }
+    //all the owner's campsites so they can pick more than one (US 02.04.02),
+    //starts as just this one until the rest load
+    var ownerCampsites by remember { mutableStateOf(listOf(campsite)) }
+    //IDs of the owner's campsites that are already in a lottery that isn't drawn yet
+    var busyIds by remember { mutableStateOf(setOf<String>()) }
+
+    // See #TBD2 in LLM.md
+    LaunchedEffect(campsite.ownerId) {
+        CampsiteRepository().getCampsitesByOwner(campsite.ownerId, object : CampsiteRepository.ListCallback {
+            override fun onLoaded(campsites: List<Campsite>) {
+                //keep this campsite in the list even if it somehow didn't come back
+                ownerCampsites = if (campsites.any { it.id == campsite.id }) campsites else listOf(campsite) + campsites
+
+                //check each of the other campsites for a current lottery
+                for (site in campsites) {
+                    if (site.id == campsite.id) continue
+                    repository.getLotteriesForCampsite(site.id, object : LotteryRepository.ListCallback {
+                        override fun onLoaded(lotteries: List<Lottery>) {
+                            if (CurrentLottery.pick(lotteries) != null) {
+                                busyIds = busyIds + site.id
+                            }
+                        }
+
+                        override fun onError(error: Exception) {
+                            //can't tell, so play it safe and don't let it be picked
+                            busyIds = busyIds + site.id
+                        }
+                    })
+                }
+            }
+
+            override fun onError(error: Exception) {
+                //couldn't load the others, so the lottery can still be made for just this one
+                ownerCampsites = listOf(campsite)
+            }
+        })
+    }
 
     CreateLotteryForm(
         campsite = campsite,
+        ownerCampsites = ownerCampsites,
+        busyIds = busyIds,
         errors = saveErrors,
         saving = saving,
         onSave = { lottery ->
@@ -88,9 +141,12 @@ fun CreateLotteryScreen(campsite: Campsite, onCreated: () -> Unit, onCancel: () 
 }
 
 /**
- * The lottery form. Turns what the owner typed into a [Lottery] for this campsite.
+ * The lottery form. Turns what the owner typed and ticked into a [Lottery].
  *
- * @param campsite the campsite the lottery is for.
+ * @param campsite the campsite the owner opened the form from, it starts ticked.
+ * @param ownerCampsites every campsite the owner can put in the lottery (US 02.04.02).
+ * @param busyIds campsites already in a lottery that isn't drawn yet, these get
+ *   flagged and can't be ticked.
  * @param errors rule messages to show above the button, empty if there are none.
  * @param saving true while it's saving, so the button can't be tapped twice.
  * @param onSave called with the new lottery when the owner taps Set Lottery.
@@ -99,6 +155,8 @@ fun CreateLotteryScreen(campsite: Campsite, onCreated: () -> Unit, onCancel: () 
 @Composable
 fun CreateLotteryForm(
     campsite: Campsite,
+    ownerCampsites: List<Campsite> = listOf(campsite),
+    busyIds: Set<String> = setOf(),
     errors: List<String>,
     saving: Boolean,
     onSave: (Lottery) -> Unit,
@@ -111,6 +169,8 @@ fun CreateLotteryForm(
     var numWinners by remember { mutableStateOf("") }
     var waitlistCapacity by remember { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
+    //IDs of the ticked campsites, starts with the one the owner came from
+    var pickedIds by remember { mutableStateOf(setOf(campsite.id)) }
 
     Column(
         modifier = Modifier
@@ -122,7 +182,35 @@ fun CreateLotteryForm(
     ) {
         TextButton(onClick = onCancel) { Text("Back") }
         Text("Campsite Lottery", style = MaterialTheme.typography.headlineSmall)
-        Text(campsite.name, style = MaterialTheme.typography.titleMedium)
+
+        //US 02.04.02: tick every campsite that should be in this lottery
+        Text("Campsites in this lottery", style = MaterialTheme.typography.titleMedium)
+        for (site in ownerCampsites) {
+            // See #TBD3 in LLM.md
+            //the one the owner opened it from is never flagged
+            val busy = site.id != campsite.id && site.id in busyIds
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = !busy && site.id in pickedIds,
+                    enabled = !busy,
+                    onCheckedChange = { ticked ->
+                        pickedIds = if (ticked) pickedIds + site.id else pickedIds - site.id
+                    },
+                    modifier = Modifier.testTag("campsiteCheckbox_" + site.id)
+                )
+                Column {
+                    Text(site.name + ", " + site.location)
+                    if (busy) {
+                        Text(
+                            "Already in a lottery",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("busyFlag_" + site.id)
+                        )
+                    }
+                }
+            }
+        }
         Text(
             "Type dates like 2026-11-20. Booking has to start at least a day after " +
                     "registration's last day, that's when the winners get drawn.",
@@ -202,7 +290,11 @@ fun CreateLotteryForm(
                 } else {
                     formError = null
                     val lottery = Lottery(
-                        campsiteIds = listOf(campsite.id),
+                        // See #TBD4 in LLM.md
+                        //in the same order as the list, so it's the same every time,
+                        //and never includes a flagged campsite, even if it was ticked before the flag loaded
+                        campsiteIds = ownerCampsites.map { it.id }
+                            .filter { it in pickedIds && (it == campsite.id || it !in busyIds) },
                         ownerId = campsite.ownerId,
                         registrationStart = Time.startOfDay(regStart),
                         //end of day so registration stays open all of its last day
