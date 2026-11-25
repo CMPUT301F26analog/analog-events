@@ -97,8 +97,17 @@ fun CampsiteDetailsScreen(
         }
 
         // Details: Rating, Name, Location, Max occupancy, Prince
-        // Rating
-        Text(campsite.ratingLabel())
+        // Rating - TBD: Update with entrant screens
+        TextButton(
+            onClick = onReviewsClick,
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Text(
+                text = "${campsite.ratingLabel()}  ›",
+                color = BirchBarkColors.Gold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         // Name
         Text(text = campsite.name, style = MaterialTheme.typography.headlineMedium)
         // Location
@@ -109,18 +118,6 @@ fun CampsiteDetailsScreen(
         Text(campsite.priceLabel())
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // TBD: Update with entrant screens
-        TextButton(
-            onClick = onReviewsClick,
-            contentPadding = PaddingValues(0.dp) // Keeps left alignment flush with Name/Location
-        ) {
-            Text(
-                text = "${campsite.ratingLabel()}  ›",
-                color = BirchBarkColors.Gold,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
 
         // Details : Description, rules, cancellation policy
         Row(modifier = Modifier.fillMaxWidth()) {

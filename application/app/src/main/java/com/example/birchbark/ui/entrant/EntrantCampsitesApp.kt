@@ -32,7 +32,10 @@ fun selectOpenLottery(
 }
 
 @Composable
-fun EntrantCampsitesApp() {
+fun EntrantCampsitesApp(
+    entrantId: String = "",     // Pass the signed-in user's ID/FID from MainActivity/Auth
+    entrantName: String = ""    // Pass the signed-in user's name from MainActivity/Auth
+) {
     var selectedCampsite by remember {
         mutableStateOf<Campsite?>(null)
     }
@@ -46,12 +49,10 @@ fun EntrantCampsitesApp() {
             }
         )
     } else {
-        BackHandler {
-            selectedCampsite = null
-        }
-
         EntrantCampsiteDetailsRoute(
             campsite = campsite,
+            entrantId = entrantId,
+            entrantName = entrantName,
             onBack = {
                 selectedCampsite = null
             }
@@ -62,6 +63,8 @@ fun EntrantCampsitesApp() {
 @Composable
 private fun EntrantCampsiteDetailsRoute(
     campsite: Campsite,
+    entrantId: String,
+    entrantName: String,
     onBack: () -> Unit
 ) {
     val repository = remember { LotteryRepository() }
@@ -72,6 +75,21 @@ private fun EntrantCampsiteDetailsRoute(
 
     var error by remember(campsite.id) {
         mutableStateOf<String?>(null)
+    }
+
+    // Track updated campsite (so rating averages refresh immediately after posting a review)
+    var currentCampsite by remember(campsite) { mutableStateOf(campsite) }
+
+    // Track which sub-screen is active: "details", "all_reviews", or "write_review"
+    var activeSubScreen by remember(campsite.id) { mutableStateOf("details") }
+
+    // Handle Android system back button cleanly across all sub-screens
+    BackHandler {
+        when (activeSubScreen) {
+            "write_review" -> activeSubScreen = "all_reviews"
+            "all_reviews" -> activeSubScreen = "details"
+            else -> onBack()
+        }
     }
 
     LaunchedEffect(campsite.id) {
@@ -120,16 +138,41 @@ private fun EntrantCampsiteDetailsRoute(
             val lottery = selectOpenLottery(list, System.currentTimeMillis())
                 ?: list.maxByOrNull { it.registrationStart }
 
-            CampsiteDetailsScreen(
-                campsite = campsite,
-                lottery = lottery,
-                joined = false,
-                isFull = false,
-                message = null,
-                onBack = onBack,
-                onJoin = {},
-                onLeave = {}
-            )
+            when (activeSubScreen) {
+                "details" -> {
+                    CampsiteDetailsScreen(
+                        campsite = currentCampsite,
+                        lottery = lottery,
+                        joined = false,
+                        isFull = false,
+                        message = null,
+                        onBack = onBack,
+                        onJoin = {},
+                        onLeave = {},
+                        onReviewsClick = { activeSubScreen = "all_reviews" }
+                    )
+                }
+
+                "all_reviews" -> {
+                    ReviewsRoute(
+                        campsite = currentCampsite,
+                        onBack = { activeSubScreen = "details" },
+                        onWriteReview = { activeSubScreen = "write_review" }
+                    )
+                }
+
+                "write_review" -> {
+                    ReviewRoute(
+                        campsite = currentCampsite,
+                        entrantId = entrantId,
+                        entrantName = entrantName,
+                        onBack = { activeSubScreen = "all_reviews" },
+                        onCampsiteUpdated = { updatedCampsite ->
+                            currentCampsite = updatedCampsite
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -159,14 +202,6 @@ fun EntrantWaitlistSection(
     }
 }
 
-// See #052 in LLM.md
-/**
- * US 01.01.06: what to show instead of the join button when the entrant can't join.
- *
- * @param lottery the campsite's latest lottery, or null if it has none.
- * @param now current time in epoch ms.
- * @return the message, or null if the lottery is open (the join button shows instead).
- */
 fun lotteryMessage(lottery: Lottery?, now: Long): String? {
     if (lottery == null || lottery.id.isBlank()) return "No lottery for this campsite right now."
     return when (LotteryStatusCalculator.status(lottery, now)) {
