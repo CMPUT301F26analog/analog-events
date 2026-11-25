@@ -2293,3 +2293,22 @@ fun DeleteCampsiteDialog(
 > Claude changed ReservationRepository.confirm to take the campsite and dates and, in one Firestore batch, mark the reservation CONFIRMED, save the dates and contact details, and write a CampsiteBooking (dates only) with the same ID as the reservation. Claude also added decline (sets DECLINED) and getBookingsForCampsite, and wrote the Firestore rule for campsiteBookings: any registered user can read bookings, but only the reservation's entrant can create one, in the same write that confirms it.
 
 ---
+
+## Prompt #055 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-24-2026 |
+
+### Prompt
+
+> Send the win and lose notifications when the lottery draw runs (US 01.03.01, 01.03.02).
+
+### Answer
+
+> Claude connected DrawNotifications to ReservationRepository.runDrawIfDue: once the draw transaction succeeds on this device, every waitlist entrant gets a LOTTERY_WON or LOTTERY_LOST notification through NotificationRepository.send, which skips opted-out entrants. A failure to send is only logged so it can't affect the saved draw.
+
+---
