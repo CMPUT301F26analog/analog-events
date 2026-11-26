@@ -203,6 +203,7 @@ fun EditCampsiteForm(
         CampsiteMap(
             latitude = latitude,
             longitude = longitude,
+            pinTitle = name,
             modifier = Modifier.fillMaxWidth().height(250.dp).testTag("mapPicker"),
             onPick = { pickedLatitude, pickedLongitude ->
                 latitude = pickedLatitude

@@ -53,6 +53,7 @@ import java.io.File
  *
  * @param latitude the pin's latitude, or null if there's no pin yet.
  * @param longitude the pin's longitude, or null if there's no pin yet.
+ * @param pinTitle the campsite's name, shown when the pin is tapped.
  * @param modifier size and tags from the caller.
  * @param onPick called with the latitude and longitude the owner tapped, or null to only show the pin.
  */
@@ -61,6 +62,7 @@ import java.io.File
 fun CampsiteMap(
     latitude: Double?,
     longitude: Double?,
+    pinTitle: String = "",
     modifier: Modifier = Modifier,
     onPick: ((Double, Double) -> Unit)? = null
 ) {
@@ -136,7 +138,7 @@ fun CampsiteMap(
                 val pin = Marker(map)
                 pin.position = GeoPoint(latitude!!, longitude!!)
                 pin.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                pin.title = "Campsite"
+                pin.title = pinTitle.ifBlank { "Campsite" }
                 map.overlays.add(pin)
             }
             map.invalidate()
