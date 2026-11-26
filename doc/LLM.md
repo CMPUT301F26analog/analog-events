@@ -3536,4 +3536,60 @@ The test run shown in Android Studio reported:
 ```
 
 ---
+## Prompt #090 (Anahita)
 
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I’m working on the admin uploaded-images screen for US 03.06.01. Help me identify the small rules that should be kept separate from the Compose UI so I can search images by campsite or profile name and remove an image from the displayed list after deletion. The search should ignore capitalization and surrounding query spaces, and a blank query should match every image. Include KDoc explaining the helper and its functions.
+
+### Answer
+
+> Suggested keeping the search and list-update behavior in a small, Firebase-independent helper. The helper can be tested with local unit tests.
+
+```kotlin
+package com.example.birchbark
+
+import com.example.birchbark.model.CampsiteImage
+
+/**
+ * Contains pure rules used by the admin uploaded-images screen.
+ */
+internal object AdminImageRules {
+
+    /**
+     * Checks whether an associated campsite or profile name matches a query.
+     *
+     * A blank query matches every image. Matching ignores letter case and
+     * leading or trailing whitespace in the query.
+     *
+     * @param name campsite or profile name associated with an image, if available.
+     * @param query text entered in the admin image search field.
+     * @return `true` when the query matches the name or is blank.
+     */
+    fun matchesSearch(name: String?, query: String): Boolean {
+        val trimmedQuery = query.trim()
+        return trimmedQuery.isBlank() ||
+            name?.contains(trimmedQuery, ignoreCase = true) == true
+    }
+
+    /**
+     * Returns the image list without the image identified by [imageId].
+     *
+     * @param images current images shown in the admin list.
+     * @param imageId Firestore document ID of the image to remove.
+     * @return a new list with the matching image removed.
+     */
+    fun removeDeletedImage(
+        images: List<CampsiteImage>,
+        imageId: String
+    ): List<CampsiteImage> {
+        return images.filterNot { it.id == imageId }
+    }
+}
