@@ -204,7 +204,10 @@ fun toListItems(reservations: List<Reservation>, campsites: Map<String, Campsite
  * draws it and the loading/checking/saving code updates it (Riley's PR feedback).
  *
  * @property lottery the lottery the entrant won, null until loaded.
- * @property campsite the campsite being booked, null until loaded.
+ * @property campsite the campsite being booked, null until loaded (or until
+ *   the winner picks one, for a multi-campsite lottery).
+ * @property choices the lottery's campsites to pick from (US 01.04.02), empty
+ *   when there's only one campsite.
  * @property bookings days already booked at the campsite, null until loaded.
  * @property firstDayText what the entrant typed for the first day.
  * @property lastDayText what the entrant typed for the last day.
@@ -218,6 +221,7 @@ fun toListItems(reservations: List<Reservation>, campsites: Map<String, Campsite
 data class PickDatesUiState(
     val lottery: Lottery? = null,
     val campsite: Campsite? = null,
+    val choices: List<Campsite> = emptyList(),
     val bookings: List<CampsiteBooking>? = null,
     val firstDayText: String = "",
     val lastDayText: String = "",
@@ -241,8 +245,13 @@ data class PickDatesUiState(
  * instead, after an "are you sure" dialog. Once saved, Eliza's
  * [ReservationConfirmationScreen] shows what was booked (US 01.05.01).
  *
- * Multi-campsite lotteries (US 01.04.02) aren't handled yet: the winner books
- * the lottery's first campsite.
+ * US 01.04.02 (added by Yash): if the lottery had more than one campsite, the
+ * winner first picks which campsite they want, then picks dates for that one.
+ * Each campsite has its own booked days, so dates other winners took at that
+ * campsite can't be picked.
+ *
+ * Outstanding issues. The reservation stays listed under the owner who made
+ * the lottery, even if the winner picks another owner's campsite (US 02.04.08).
  *
  * @param reservation the PENDING reservation being answered.
  * @param profile the signed-in entrant, whose contact details go to the owner.
@@ -298,6 +307,17 @@ fun PickDatesScreen(
         )
     }
 
+    //US 01.04.02: the winner picked a campsite, load its booked days
+    fun onChooseCampsite(campsite: Campsite) {
+        state = state.copy(campsite = campsite, bookings = null, formError = null)
+        loadBookings(campsite.id, reservationRepository) { update -> state = update(state) }
+    }
+
+    //US 01.04.02: back to the campsite list, clearing what was typed for the old one
+    fun onChangeCampsite() {
+        state = state.copy(campsite = null, bookings = null, firstDayText = "", lastDayText = "", formError = null)
+    }
+
     //Decline, after the "are you sure" dialog
     fun onDecline() {
         state = state.copy(isSaving = true, confirmingDecline = false)
@@ -332,8 +352,23 @@ fun PickDatesScreen(
         onConfirm = ::onConfirm,
         onDeclineClick = { state = state.copy(confirmingDecline = true) },
         onDeclineDismiss = { state = state.copy(confirmingDecline = false) },
-        onDeclineConfirm = ::onDecline
+        onDeclineConfirm = ::onDecline,
+        onChooseCampsite = ::onChooseCampsite,
+        onChangeCampsite = ::onChangeCampsite
     )
+}
+
+/**
+ * US 01.04.02: the campsite a win is for, if it's already known. It is when
+ * the reservation has one, or the lottery only has one campsite. Otherwise
+ * the winner has to pick.
+ *
+ * @param reservation the win being answered.
+ * @param lottery the lottery it came from.
+ * @return the campsite ID, or null if the winner has to pick one.
+ */
+fun knownCampsiteId(reservation: Reservation, lottery: Lottery): String? {
+    return reservation.campsiteId ?: lottery.campsiteIds.singleOrNull()
 }
 
 /**
@@ -354,12 +389,35 @@ private fun loadPickDates(
     LotteryRepository().getLottery(reservation.lotteryId, object : LotteryRepository.LoadCallback {
         override fun onLoaded(lottery: Lottery) {
             update { it.copy(lottery = lottery) }
-            //single-campsite lotteries already know the campsite; otherwise use the lottery's first one
-            val campsiteId = reservation.campsiteId ?: lottery.campsiteIds.firstOrNull()
-            if (campsiteId == null) {
+            if (lottery.campsiteIds.isEmpty()) {
                 fail("This lottery has no campsite")
                 return
             }
+
+            val campsiteId = knownCampsiteId(reservation, lottery)
+            if (campsiteId == null) {
+                // See #TBD10 in LLM.md
+                //US 01.04.02: more than one campsite, load them all so the winner can pick
+                for (id in lottery.campsiteIds) {
+                    CampsiteRepository().getCampsite(id, object : CampsiteRepository.LoadCallback {
+                        override fun onLoaded(campsite: Campsite) {
+                            //keep them in the lottery's order however they finish loading
+                            update { current ->
+                                current.copy(choices = (current.choices + campsite)
+                                    .sortedBy { lottery.campsiteIds.indexOf(it.id) })
+                            }
+                        }
+
+                        //a deleted campsite just isn't shown as a choice
+                        override fun onNotFound() {}
+
+                        override fun onError(error: Exception) =
+                            fail("Couldn't load the campsites, check your connection and try again")
+                    })
+                }
+                return
+            }
+
             CampsiteRepository().getCampsite(campsiteId, object : CampsiteRepository.LoadCallback {
                 override fun onLoaded(campsite: Campsite) {
                     update { it.copy(campsite = campsite) }
@@ -370,17 +428,36 @@ private fun loadPickDates(
                 override fun onError(error: Exception) =
                     fail("Couldn't load the campsite, check your connection and try again")
             })
-            repository.getBookingsForCampsite(
-                campsiteId,
-                onResult = { found -> update { it.copy(bookings = found) } },
-                onFailure = { fail("Couldn't load the booked dates, check your connection and try again") }
-            )
+            loadBookings(campsiteId, repository, update)
         }
 
         override fun onNotFound() = fail("This lottery doesn't exist anymore")
 
         override fun onError(error: Exception) = fail("Couldn't load the lottery, check your connection and try again")
     })
+}
+
+/**
+ * Loads the days already booked at one campsite into the screen's state.
+ *
+ * @param campsiteId the campsite to load.
+ * @param repository used to load the bookings.
+ * @param update called with a change to apply to the screen's state.
+ */
+private fun loadBookings(
+    campsiteId: String,
+    repository: ReservationRepository,
+    update: ((PickDatesUiState) -> PickDatesUiState) -> Unit
+) {
+    repository.getBookingsForCampsite(
+        campsiteId,
+        onResult = { found ->
+            // See #TBD11 in LLM.md
+            //skip it if the winner already switched to a different campsite
+            update { if (it.campsite == null || it.campsite.id == campsiteId) it.copy(bookings = found) else it }
+        },
+        onFailure = { update { it.copy(loadError = "Couldn't load the booked dates, check your connection and try again") } }
+    )
 }
 
 /**
@@ -398,7 +475,9 @@ fun PickDatesContent(
     onConfirm: () -> Unit,
     onDeclineClick: () -> Unit,
     onDeclineDismiss: () -> Unit,
-    onDeclineConfirm: () -> Unit
+    onDeclineConfirm: () -> Unit,
+    onChooseCampsite: (Campsite) -> Unit = {},
+    onChangeCampsite: () -> Unit = {}
 ) {
     val lottery = state.lottery
     val campsite = state.campsite
@@ -434,6 +513,27 @@ fun PickDatesContent(
         when {
             state.loadError != null -> Text(state.loadError, color = BirchBarkColors.Cream)
 
+            //US 01.04.02: more than one campsite, the winner picks one first
+            lottery != null && campsite == null && state.choices.isNotEmpty() -> {
+                Text("Pick a campsite", style = MaterialTheme.typography.headlineSmall, color = BirchBarkColors.Cream)
+                Text("Your lottery had more than one campsite, pick the one you want.", color = BirchBarkColors.MutedText)
+                for (choice in state.choices) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(choice.name, style = MaterialTheme.typography.titleMedium)
+                            Text(choice.location)
+                            Button(
+                                onClick = { onChooseCampsite(choice) },
+                                colors = birchBarkButtonColors(),
+                                modifier = Modifier.padding(top = 8.dp).testTag("chooseCampsite_" + choice.id)
+                            ) {
+                                Text("Choose this campsite")
+                            }
+                        }
+                    }
+                }
+            }
+
             lottery == null || campsite == null || bookings == null -> CircularProgressIndicator()
 
             //step 2 (US 02.11.01): agree to the rules, then save
@@ -456,9 +556,15 @@ fun PickDatesContent(
             //step 1 (US 01.04.01): see the free days and pick some
             else -> {
                 Text(campsite.name, style = MaterialTheme.typography.headlineSmall, color = BirchBarkColors.Cream)
+                //US 01.04.02: only when there were other campsites to pick from
+                if (state.choices.isNotEmpty()) {
+                    TextButton(onClick = onChangeCampsite, modifier = Modifier.testTag("changeCampsiteButton")) {
+                        Text("Pick a different campsite", color = BirchBarkColors.Gold)
+                    }
+                }
                 Text(
                     "Booking period: ${Time.format(AvailableDates.firstBookableDay(lottery))} to " +
-                        Time.format(AvailableDates.lastBookableDay(lottery)),
+                            Time.format(AvailableDates.lastBookableDay(lottery)),
                     color = BirchBarkColors.Cream
                 )
                 Text("Free dates", style = MaterialTheme.typography.titleMedium, color = BirchBarkColors.Cream)
