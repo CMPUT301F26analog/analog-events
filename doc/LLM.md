@@ -2331,3 +2331,335 @@ fun DeleteCampsiteDialog(
 > Claude provided EntrantWinScreens (won reservations list, date picking, rules confirmation, decline), connected it to the entrant profile menu, and added unit tests.
 
 ---
+## Prompt #057 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me check that the selected Firestore profile belongs to an owner before blocking it.
+
+### Answer
+
+LLM assistance was used to review the owner-role check in `ViolatingOwnerRepository`. The app reads the profile's `roles` list and proceeds only if it contains `owner`:
+
+```kotlin
+val roles = (user.get("roles") as? List<*>)
+    ?.filterIsInstance<String>()
+    .orEmpty()
+
+if (roles.none { it.equals("owner", ignoreCase = true) }) {
+    throw IllegalStateException("This profile is not an owner.")
+}
+```
+
+---
+
+## Prompt #058 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to get the owner's Auth UID from the profile.
+
+### Answer
+
+The profile's `authUid` identifies the account's block record and auth link. The code checks that the value is present:
+
+```kotlin
+val authUid = user.getString("authUid")
+    ?.takeIf { it.isNotBlank() }
+    ?: throw IllegalStateException(
+        "The owner profile does not have an authUid."
+    )
+```
+
+---
+
+## Prompt #059 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me find the campsites that belong to this owner.
+
+### Answer
+
+Campsite documents store the owner's FID in `ownerId`, so the repository queries that field:
+
+```kotlin
+db.collection("campsites")
+    .whereEqualTo("ownerId", fid)
+    .get()
+```
+
+---
+
+## Prompt #060 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to delete the matching campsites in Firestore batches.
+
+### Answer
+
+Firestore batches are limited to 500 writes. The matching documents are split into chunks, and the next batch starts only after the current batch succeeds:
+
+```kotlin
+val campsiteChunks = campsiteResult.documents.chunked(500)
+
+fun deleteNextCampsiteChunk(index: Int) {
+    if (index >= campsiteChunks.size) {
+        blockAndRemoveProfile(fid, authUid, onSuccess, onError)
+        return
+    }
+
+    val batch = db.batch()
+    campsiteChunks[index].forEach { campsite ->
+        batch.delete(campsite.reference)
+    }
+
+    batch.commit()
+        .addOnSuccessListener {
+            deleteNextCampsiteChunk(index + 1)
+        }
+        .addOnFailureListener(onError)
+}
+```
+
+The profile-removal step starts after all campsite deletion batches succeed.
+
+---
+
+## Prompt #061 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show the fields to store in the owner's block records.
+
+### Answer
+
+The block record contains the owner's Auth UID, FID, and a server timestamp:
+
+```kotlin
+val blockData = mapOf(
+    "authUid" to authUid,
+    "fid" to fid,
+    "blockedAt" to FieldValue.serverTimestamp()
+)
+```
+
+---
+
+## Prompt #062 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me write the block records and remove the profile in one Firestore transaction.
+
+### Answer
+
+The transaction stores one block document keyed by Auth UID and one keyed by FID, then deletes the profile:
+
+```kotlin
+val blockedOwnerRef =
+    db.collection("blockedOwners").document(authUid)
+val blockedFidRef =
+    db.collection("blockedOwnerFids").document(fid)
+
+transaction.set(blockedOwnerRef, blockData)
+transaction.set(blockedFidRef, blockData)
+transaction.delete(userRef)
+```
+
+Before writing, the transaction re-reads the profile and auth link and checks that the profile still exists, still has the owner role, and still has the expected Auth UID.
+
+---
+
+## Prompt #063 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to remove the auth link when the owner's profile is deleted.
+
+### Answer
+
+The auth link is deleted in the same transaction as the profile, if it exists and has been checked against the owner's FID:
+
+```kotlin
+val authLinkRef =
+    db.collection("authLinks").document(authUid)
+val authLink = transaction.get(authLinkRef)
+
+if (authLink.exists()) {
+    transaction.delete(authLinkRef)
+}
+```
+
+---
+
+## Prompt #064 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show where to add Firestore Rules helpers for looking up the block records.
+
+### Answer
+
+The path helpers go inside `match /databases/{database}/documents`, beside the other helper functions:
+
+```javascript
+function blockedAuthPath(uid) {
+  return /databases/$(database)/documents/blockedOwners/$(uid);
+}
+
+function blockedFidPath(fid) {
+  return /databases/$(database)/documents/blockedOwnerFids/$(fid);
+}
+```
+
+---
+
+## Prompt #065 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me prevent a blocked account or installation from creating a user profile again.
+
+### Answer
+
+The `allow create` rule inside `match /users/{fid}` checks that neither block record exists before it permits profile creation:
+
+```javascript
+allow create: if signedIn() &&
+  !exists(blockedAuthPath(request.auth.uid)) &&
+  !exists(blockedFidPath(fid)) &&
+  validNewProfile(request.resource.data, request.auth.uid) &&
+  getAfter(authLinkPath(request.auth.uid)).data.fid == fid;
+```
+
+---
+
+## Prompt #066 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show the rules needed for the app to access and write FID-based block records.
+
+### Answer
+
+The `blockedOwnerFids` rule lets an admin manage these records and lets a signed-in account check the record for its linked FID:
+
+```javascript
+match /blockedOwnerFids/{fid} {
+  allow get: if signedIn() &&
+    (fid == get(authLinkPath(request.auth.uid)).data.fid || isAdmin());
+
+  allow list: if isAdmin();
+
+  allow create, update: if isAdmin() &&
+    request.resource.data.keys().hasAll([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.keys().hasOnly([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.fid == fid &&
+    request.resource.data.authUid is string &&
+    request.resource.data.blockedAt == request.time;
+
+  allow delete: if isAdmin();
+}
+```
+
+The Auth UID-keyed block collection uses a matching rule:
+
+```javascript
+match /blockedOwners/{authUid} {
+  allow get: if signedIn() &&
+    (authUid == request.auth.uid || isAdmin());
+
+  allow list: if isAdmin();
+
+  allow create, update: if isAdmin() &&
+    request.resource.data.keys().hasAll([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.keys().hasOnly([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.authUid == authUid &&
+    request.resource.data.fid is string &&
+    request.resource.data.blockedAt == request.time;
+
+  allow delete: if isAdmin();
+}
+```
+
+Publish the Firestore Rules in the Firebase Console for the app to use them. The Auth UID block record supports account-level checks, while the FID record is tied to an app installation and may not identify the same installation after app data is cleared or the app is reinstalled.
