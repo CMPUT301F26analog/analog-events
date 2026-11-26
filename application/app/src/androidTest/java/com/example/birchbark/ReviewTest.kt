@@ -1,8 +1,8 @@
 package com.example.birchbark
 
 import com.example.birchbark.model.Campsite
-import com.example.birchbark.model.RatingCalculator
 import com.example.birchbark.model.Review
+import com.example.birchbark.model.ReviewCalculator
 import com.example.birchbark.model.ReviewRepository
 import com.example.birchbark.model.ReviewValidator
 import org.junit.Assert.assertEquals
@@ -115,7 +115,7 @@ class ReviewTest {
 
     @Test
     fun firstRating_becomesTheAverage() {
-        val updated = RatingCalculator.update(Campsite(id = "c1"), oldRating = null, newRating = 4)
+        val updated = ReviewCalculator.update(Campsite(id = "c1"), oldRating = null, newRating = 4)
         assertEquals(4, updated.ratingTotal)
         assertEquals(1, updated.ratingCount)
         assertEquals(4.0, updated.averageRating()!!, 0.0001)
@@ -123,7 +123,7 @@ class ReviewTest {
 
     @Test
     fun newRating_isAddedToTheOthers() {
-        val updated = RatingCalculator.update(rated, oldRating = null, newRating = 3)
+        val updated = ReviewCalculator.update(rated, oldRating = null, newRating = 3)
         assertEquals(12, updated.ratingTotal)
         assertEquals(3, updated.ratingCount)
         assertEquals(4.0, updated.averageRating()!!, 0.0001)
@@ -132,7 +132,7 @@ class ReviewTest {
     // changing a rating swaps the old one for the new one, it doesn't count twice
     @Test
     fun changedRating_replacesTheOldOne() {
-        val updated = RatingCalculator.update(rated, oldRating = 4, newRating = 5)
+        val updated = ReviewCalculator.update(rated, oldRating = 4, newRating = 5)
         assertEquals(10, updated.ratingTotal)
         assertEquals(2, updated.ratingCount)
         assertEquals(5.0, updated.averageRating()!!, 0.0001)
@@ -140,7 +140,7 @@ class ReviewTest {
 
     @Test
     fun removedRating_isTakenOut() {
-        val updated = RatingCalculator.update(rated, oldRating = 4, newRating = null)
+        val updated = ReviewCalculator.update(rated, oldRating = 4, newRating = null)
         assertEquals(5, updated.ratingTotal)
         assertEquals(1, updated.ratingCount)
     }
@@ -148,21 +148,21 @@ class ReviewTest {
     // a review with only text doesn't change the rating
     @Test
     fun reviewWithoutRating_leavesTheTotalsAlone() {
-        val updated = RatingCalculator.update(rated, oldRating = null, newRating = null)
+        val updated = ReviewCalculator.update(rated, oldRating = null, newRating = null)
         assertEquals(rated, updated)
     }
 
     @Test
     fun removingTheOnlyRating_leavesNoRatings() {
         val one = Campsite(id = "c1", ratingTotal = 4, ratingCount = 1)
-        val updated = RatingCalculator.update(one, oldRating = 4, newRating = null)
+        val updated = ReviewCalculator.update(one, oldRating = 4, newRating = null)
         assertNull(updated.averageRating())
     }
 
     // bad data in the database shouldn't make the totals go negative
     @Test
     fun totals_neverGoBelowZero() {
-        val updated = RatingCalculator.update(Campsite(id = "c1"), oldRating = 4, newRating = null)
+        val updated = ReviewCalculator.update(Campsite(id = "c1"), oldRating = 4, newRating = null)
         assertEquals(0, updated.ratingTotal)
         assertEquals(0, updated.ratingCount)
     }
@@ -170,7 +170,7 @@ class ReviewTest {
     @Test
     fun updateKeepsTheRestOfTheCampsite() {
         val campsite = rated.copy(name = "Whistlers Campground", location = "Jasper National Park")
-        val updated = RatingCalculator.update(campsite, oldRating = null, newRating = 5)
+        val updated = ReviewCalculator.update(campsite, oldRating = null, newRating = 5)
         assertEquals("Whistlers Campground", updated.name)
         assertEquals("Jasper National Park", updated.location)
     }

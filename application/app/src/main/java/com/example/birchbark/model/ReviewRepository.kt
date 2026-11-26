@@ -5,7 +5,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 
-// See [TBD 4] in LLM.md
+// See [TBD 5] in LLM.md
 
 /**
  * Saves and loads [Review] objects, and keeps the campsite's overall rating up
@@ -171,7 +171,7 @@ class ReviewRepository {
             val oldRating = transaction.get(reviewRef).toObject(Review::class.java)?.rating
 
             val toSave = cleaned.copy(postedAt = Time.now())
-            val updatedCampsite = RatingCalculator.update(campsite, oldRating, toSave.rating)
+            val updatedCampsite = ReviewCalculator.update(campsite, oldRating, toSave.rating)
 
             transaction.set(reviewRef, toSave)
             //a review with no rating change (e.g. only text) leaves the campsite alone

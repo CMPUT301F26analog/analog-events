@@ -15,7 +15,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -26,8 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.model.Review
@@ -201,36 +198,5 @@ private fun ReviewItemCard(review: Review) {
                 )
             }
         }
-    }
-}
-
-@Preview(name = "Campground Reviews Preview", showBackground = true, backgroundColor = 0xFF1A1F1B)
-@Composable
-private fun ReviewsScreenPreview() {
-    Surface(color = Color(0xFF1A1F1B)) {
-        ReviewsScreen(
-            campsiteName = "Whispering Pines Campground",
-            overallRatingLabel = "★ 4.5 (2 reviews)",
-            reviews = listOf(
-                Review(
-                    entrantId = "user1",
-                    entrantName = "Alex M.",
-                    rating = 5,
-                    comment = "Incredible lakeside views and spotless fire pits!",
-                    postedAt = System.currentTimeMillis()
-                ),
-                Review(
-                    entrantId = "user2",
-                    entrantName = "Jordan K.",
-                    rating = 4,
-                    comment = "Quiet spot, though firewood was a bit damp.",
-                    postedAt = System.currentTimeMillis() - 86_400_000L
-                )
-            ),
-            loading = false,
-            errorMessage = null,
-            onBack = {},
-            onWriteReview = {}
-        )
     }
 }

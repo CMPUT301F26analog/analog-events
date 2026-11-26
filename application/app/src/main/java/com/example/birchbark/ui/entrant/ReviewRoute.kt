@@ -58,7 +58,6 @@ fun ReviewRoute(
     }
 
     // See [TBD 6] in LLM.md
-
     ReviewScreen(
         campsiteName = campsite.name,
         existing = existing,

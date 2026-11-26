@@ -9,8 +9,7 @@ package com.example.birchbark.model
  * The campsite stores the total of all ratings and how many there are, and
  * [Campsite.averageRating] divides them.
  */
-object RatingCalculator {
-
+object ReviewCalculator {
     /**
      * Gives the campsite with its totals updated for one entrant's rating.
      * The entrant's old rating (if they had one) is taken out and the new one

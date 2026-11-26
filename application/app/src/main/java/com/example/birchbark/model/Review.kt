@@ -9,7 +9,7 @@ package com.example.birchbark.model
  * checks live in [ReviewValidator].
  *
  * An entrant can give a rating, a review, or both (US 01.13.01 and 01.13.02). Only the
- * rating counts towards the campsite's overall rating ([RatingCalculator]).
+ * rating counts towards the campsite's overall rating ([ReviewCalculator]).
  *
  * Every field has a default so Firestore can create an empty Review before
  * filling it in.
@@ -17,7 +17,7 @@ package com.example.birchbark.model
  * Outstanding issues. Ratings are whole stars (1 to 5). The half stars in the
  * mockup would need the campsite's rating total stored in half stars. Photos
  * and videos on reviews aren't here yet. Nothing checks the entrant actually
- * stayed at the campsite. Showing the list of reviews comes later.
+ * stayed at the campsite.
  *
  * @property campsiteId ID of the reviewed campsite ([Campsite.id]).
  * @property entrantId FID of the entrant, i.e. their document ID in the "users" collection.

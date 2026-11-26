@@ -26,14 +26,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Review
 import com.example.birchbark.model.ReviewValidator
-// import com.example.birchbark.ui.theme.ScreenTitle // TBD
 import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
-
-import androidx.compose.material3.Surface
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Five tappable stars. Tapping a star sets that many stars. There's a separate
@@ -118,7 +113,6 @@ fun ReviewScreen(
             Text("Back", color = BirchBarkColors.Gold)
         }
 
-        // ScreenTitle("Your Review") // TBD
         Text(
             campsiteName,
             style = MaterialTheme.typography.titleLarge,
@@ -176,23 +170,5 @@ fun ReviewScreen(
         if (successMessage != null) {
             Text(successMessage, color = BirchBarkColors.Gold)
         }
-    }
-}
-
-@Preview(name = "New Review", showBackground = true, backgroundColor = 0xFF1A1F1B)
-@Composable
-private fun ReviewScreenNewPreview() {
-    // Wrap in BirchBarkTheme { ... } if you have a MaterialTheme wrapper
-    Surface(color = Color(0xFF1A1F1B)) { // Matches typical dark forest theme background
-        ReviewScreen(
-            campsiteName = "Whispering Pines Campground",
-            existing = null,
-            loading = false,
-            saving = false,
-            errors = emptyList(),
-            successMessage = null,
-            onSubmit = { _, _ -> },
-            onBack = {}
-        )
     }
 }
