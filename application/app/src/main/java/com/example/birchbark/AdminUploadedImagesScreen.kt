@@ -62,6 +62,12 @@ fun AdminUploadedImagesScreen() {
         mutableStateOf<String?>(null) }
     var selectedImage by remember {
         mutableStateOf<CampsiteImage?>(null) }
+    var imageToDelete by remember {
+        mutableStateOf<CampsiteImage?>(null) }
+    var isDeleting by remember {
+        mutableStateOf(false) }
+    var deleteError by remember {
+        mutableStateOf<String?>(null) }
     var associationType by remember {
         mutableStateOf("") }
     var associationName by remember {
@@ -119,31 +125,22 @@ fun AdminUploadedImagesScreen() {
                         .weight(1f)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+                ) { CircularProgressIndicator() } }
 
             loadError != null -> {
                 Text(
                     text = loadError ?: "Could not load images.",
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+                    modifier = Modifier.padding(16.dp)) }
 
             images.isEmpty() -> {
                 Text(
                     text = "No uploaded images found.",
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+                    modifier = Modifier.padding(16.dp)) }
 
             filteredImages.isEmpty() -> {
                 Text(
                     text = "No images match that campsite or profile.",
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+                    modifier = Modifier.padding(16.dp)) }
 
             else -> {
                 LazyColumn(
@@ -158,36 +155,82 @@ fun AdminUploadedImagesScreen() {
                         val bitmap = remember(image.data) {
                             decodeBase64Image(image.data) }
 
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Tap to see the campsite or profile name",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .clickable {
-                                        selectedImage = image
-                                        associationType = ""
-                                        associationName = null
-                                        associationError = null
-                                        associationLoading = true
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        ) { if (bitmap != null) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Tap to see the campsite or profile name",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clickable {
+                                            selectedImage = image
+                                            associationType = ""
+                                            associationName = null
+                                            associationError = null
+                                            associationLoading = true
 
-                                        // Fetches the associated campsite or profile name.
-                                        loadImageAssociation(image) { type, name, error ->
-                                            // Ignores a result if another image was selected meanwhile.
-                                            if (selectedImage?.id == image.id) {
-                                                associationType = type
-                                                associationName = name
-                                                associationError = error
-                                                associationLoading = false } } },
-                                contentScale = ContentScale.Crop) } else {
-                            Text("Could not display this image.")
-                        }
+                                            // Fetches the associated campsite or profile name.
+                                            loadImageAssociation(image) { type, name, error ->
+                                                // Ignores a result if another image was selected meanwhile.
+                                                if (selectedImage?.id == image.id) {
+                                                    associationType = type
+                                                    associationName = name
+                                                    associationError = error
+                                                    associationLoading = false } } },
+                                    contentScale = ContentScale.Crop)
+                            } else {
+                                Text("Could not display this image.") }} } } } } }
+
+    // Confirms and performs deletion of the selected photo.
+    imageToDelete?.let { image ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDeleting) imageToDelete = null
+            },
+            title = {
+                Text("Delete image?")
+            },
+            text = {
+                Column {
+                    Text("Are you sure you want to delete this photo?")
+                    if (deleteError != null) {
+                        Text(deleteError ?: "Could not delete the image.")
+                    }
+                    if (isDeleting) {
+                        CircularProgressIndicator()
                     }
                 }
-            }
-        }
-    }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = {
+                        isDeleting = true
+                        deleteError = null
+                        ImageRepository().deleteImage(
+                            image.id,
+                            object : ImageRepository.DeleteCallback {
+                                override fun onDeleted() {
+                                    images = images.filterNot { it.id == image.id }
+                                    associationNames = associationNames - image.id
+                                    if (selectedImage?.id == image.id) {
+                                        selectedImage = null
+                                    }
+                                    imageToDelete = null
+                                    isDeleting = false
+                                }
+
+                                override fun onError(error: Exception) {
+                                    deleteError = error.localizedMessage
+                                        ?: "Could not delete the image."
+                                    isDeleting = false } }) }) { Text("Delete") } },
+            dismissButton = {
+                TextButton(
+                    enabled = !isDeleting,
+                    onClick = { imageToDelete = null }) { Text("Cancel") } }) }
 
     // Displays the selected image's campsite or profile name in a dialog.
     selectedImage?.let { image ->
@@ -198,11 +241,9 @@ fun AdminUploadedImagesScreen() {
                 Text("Image belongs to") },
             text = {
                 when {
-                    associationLoading -> {
-                        CircularProgressIndicator() }
+                    associationLoading -> { CircularProgressIndicator() }
 
-                    associationError != null -> {
-                        Text(
+                    associationError != null -> { Text(
                             associationError
                                 ?: "Could not load the name.") }
                     associationName != null -> {
@@ -216,10 +257,14 @@ fun AdminUploadedImagesScreen() {
             confirmButton = {
                 TextButton(
                     onClick = {
+                        imageToDelete = image
+                        deleteError = null }) {
+                    Text("Delete") } },
+            dismissButton = {
+                TextButton(
+                    onClick = {
                         selectedImage = null
-                    }
-                ) {
-                    Text("Close") } }) } }
+                    }) { Text("Close") } }) } }
 
 /**
  * Loads campsite and profile names once so the Images search field can filter by name.
