@@ -3064,3 +3064,23 @@ selectedImage?.let {
 > Claude provided BookingNights (one booking document per night), changed ReservationRepository.confirm to a transaction that checks and writes every night, wrote a Firestore rule that forbids overwriting a booked night, and added unit tests.
 
 ---
+
+
+## Prompt #080 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Let a campsite owner reject a reservation, free up its booked nights, and notify the entrant.
+
+### Answer
+
+> Claude provided ReservationRepository.reject (one batch that marks the reservation REJECTED and deletes its campsiteBookings nights), RejectionNotice for the entrant's notification, a Reject button with a confirm dialog on the owner reservations screen, Firestore rule changes, and unit and UI tests.
+
+---
