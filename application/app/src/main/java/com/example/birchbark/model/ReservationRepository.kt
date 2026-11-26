@@ -6,6 +6,7 @@ package com.example.birchbark.model
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import com.example.birchbark.util.Time
 
 /**
  * Saves and loads [Reservation] objects in the top-level Firestore
@@ -157,11 +158,17 @@ class ReservationRepository {
      * US 01.04.01, 02.11.01, 02.07.01: the entrant accepts their reservation
      * for the days they picked, after agreeing to the campsite rules.
      *
-     * In one batch it marks the reservation CONFIRMED with the campsite and
-     * dates, copies in the entrant's contact details (so the owner can see who
-     * booked without reading their profile), and saves a [CampsiteBooking] so
-     * other winners can see those days are taken. Check the days first with
-     * [AvailableDates.problemWith].
+     * In one transaction it marks the reservation CONFIRMED with the campsite
+     * and dates, copies in the entrant's contact details (so the owner can see
+     * who booked without reading their profile), and saves one
+     * [CampsiteBooking] per night ([BookingNights]) so other winners see those
+     * days as taken.
+     *
+     * No double booking: the transaction first checks none of the nights are
+     * booked, and the Firestore rules refuse to overwrite a night that already
+     * exists, so if two entrants confirm the same night at the same moment only
+     * one succeeds. The other gets [DatesTakenException] and nothing of theirs
+     * is saved. See #057 in LLM.md.
      *
      * @param reservation the PENDING reservation being accepted.
      * @param campsiteId the campsite being booked.
@@ -182,32 +189,54 @@ class ReservationRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val batch = db.batch()
-        batch.update(
-            db.collection("reservations").document(reservation.id),
-            mapOf(
-                "status" to ReservationStatus.CONFIRMED.name,
-                "campsiteId" to campsiteId,
-                "startDate" to startDate,
-                "endDate" to endDate,
-                "entrantName" to name,
-                "entrantEmail" to email,
-                "entrantPhone" to phone
-            )
+        val reservationRef = db.collection("reservations").document(reservation.id)
+        //one booking per night (BookingNights), so two stays can never share a night
+        val nights = BookingNights.bookingsFor(
+            campsiteId,
+            Time.toLocalDate(startDate),
+            Time.lastDayOf(endDate)
         )
-        //same ID as the reservation, so each reservation has at most one booking
-        batch.set(
-            db.collection("campsiteBookings").document(reservation.id),
-            mapOf(
-                "campsiteId" to campsiteId,
-                "startDate" to startDate,
-                "endDate" to endDate
+        val nightRefs = nights.map { db.collection("campsiteBookings").document(it.id) }
+
+        db.runTransaction { transaction ->
+            //all reads before any writes: stop if any night was booked since the screen loaded
+            if (nightRefs.any { transaction.get(it).exists() }) {
+                throw DatesTakenException()
+            }
+
+            transaction.update(
+                reservationRef,
+                mapOf(
+                    "status" to ReservationStatus.CONFIRMED.name,
+                    "campsiteId" to campsiteId,
+                    "startDate" to startDate,
+                    "endDate" to endDate,
+                    "entrantName" to name,
+                    "entrantEmail" to email,
+                    "entrantPhone" to phone
+                )
             )
-        )
-        batch.commit()
+            for ((night, ref) in nights.zip(nightRefs)) {
+                transaction.set(
+                    ref,
+                    mapOf(
+                        "campsiteId" to night.campsiteId,
+                        "startDate" to night.startDate,
+                        "endDate" to night.endDate,
+                        "reservationId" to reservation.id
+                    )
+                )
+            }
+        }
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { error -> onFailure(error) }
     }
+
+    /**
+     * Thrown inside [confirm]'s transaction when one of the picked nights was
+     * booked by someone else after the screen loaded. Nothing is saved.
+     */
+    class DatesTakenException : Exception("Some of those days were just booked by someone else")
 
     /**
      * US 01.04.03: the entrant turns down a reservation they won.
