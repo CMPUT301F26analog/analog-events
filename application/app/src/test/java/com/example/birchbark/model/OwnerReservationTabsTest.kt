@@ -2,6 +2,8 @@ package com.example.birchbark.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 // See #049 in LLM.md
 /**
@@ -61,5 +63,27 @@ class OwnerReservationTabsTest {
         assertEquals(listOf("a", "c"), OwnerReservationTabs.forTab(all, OwnerReservationTab.ACTIVE, now).map { it.id })
         assertEquals(listOf("d"), OwnerReservationTabs.forTab(all, OwnerReservationTab.PAST, now).map { it.id })
         assertEquals(listOf("b"), OwnerReservationTabs.forTab(all, OwnerReservationTab.CANCELLED, now).map { it.id })
+    }
+
+    // US 02.08.01: which reservations can be rejected
+
+    @Test
+    fun pending_canReject() {
+        assertTrue(OwnerReservationTabs.canReject(reservation("r", ReservationStatus.PENDING), now))
+    }
+
+    @Test
+    fun confirmedNotOver_canReject() {
+        assertTrue(OwnerReservationTabs.canReject(reservation("r", ReservationStatus.CONFIRMED, 2_000L), now))
+    }
+
+    @Test
+    fun confirmedOver_cannotReject() {
+        assertFalse(OwnerReservationTabs.canReject(reservation("r", ReservationStatus.CONFIRMED, 500L), now))
+    }
+
+    @Test
+    fun alreadyRejected_cannotReject() {
+        assertFalse(OwnerReservationTabs.canReject(reservation("r", ReservationStatus.REJECTED), now))
     }
 }

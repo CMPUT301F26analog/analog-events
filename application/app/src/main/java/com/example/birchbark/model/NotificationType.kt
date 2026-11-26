@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// See #048 in LLM.mdgit status
+// See #048 in LLM.md
 
 /**
  * US 01.03.01, 01.03.02, 01.05.01, 01.07.02, 02.10.01, 02.12.01: what a

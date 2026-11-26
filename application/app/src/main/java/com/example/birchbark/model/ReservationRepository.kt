@@ -252,6 +252,43 @@ class ReservationRepository {
     }
 
     /**
+     * US 02.08.01: the owner rejects a reservation. Marks it REJECTED and, if it
+     * was confirmed, deletes its nights from "campsiteBookings" so others can
+     * book them. Both happen in one batch, so a rejected stay never keeps its
+     * nights. See #058 in LLM.md.
+     *
+     * @param reservation the active reservation being rejected.
+     */
+    fun reject(
+        reservation: Reservation,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val batch = db.batch()
+        batch.update(
+            db.collection("reservations").document(reservation.id),
+            "status", ReservationStatus.REJECTED.name
+        )
+
+        val campsiteId = reservation.campsiteId
+        val start = reservation.startDate
+        val end = reservation.endDate
+        //only confirmed reservations have nights booked
+        if (reservation.status == ReservationStatus.CONFIRMED &&
+            campsiteId != null && start != null && end != null
+        ) {
+            val nights = BookingNights.bookingsFor(campsiteId, Time.toLocalDate(start), Time.lastDayOf(end))
+            for (night in nights) {
+                batch.delete(db.collection("campsiteBookings").document(night.id))
+            }
+        }
+
+        batch.commit()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
      * US 01.04.01: the days already booked at a campsite, for working out
      * which days a winner can still pick ([AvailableDates]).
      *
