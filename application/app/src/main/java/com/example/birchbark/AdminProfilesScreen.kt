@@ -49,12 +49,15 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 
-//Displays user profiles loaded from the Firestore `users` collection.
-//Loads campsites from `campsites` and matches each campsite's `ownerId`
-//to a user document ID. Shows loading and error messages, lets the admin
-//filter and sort profiles, and opens a profile's details when its card is tapped.
-//This composable has no parameters because it loads its information from Firebase.
-//It also keeps the current filters, selected profile, and dialog state while it is shown.
+/**
+ * US 03.05.01
+ * Displays user profiles loaded from Firestore for the admin.
+ *
+ * Loads campsites and matches each campsite's owner ID to a user document ID.
+ * Lets the admin filter and sort profiles, view profile details, delete profiles,
+ * and block owners who violate app policy.
+ */
+
 @Composable
 fun AdminProfilesScreen() {
     // This holds the profile that the admin picked to delete.
@@ -140,23 +143,17 @@ fun AdminProfilesScreen() {
                                     "Unknown"
                                 },
                                 campsite = ownedCampsite?.first ?: "",
-                                area = ownedCampsite?.second ?: ""
-                            )
-                        }
+                                area = ownedCampsite?.second ?: "") }
                         isLoading = false
                     }
                     .addOnFailureListener { error ->
                         loadError =
                             error.localizedMessage ?: "Could not load profiles."
-                        isLoading = false
-                    }
-            }
+                        isLoading = false } }
             .addOnFailureListener { error ->
                 loadError =
                     error.localizedMessage ?: "Could not load campsites."
-                isLoading = false
-            }
-    }
+                isLoading = false } }
 
     // Builds the campsite and area choices shown in the filter dropdowns.
     val campsiteOptions = listOf("All campsites") +
@@ -206,20 +203,15 @@ fun AdminProfilesScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            Row(
+                .padding(innerPadding)) { Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 20.dp, top = 16.dp, end = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
+                horizontalArrangement = Arrangement.SpaceBetween) { Text(
                     text = "Profiles",
                     style = MaterialTheme.typography.titleLarge,
-                    color = ProfileGold
-                )
+                    color = ProfileGold)
 
                 TextButton(onClick = {
                     draftFilters = appliedFilters
@@ -253,16 +245,9 @@ fun AdminProfilesScreen() {
                     ),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
-                ) {
-                    items(sortedProfiles) { profile ->
+                ) { items(sortedProfiles) { profile ->
                         ProfileCard(profile) {
-                            selectedProfile = profile
-                        }
-                    }
-                }
-            }
-        }
-    }
+                            selectedProfile = profile } } } } } }
 
     // Shows the filter dialog while the admin is choosing profile filters.
     if (showFilters) {
@@ -288,19 +273,14 @@ fun AdminProfilesScreen() {
                         onSelect = {
                             draftFilters =
                                 draftFilters.copy(sortBy = it)
-                        }
-                    )
-
+                        })
                     ProfileFilterDropdown(
                         label = "Order",
                         value = draftFilters.sortOrder,
                         options = listOf("A–Z", "Z–A"),
                         onSelect = {
                             draftFilters =
-                                draftFilters.copy(sortOrder = it)
-                        }
-                    )
-
+                                draftFilters.copy(sortOrder = it) })
                     Text("Campsite", color = ProfileCream)
 
                     ProfileFilterDropdown(
@@ -309,10 +289,7 @@ fun AdminProfilesScreen() {
                         options = campsiteOptions,
                         onSelect = {
                             draftFilters =
-                                draftFilters.copy(campsite = it)
-                        }
-                    )
-
+                                draftFilters.copy(campsite = it) })
                     Text("Area", color = ProfileCream)
 
                     ProfileFilterDropdown(
@@ -321,28 +298,17 @@ fun AdminProfilesScreen() {
                         options = areaOptions,
                         onSelect = {
                             draftFilters =
-                                draftFilters.copy(area = it)
-                        }
-                    )
-                }
-            },
+                                draftFilters.copy(area = it) }) } },
             confirmButton = {
                 TextButton(onClick = {
                     appliedFilters = draftFilters
                     showFilters = false
-                }) {
-                    Text("Apply Filters", color = ProfileGold)
-                }
-            },
+                }) { Text("Apply Filters", color = ProfileGold) } },
             dismissButton = {
                 TextButton(onClick = {
                     showFilters = false
                 }) {
-                    Text("Cancel", color = ProfileCream)
-                }
-            }
-        )
-    }
+                    Text("Cancel", color = ProfileCream) } }) }
 
     // Shows details for the profile whose card was selected.
     selectedProfile?.let { profile ->
@@ -350,12 +316,10 @@ fun AdminProfilesScreen() {
             onDismissRequest = { selectedProfile = null },
             containerColor = ProfileCardColor,
             title = {
-                Text(profile.name, color = ProfileCream)
-            },
+                Text(profile.name, color = ProfileCream) },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Email: ${profile.email}", color = ProfileCream)
                     Text("Phone: ${profile.phone}", color = ProfileCream)
                     Text("Role: ${profile.role}", color = ProfileCream)
@@ -365,21 +329,13 @@ fun AdminProfilesScreen() {
                     // Only show the block option for profiles that have the owner role.
                     if (profile.role.split(",").any {
                             it.trim().equals("owner", ignoreCase = true)
-                        }
-                    ) {
-                        TextButton(onClick = {
+                        })
+                    { TextButton(onClick = {
                             selectedProfile = null
                             profileToBlock = profile
-                            blockError = null
-                        }) {
-                            Text(
+                            blockError = null }) { Text(
                                 "Block owner and remove profile",
-                                color = ProfileGold
-                            )
-                        }
-                    }
-                }
-            },
+                                color = ProfileGold) } } } },
             dismissButton = {
                 TextButton(onClick = {
                     // Opens the delete confirmation for this profile.
@@ -393,12 +349,7 @@ fun AdminProfilesScreen() {
             confirmButton = {
                 TextButton(onClick = {
                     selectedProfile = null
-                }) {
-                    Text("Close", color = ProfileGold)
-                }
-            }
-        )
-    }
+                }) { Text("Close", color = ProfileGold) } }) }
 
     // Asks for confirmation before adding an owner to the block list and removing their profile.
     profileToBlock?.let { profile ->
@@ -406,27 +357,18 @@ fun AdminProfilesScreen() {
             onDismissRequest = {
                 if (!isBlocking) {
                     profileToBlock = null
-                    blockError = null
-                }
-            },
+                    blockError = null } },
             containerColor = ProfileCardColor,
-            title = {
-                Text("Block owner?", color = ProfileCream)
-            },
+            title = { Text("Block owner?", color = ProfileCream) },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "Block ${profile.name} and remove their profile?",
-                        color = ProfileCream
-                    )
+                        color = ProfileCream)
 
                     blockError?.let { error ->
-                        Text(error, color = ProfileCream)
-                    }
-                }
-            },
+                        Text(error, color = ProfileCream) } } },
             confirmButton = {
                 TextButton(
                     enabled = !isBlocking,
@@ -434,8 +376,7 @@ fun AdminProfilesScreen() {
                         if (profile.authUid.isBlank()) {
                             blockError =
                                 "This profile has no authUid in Firestore."
-                            return@TextButton
-                        }
+                            return@TextButton }
 
                         isBlocking = true
                         blockError = null
@@ -448,35 +389,20 @@ fun AdminProfilesScreen() {
                                     it.userId == profile.userId
                                 }
                                 isBlocking = false
-                                profileToBlock = null
-                            },
+                                profileToBlock = null },
                             onError = { error ->
                                 isBlocking = false
                                 blockError = error.localizedMessage
-                                    ?: "Could not block this owner."
-                            }
-                        )
-                    }
-                ) {
-                    Text(
+                                    ?: "Could not block this owner." }) }) { Text(
                         if (isBlocking) "Blocking..." else "Block owner",
-                        color = ProfileGold
-                    )
-                }
-            },
+                        color = ProfileGold) } },
             dismissButton = {
                 TextButton(
                     enabled = !isBlocking,
                     onClick = {
                         profileToBlock = null
                         blockError = null
-                    }
-                ) {
-                    Text("Cancel", color = ProfileCream)
-                }
-            }
-        )
-    }
+                    }) { Text("Cancel", color = ProfileCream) } }) }
 
     // This dialog asks one more time before deleting the profile from Firebase.
     // profile is the profile selected in the details dialog for removal.
@@ -484,25 +410,18 @@ fun AdminProfilesScreen() {
         AlertDialog(
             onDismissRequest = {
                 profileToDelete = null
-                deleteError = null
-            },
+                deleteError = null },
             containerColor = ProfileCardColor,
             title = {
-                Text("Delete profile?", color = ProfileCream)
-            },
+                Text("Delete profile?", color = ProfileCream) },
             text = {
                 Column {
-                    Text(
-                        "Delete ${profile.name} from the profiles?",
-                        color = ProfileCream
-                    )
+                    Text("Delete ${profile.name} from the profiles?",
+                        color = ProfileCream)
 
                     // If Firebase gives an error, it shows up here.
                     deleteError?.let { error ->
-                        Text(error, color = ProfileCream)
-                    }
-                }
-            },
+                        Text(error, color = ProfileCream) } } },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -514,61 +433,45 @@ fun AdminProfilesScreen() {
                             .addOnSuccessListener {
                                 // The profile disappears from the screen after Firebase says it worked.
                                 profiles = profiles.filterNot {
-                                    it.userId == profile.userId
-                                }
+                                    it.userId == profile.userId }
                                 profileToDelete = null
-                                deleteError = null
-                            }
+                                deleteError = null }
                             .addOnFailureListener { error ->
                                 // Keeps the dialog open and shows the error if the delete fails.
                                 deleteError =
                                     error.localizedMessage
                                         ?: "Could not delete profile."
-                            }
-                    }
-                ) {
-                    Text("Delete", color = ProfileGold)
-                }
-            },
+                            } }) { Text("Delete", color = ProfileGold) } },
             dismissButton = {
                 TextButton(
                     onClick = {
                         // Cancel closes the dialog and does not delete the profile.
                         profileToDelete = null
-                        deleteError = null
-                    }
-                ) {
-                    Text("Cancel", color = ProfileCream)
-                }
-            }
-        )
-    }
-}
+                        deleteError = null })
+                { Text("Cancel", color = ProfileCream) } }) } }
 
-//Displays a read-only dropdown field for choosing a profile filter.
-// label is the text shown above the field.
-// value is the option currently selected and displayed in the field.
-// options is the list of choices that appears when the field is tapped.
-// onSelect is called with the chosen option so the caller can update its filter.
-// The function returns a dropdown field and menu as part of the Compose UI.
+/**
+ * Displays a read-only dropdown field for selecting a profile filter.
+ *
+ * @param label Text shown above the field.
+ * @param value The currently selected option.
+ * @param options Available choices in the dropdown menu.
+ * @param onSelect Called with the option selected by the user.
+ */
 @Composable
 private fun ProfileFilterDropdown(
     label: String,
     value: String,
     options: List<String>,
-    onSelect: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
+    onSelect: (String) -> Unit) { var expanded by remember { mutableStateOf(false) }
 
-    Box {
-        OutlinedTextField(
+    Box { OutlinedTextField(
             value = value,
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
             trailingIcon = {
-                Text("⌄", color = ProfileCream)
-            },
+                Text("⌄", color = ProfileCream) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = ProfileCream,
                 unfocusedTextColor = ProfileCream,
@@ -576,86 +479,69 @@ private fun ProfileFilterDropdown(
                 unfocusedLabelColor = ProfileCream.copy(alpha = 0.7f),
                 cursorColor = ProfileCream,
                 focusedBorderColor = ProfileCream,
-                unfocusedBorderColor = ProfileCream.copy(alpha = 0.5f)
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+                unfocusedBorderColor = ProfileCream.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth())
 
         // This layer opens the choices when you tap the field.
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable { expanded = true }
-        )
-
+                .clickable { expanded = true })
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(ProfileCardColor)
-        ) {
+            modifier = Modifier.background(ProfileCardColor)) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = {
-                        Text(option, color = ProfileCream)
-                    },
+                    text = { Text(option, color = ProfileCream) },
                     onClick = {
                         onSelect(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
+                        expanded = false }) } } } }
 
-//Displays a profile's initials and name on a card.
+/**
+ * Displays a profile's initials and name on a card.
+ *
+ * @param profile Profile information displayed on the card.
+ * @param onDetailsClick Called when the details button is tapped.
+ */
+// Displays a profile's initials and name on a card.
 // profile contains the information displayed on this card.
 // onDetailsClick is called when the details button is tapped.
 // The function returns the card UI; the selected profile is handled by its caller.
 @Composable
 private fun ProfileCard(
     profile: ProfilePreview,
-    onDetailsClick: () -> Unit
-) {
+    onDetailsClick: () -> Unit) {
     Card(
         modifier = Modifier
             .width(290.dp)
             .height(460.dp),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = ProfileTeal
-        )
-    ) {
+            containerColor = ProfileTeal)) {
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+            contentAlignment = Alignment.Center) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
                         .size(110.dp)
                         .background(ProfileCream, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
+                    contentAlignment = Alignment.Center) { Text(
                         text = profile.name
                             .split(" ")
                             .mapNotNull { it.firstOrNull() }
                             .joinToString(""),
                         style = MaterialTheme.typography.headlineMedium,
-                        color = ProfileBackground
-                    )
-                }
+                        color = ProfileBackground) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = profile.name,
                     style = MaterialTheme.typography.titleLarge,
-                    color = ProfileCream
-                )
+                    color = ProfileCream)
 
                 Button(
                     onClick = onDetailsClick,
@@ -663,19 +549,21 @@ private fun ProfileCard(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ProfileGold,
                         contentColor = ProfileBackground
-                    )
-                ) {
-                    Text("→")
-                }
-            }
-        }
-    }
-}
+                    )) {
+                    Text("→") } } } } }
 
-//Holds the profile details used by the admin profiles screen.
-// userId is the Firestore document ID used to identify this user.
-// name, email, and phone are the user's contact details shown to the admin.
-// role is the user's role or roles; campsite and area describe an owned campsite.
+/**
+ * Holds the profile and campsite details shown in the admin profiles screen.
+ *
+ * @property userId Firestore document ID for the user profile; in this app, it is the FID.
+ * @property authUid Firebase Authentication UID associated with the profile.
+ * @property name User's full name.
+ * @property email User's email address.
+ * @property phone User's phone number.
+ * @property role The user's role or roles.
+ * @property campsite Name of the user's campsite, if available.
+ * @property area Area or location of the user's campsite, if available.
+ */
 private data class ProfilePreview(
     val userId: String,
     val authUid: String,
@@ -687,22 +575,31 @@ private data class ProfilePreview(
     val area: String
 )
 
-//Holds the current campsite, area, and sorting choices for the profiles list.
-// The default values mean no campsite or area filter is applied.
+/**
+ * Holds the current campsite, area, and sorting choices for the profiles list.
+ *
+ * @property campsite Selected campsite filter; defaults to all campsites.
+ * @property area Selected area filter; defaults to all areas.
+ * @property sortBy Name field used to sort profiles.
+ * @property sortOrder Direction used to sort profiles.
+ */
 private data class ProfileFilters(
     val campsite: String = "All campsites",
     val area: String = "All areas",
     val sortBy: String = "First name",
     val sortOrder: String = "A–Z"
 )
-
 private val ProfileBackground = Color(0xFF1B3232)
 private val ProfileCardColor = Color(0xFF244746)
 private val ProfileTeal = Color(0xFF168F83)
 private val ProfileGold = Color(0xFFD6A266)
 private val ProfileCream = Color(0xFFFFFBF5)
-
-//Previews the admin profiles screen in Android Studio.
+/**
+ * Previews the admin profiles screen in Android Studio.
+ *
+ * Uses the screen's default state and does not require a signed-in Firebase user.
+ */
+// Previews the admin profiles screen in Android Studio.
 // It uses the screen's normal default state without needing a signed-in Firebase user.
 @Preview(showBackground = true)
 @Composable
