@@ -168,7 +168,7 @@ class ReservationRepository {
      * booked, and the Firestore rules refuse to overwrite a night that already
      * exists, so if two entrants confirm the same night at the same moment only
      * one succeeds. The other gets [DatesTakenException] and nothing of theirs
-     * is saved. See #057 in LLM.md.
+     * is saved. See #079 in LLM.md.
      *
      * @param reservation the PENDING reservation being accepted.
      * @param campsiteId the campsite being booked.

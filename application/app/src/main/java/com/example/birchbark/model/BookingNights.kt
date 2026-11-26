@@ -3,7 +3,7 @@ package com.example.birchbark.model
 import com.example.birchbark.util.Time
 import java.time.LocalDate
 
-// See #057 in LLM.md
+// See #079 in LLM.md
 
 /**
  * US 01.04.01: splits a stay into one [CampsiteBooking] per night, so no two

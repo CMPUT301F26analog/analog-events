@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
-// See #057 in LLM.md
+// See #079 in LLM.md
 /**
  * Unit tests for splitting a stay into one booking per night, which is what
  * stops two reservations from booking the same night.
