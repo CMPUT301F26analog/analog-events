@@ -3,7 +3,7 @@ package com.example.birchbark.model
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-// See #058 in LLM.md
+// See #080 in LLM.md
 /** Unit tests for the notification sent when an owner rejects a reservation. US 02.08.01. */
 class RejectionNoticeTest {
 

@@ -168,7 +168,7 @@ class ReservationRepository {
      * booked, and the Firestore rules refuse to overwrite a night that already
      * exists, so if two entrants confirm the same night at the same moment only
      * one succeeds. The other gets [DatesTakenException] and nothing of theirs
-     * is saved. See #057 in LLM.md.
+     * is saved. See #079 in LLM.md.
      *
      * @param reservation the PENDING reservation being accepted.
      * @param campsiteId the campsite being booked.
@@ -255,7 +255,7 @@ class ReservationRepository {
      * US 02.08.01: the owner rejects a reservation. Marks it REJECTED and, if it
      * was confirmed, deletes its nights from "campsiteBookings" so others can
      * book them. Both happen in one batch, so a rejected stay never keeps its
-     * nights. See #058 in LLM.md.
+     * nights. See #080 in LLM.md.
      *
      * @param reservation the active reservation being rejected.
      */

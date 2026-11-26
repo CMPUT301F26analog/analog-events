@@ -15,7 +15,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-// See #058 in LLM.md
+// See #080 in LLM.md
 
 /**
  * Intent tests for rejecting a reservation from the owner's list (US 02.08.01).

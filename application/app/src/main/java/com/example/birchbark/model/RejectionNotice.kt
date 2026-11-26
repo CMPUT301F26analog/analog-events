@@ -1,6 +1,6 @@
 package com.example.birchbark.model
 
-// See #058 in LLM.md
+// See #080 in LLM.md
 
 /**
  * US 02.08.01: the notification an entrant gets when the owner rejects their
