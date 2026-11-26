@@ -137,7 +137,8 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                 when (selectedSection) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
-                    AdminSection.LOGS -> PlaceholderScreen("Logs")
+                    //US 03.08.01: every notification sent in the app (added by Yash)
+                    AdminSection.LOGS -> AdminNotificationLogsScreen()
                 }
             }
         }
