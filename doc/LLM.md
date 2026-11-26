@@ -2663,3 +2663,385 @@ match /blockedOwners/{authUid} {
 ```
 
 Publish the Firestore Rules in the Firebase Console for the app to use them. The Auth UID block record supports account-level checks, while the FID record is tied to an app installation and may not identify the same installation after app data is cleared or the app is reinstalled.
+
+
+## Prompt #067 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add an Images section to the admin navigation.
+
+### Answer
+
+```kotlin
+private enum class AdminSection {
+    CAMPSITES,
+    PROFILES,
+    IMAGES,
+    LOGS
+}
+```
+
+---
+
+## Prompt #068 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a bottom navigation item for the Images section.
+
+### Answer
+
+```kotlin
+NavigationBarItem(
+    modifier = Modifier.testTag("admin-images-tab"),
+    selected = selectedSection == AdminSection.IMAGES,
+    onClick = { selectedSection = AdminSection.IMAGES },
+    icon = { Text("▧") },
+    label = { Text("Images") },
+    colors = navigationItemColors()
+)
+```
+
+---
+
+## Prompt #069 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Show the uploaded images screen when the admin selects Images.
+
+### Answer
+
+```kotlin
+when (selectedSection) {
+    AdminSection.CAMPSITES -> AdminCampsitesScreen()
+    AdminSection.PROFILES -> AdminProfilesScreen()
+    AdminSection.IMAGES -> AdminUploadedImagesScreen()
+    AdminSection.LOGS -> PlaceholderScreen("Logs")
+}
+```
+
+---
+
+## Prompt #070 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a callback for loading all campsite images from Firestore.
+
+### Answer
+
+```kotlin
+interface ListCallback {
+    fun onLoaded(images: List<CampsiteImage>)
+    fun onError(error: Exception)
+}
+```
+
+---
+
+## Prompt #071 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a repository function that loads every uploaded image.
+
+### Answer
+
+```kotlin
+fun getAllImages(callback: ListCallback) {
+    db.collection("images")
+        .get()
+        .addOnSuccessListener { result ->
+            val images = result.toObjects(CampsiteImage::class.java)
+            callback.onLoaded(images.sortedBy { it.createdAt })
+        }
+        .addOnFailureListener { error ->
+            callback.onError(error)
+        }
+}
+```
+
+---
+
+## Prompt #072 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Load the images in a Compose screen and handle loading and errors.
+
+### Answer
+
+```kotlin
+var images by remember {
+    mutableStateOf<List<CampsiteImage>>(emptyList())
+}
+var isLoading by remember { mutableStateOf(true) }
+var loadError by remember { mutableStateOf<String?>(null) }
+
+LaunchedEffect(Unit) {
+    ImageRepository().getAllImages(object : ImageRepository.ListCallback {
+        override fun onLoaded(imagesFromFirestore: List<CampsiteImage>) {
+            images = imagesFromFirestore
+            isLoading = false
+        }
+
+        override fun onError(error: Exception) {
+            loadError = error.localizedMessage ?: "Could not load images."
+            isLoading = false
+        }
+    })
+}
+```
+
+---
+
+## Prompt #073 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Decode the Base64 image data stored in Firestore.
+
+### Answer
+
+```kotlin
+private fun decodeBase64Image(data: String) =
+    runCatching {
+        val encodedData = data.substringAfter(",", data)
+        val bytes = Base64.decode(encodedData, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }.getOrNull()
+```
+
+---
+
+## Prompt #074 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Display uploaded image thumbnails in a scrollable list.
+
+### Answer
+
+```kotlin
+LazyColumn(
+    modifier = Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(16.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    items(images, key = { it.id }) { image ->
+        val bitmap = remember(image.data) {
+            decodeBase64Image(image.data)
+        }
+
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Uploaded campsite image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+```
+
+---
+
+## Prompt #075 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Make each photo tappable and store the selected image.
+
+### Answer
+
+```kotlin
+var selectedImage by remember {
+    mutableStateOf<CampsiteImage?>(null)
+}
+
+Image(
+    bitmap = bitmap.asImageBitmap(),
+    contentDescription = "Tap to view image details",
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp)
+        .clickable { selectedImage = image },
+    contentScale = ContentScale.Crop
+)
+```
+
+---
+
+## Prompt #076 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Look up the campsite name associated with an image.
+
+### Answer
+
+```kotlin
+FirebaseFirestore.getInstance()
+    .collection("campsites")
+    .document(image.campsiteId)
+    .get()
+    .addOnSuccessListener { document ->
+        associationName = document.getString("name")
+            ?: document.getString("campsiteName")
+            ?: document.getString("title")
+    }
+    .addOnFailureListener { error ->
+        associationError =
+            error.localizedMessage ?: "Could not load campsite."
+    }
+```
+
+---
+
+## Prompt #077 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Look up the profile name associated with an image when it has no campsite ID.
+
+### Answer
+
+```kotlin
+FirebaseFirestore.getInstance()
+    .collection("users")
+    .document(image.ownerId)
+    .get()
+    .addOnSuccessListener { document ->
+        associationName = document.getString("name")
+            ?: document.getString("displayName")
+            ?: document.getString("fullName")
+            ?: document.getString("username")
+    }
+    .addOnFailureListener { error ->
+        associationError =
+            error.localizedMessage ?: "Could not load profile."
+    }
+```
+
+---
+
+## Prompt #078 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Show the associated campsite or profile name in a dialog when a photo is tapped.
+
+### Answer
+
+```kotlin
+selectedImage?.let {
+    AlertDialog(
+        onDismissRequest = { selectedImage = null },
+        title = { Text("Image belongs to") },
+        text = {
+            when {
+                associationLoading -> CircularProgressIndicator()
+                associationError != null ->
+                    Text(associationError ?: "Could not load the name.")
+                associationName != null ->
+                    Text("$associationType: $associationName")
+                else -> Text("Name not found.")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { selectedImage = null }) {
+                Text("Close")
+            }
+        }
+    )
+}
+```
