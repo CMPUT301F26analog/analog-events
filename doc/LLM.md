@@ -3045,3 +3045,22 @@ selectedImage?.let {
     )
 }
 ```
+
+## Prompt #079 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-25-2026 |
+
+### Prompt
+
+> Prevent two entrants from booking the same campsite night at the same time.
+
+### Answer
+
+> Claude provided BookingNights (one booking document per night), changed ReservationRepository.confirm to a transaction that checks and writes every night, wrote a Firestore rule that forbids overwriting a booked night, and added unit tests.
+
+---
