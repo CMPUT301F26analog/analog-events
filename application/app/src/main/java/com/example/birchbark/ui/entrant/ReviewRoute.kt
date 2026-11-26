@@ -57,6 +57,8 @@ fun ReviewRoute(
         })
     }
 
+    // See [TBD 6] in LLM.md
+
     ReviewScreen(
         campsiteName = campsite.name,
         existing = existing,
@@ -98,7 +100,7 @@ fun ReviewRoute(
 
                 override fun onError(error: Exception) {
                     saving = false
-                    errors = listOf("Couldn't save your review, check your connection and try again")
+                    errors = listOf("Error: ${error.message}")
                 }
             })
         },

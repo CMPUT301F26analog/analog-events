@@ -162,18 +162,9 @@ private fun RoleHome(
         Box(modifier = Modifier.weight(1f)) {
             key(selected) {
                 when (selected) {
-<<<<<<< HEAD
-                    "entrant" -> EntrantCampsitesApp(
-                        entrantId = profile.fid,
-                        entrantName = listOf(profile.firstName, profile.lastName)
-                            .filter { it.isNotBlank() }
-                            .joinToString(" ")
-                            .ifBlank { "Camper" }
-=======
-                    "entrant" -> EntrantApp(      // Was EntrantCampsitesApp()
-                            profile = profile,
-                            onProfileDeleted = onProfileDeleted
->>>>>>> origin/dev
+                    "entrant" -> EntrantApp(
+                        profile = profile,
+                        onProfileDeleted = onProfileDeleted
                     )
                     "owner" -> OwnerCampsitesApp(ownerId = profile.fid)
                     "admin" -> AdminBrowseScreen(

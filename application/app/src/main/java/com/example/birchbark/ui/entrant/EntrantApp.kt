@@ -99,7 +99,10 @@ fun EntrantApp(
                         hint = "Campsites you bookmark will show up here",
                         modifier = Modifier.fillMaxSize()
                     )
-                    EntrantTab.BROWSE -> EntrantCampsitesApp()
+                    EntrantTab.BROWSE -> EntrantCampsitesApp(
+                        entrantId = currentProfile.fid,
+                        entrantName = name
+                    )
                     EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = currentProfile,
@@ -198,9 +201,8 @@ private fun ProfileTab(
             }
             NotificationSettingsScreen()
         }
-        // TBD
-        ProfilePage.REVIEWS -> BlankEntrantScreen(
-            title = "Ratings & Reviews",
+        ProfilePage.REVIEWS -> UserReviewsRoute(
+            entrantId = profile.fid,
             onBack = { onPage(ProfilePage.MENU) }
         )
         // TBD

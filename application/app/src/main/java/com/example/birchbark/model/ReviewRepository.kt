@@ -199,4 +199,63 @@ class ReviewRepository {
         const val CAMPSITES = "campsites"
         const val REVIEWS = "reviews"
     }
+
+    /** Pairs a user's review with the campsite name for their Profile history screen. */
+    data class UserReviewItem(
+        val review: Review,
+        val campsiteName: String
+    )
+
+    interface LoadUserReviewsCallback {
+        fun onLoaded(items: List<UserReviewItem>)
+        fun onError(error: Exception)
+    }
+
+    /**
+     * Loads all reviews written by a specific entrant across all campsites.
+     */
+    fun getReviewsByEntrant(entrantId: String, callback: LoadUserReviewsCallback) {
+        if (entrantId.isBlank()) {
+            callback.onLoaded(emptyList())
+            return
+        }
+
+        db.collection(CAMPSITES).get()
+            .addOnSuccessListener { campsitesSnap ->
+                val campsites = campsitesSnap.documents.mapNotNull { doc ->
+                    val name = doc.getString("name") ?: "Unknown Campsite"
+                    doc.id to name
+                }
+
+                if (campsites.isEmpty()) {
+                    callback.onLoaded(emptyList())
+                    return@addOnSuccessListener
+                }
+
+                val results = mutableListOf<UserReviewItem>()
+                var remaining = campsites.size
+
+                for ((campsiteId, campsiteName) in campsites) {
+                    db.collection(CAMPSITES).document(campsiteId)
+                        .collection(REVIEWS).document(entrantId).get()
+                        .addOnSuccessListener { reviewDoc ->
+                            val review = reviewDoc.toObject(Review::class.java)
+                            if (review != null) {
+                                results.add(UserReviewItem(review, campsiteName))
+                            }
+                            remaining--
+                            if (remaining == 0) {
+                                callback.onLoaded(results.sortedByDescending { it.review.postedAt })
+                            }
+                        }
+                        .addOnFailureListener {
+                            remaining--
+                            if (remaining == 0) {
+                                callback.onLoaded(results.sortedByDescending { it.review.postedAt })
+                            }
+                        }
+                }
+            }
+            .addOnFailureListener { error -> callback.onError(error) }
+    }
 }
