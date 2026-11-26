@@ -139,9 +139,13 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
                     AdminSection.IMAGES -> AdminUploadedImagesScreen()
-                    AdminSection.LOGS -> PlaceholderScreen("Logs") } } } } }
-
-
+                    // US 03.08.01: every notification sent in the app.
+                    AdminSection.LOGS -> AdminNotificationLogsScreen()
+                }
+            }
+        }
+    }
+}
 
 // Returns the colors used for selected and unselected navigation items.
 // There are no parameters; the function returns the navigation item's color settings.
