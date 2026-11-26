@@ -52,6 +52,7 @@ class CampsiteDetailsTest {
                 message = null,
                 onBack = onBack,
                 onJoin = {},
+                onReviewsClick = {},
                 onLeave = {}
             )
         }
