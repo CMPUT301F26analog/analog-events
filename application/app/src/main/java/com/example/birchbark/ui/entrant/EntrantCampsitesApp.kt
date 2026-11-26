@@ -18,6 +18,8 @@ import com.example.birchbark.model.LotteryStatusCalculator
 import com.example.birchbark.model.RegistrationChecker
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
+import com.example.birchbark.model.Review
+import com.example.birchbark.model.ReviewRepository
 
 fun selectOpenLottery(
     lotteries: List<Lottery>,
@@ -112,6 +114,17 @@ private fun EntrantCampsiteDetailsRoute(
     // Track which sub-screen is active: "details", "all_reviews", or "write_review"
     var activeSubScreen by remember(campsite.id) { mutableStateOf("details") }
 
+    var writtenReviewCount by remember(campsite.id) { mutableStateOf(0) }
+
+    LaunchedEffect(currentCampsite) {
+        ReviewRepository().getAllReviews(currentCampsite.id, object : ReviewRepository.LoadAllCallback {
+            override fun onLoaded(reviews: List<Review>) {
+                writtenReviewCount = reviews.count { it.comment.isNotBlank() }
+            }
+            override fun onError(error: Exception) {}
+        })
+    }
+
     // Handle Android system back button cleanly across all sub-screens
     BackHandler {
         when (activeSubScreen) {
@@ -178,7 +191,8 @@ private fun EntrantCampsiteDetailsRoute(
                         onBack = onBack,
                         onJoin = {},
                         onLeave = {},
-                        onReviewsClick = { activeSubScreen = "all_reviews" }
+                        onReviewsClick = { activeSubScreen = "all_reviews" },
+                        writtenReviewCount = writtenReviewCount
                     )
                 }
 

@@ -35,11 +35,27 @@ fun ReviewRoute(
     var existing by remember { mutableStateOf<Review?>(null) }
     var loading by remember { mutableStateOf(true) }
     var saving by remember { mutableStateOf(false) }
+    var canReview by remember { mutableStateOf(true) }
     var errors by remember { mutableStateOf<List<String>>(emptyList()) }
     var successMessage by remember { mutableStateOf<String?>(null) }
 
     //load the entrant's earlier review when the screen opens
     LaunchedEffect(campsite.id, entrantId) {
+
+        repository.checkCanReview(campsite.id, entrantId, object : ReviewRepository.EligibilityCallback {
+            override fun onResult(eligible: Boolean) {
+                canReview = eligible
+                if (!eligible) {
+                    errors = listOf("You can only rate or review a campsite after your confirmed stay has ended.")
+                }
+            }
+
+            override fun onError(error: Exception) {
+                canReview = false
+                errors = listOf("Couldn't verify your stay history. Check your connection and try again.")
+            }
+        })
+
         repository.getReview(campsite.id, entrantId, object : ReviewRepository.LoadCallback {
             override fun onLoaded(review: Review) {
                 existing = review
@@ -65,7 +81,9 @@ fun ReviewRoute(
         saving = saving,
         errors = errors,
         successMessage = successMessage,
+        canReview = canReview,
         onSubmit = { rating, comment ->
+            if (!canReview) return@ReviewScreen
             saving = true
             errors = emptyList()
             successMessage = null

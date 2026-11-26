@@ -43,7 +43,8 @@ class ReviewScreenTest {
         errors: List<String> = emptyList(),
         successMessage: String? = null,
         onSubmit: (Int?, String) -> Unit = { _, _ -> },
-        onBack: () -> Unit = {}
+        onBack: () -> Unit = {},
+        canReview: Boolean = true
     ) {
         composeRule.setContent {
             BirchBarkTheme {
@@ -55,7 +56,8 @@ class ReviewScreenTest {
                     errors = errors,
                     successMessage = successMessage,
                     onSubmit = onSubmit,
-                    onBack = onBack
+                    onBack = onBack,
+                    canReview = canReview
                 )
             }
         }
@@ -184,4 +186,17 @@ class ReviewScreenTest {
         composeRule.onNodeWithText("Back").performClick()
         assertTrue(wentBack)
     }
+
+    @Test
+    fun whenIneligibleToReview_formAndPostButtonAreDisabled() {
+        show(
+            canReview = false,
+            errors = listOf("You can only rate or review a campsite after your confirmed stay has ended.")
+        )
+        composeRule.onNodeWithText("You can only rate or review a campsite after your confirmed stay has ended.")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("reviewField").assertIsNotEnabled()
+        composeRule.onNodeWithTag("postReviewButton").assertIsNotEnabled()
+    }
+
 }

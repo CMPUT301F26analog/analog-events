@@ -29,11 +29,21 @@ import com.example.birchbark.ui.theme.ScreenTitle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.clickable
 
+/**
+ * Profile screen listing all reviews posted by the signed-in entrant. Tapping a
+ * review card opens [ReviewRoute] for that campsite so the entrant can edit it.
+ *
+ * @param entrantId the signed-in entrant's FID.
+ * @param onBack called when the entrant taps Back.
+ * @param onReviewClick called when the entrant taps a review tile to edit it.
+ */
 @Composable
 fun UserReviewsRoute(
     entrantId: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onReviewClick: (ReviewRepository.UserReviewItem) -> Unit = {}
 ) {
     val repository = remember { ReviewRepository() }
     var items by remember { mutableStateOf<List<ReviewRepository.UserReviewItem>>(emptyList()) }
@@ -94,7 +104,9 @@ fun UserReviewsRoute(
 
                     Card(
                         colors = CardDefaults.cardColors(containerColor = BirchBarkColors.TealCard),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onReviewClick(item) }
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
@@ -109,6 +121,11 @@ fun UserReviewsRoute(
                                     text = item.campsiteName,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = BirchBarkColors.Cream
+                                )
+                                Text(
+                                    text = "Edit  ›",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = BirchBarkColors.Gold
                                 )
                                 if (dateText.isNotEmpty()) {
                                     Text(

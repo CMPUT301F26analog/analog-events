@@ -104,6 +104,19 @@ fun ReviewsScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = BirchBarkColors.Gold
             )
+            if (!loading && errorMessage == null) {
+                val writtenCount = reviews.count { it.comment.isNotBlank() }
+                val reviewText = when (writtenCount) {
+                    0 -> "No written reviews yet"
+                    1 -> "1 written review"
+                    else -> "$writtenCount written reviews"
+                }
+                Text(
+                    text = reviewText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BirchBarkColors.MutedText
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onWriteReview,

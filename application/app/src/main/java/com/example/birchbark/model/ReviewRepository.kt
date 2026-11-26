@@ -200,10 +200,17 @@ class ReviewRepository {
         const val REVIEWS = "reviews"
     }
 
-    /** Pairs a user's review with the campsite name for their Profile history screen. */
+    /** Receives the result of [checkCanReview]. Exactly one function is called. */
+    interface EligibilityCallback {
+        fun onResult(canReview: Boolean)
+        fun onError(error: Exception)
+    }
+
+    /** Pairs an entrant's review with the campsite name and [Campsite] object for editing. */
     data class UserReviewItem(
         val review: Review,
-        val campsiteName: String
+        val campsiteName: String,
+        val campsite: Campsite? = null
     )
 
     interface LoadUserReviewsCallback {
@@ -212,7 +219,41 @@ class ReviewRepository {
     }
 
     /**
-     * Loads all reviews written by a specific entrant across all campsites.
+     * Checks that the entrant has a CONFIRMED reservation at [campsiteId] whose
+     * endDate is before [Time.now] before allowing them to post or edit a review.
+     *
+     * @param campsiteId the campsite's ID ([Campsite.id]).
+     * @param entrantId the entrant's FID.
+     * @param callback receives true if eligible, false if not, or an error.
+     */
+    fun checkCanReview(campsiteId: String, entrantId: String, callback: EligibilityCallback) {
+        if (campsiteId.isBlank() || entrantId.isBlank()) {
+            callback.onResult(false)
+            return
+        }
+
+        ReservationRepository().getReservationsForEntrant(
+            entrantId = entrantId,
+            onResult = { reservations ->
+                val now = Time.now()
+                val stayedHere = reservations.any { res ->
+                    res.status == ReservationStatus.CONFIRMED &&
+                            res.campsiteId == campsiteId &&
+                            res.endDate != null &&
+                            res.endDate < now
+                }
+                callback.onResult(stayedHere)
+            },
+            onFailure = { error -> callback.onError(error) }
+        )
+    }
+
+    /**
+     * Loads all reviews written by a specific entrant across all campsites in a
+     * single collectionGroup query, ordered newest first.
+     *
+     * @param entrantId the entrant's FID ([Review.entrantId]).
+     * @param callback receives the list of [UserReviewItem]s or an error.
      */
     fun getReviewsByEntrant(entrantId: String, callback: LoadUserReviewsCallback) {
         if (entrantId.isBlank()) {
@@ -220,41 +261,43 @@ class ReviewRepository {
             return
         }
 
-        db.collection(CAMPSITES).get()
-            .addOnSuccessListener { campsitesSnap ->
-                val campsites = campsitesSnap.documents.mapNotNull { doc ->
-                    val name = doc.getString("name") ?: "Unknown Campsite"
-                    doc.id to name
+        db.collectionGroup(REVIEWS)
+            .whereEqualTo("entrantId", entrantId)
+            .get()
+            .addOnSuccessListener { reviewsSnap ->
+                val reviews = try {
+                    reviewsSnap.documents.mapNotNull { it.toObject(Review::class.java) }
+                } catch (e: Exception) {
+                    callback.onError(e)
+                    return@addOnSuccessListener
                 }
 
-                if (campsites.isEmpty()) {
+                if (reviews.isEmpty()) {
                     callback.onLoaded(emptyList())
                     return@addOnSuccessListener
                 }
 
-                val results = mutableListOf<UserReviewItem>()
-                var remaining = campsites.size
+                db.collection(CAMPSITES).get()
+                    .addOnSuccessListener { campsitesSnap ->
+                        val campsitesById = campsitesSnap.documents
+                            .mapNotNull { doc ->
+                                doc.toObject(Campsite::class.java)?.copy(id = doc.id)
+                            }
+                            .associateBy { it.id }
 
-                for ((campsiteId, campsiteName) in campsites) {
-                    db.collection(CAMPSITES).document(campsiteId)
-                        .collection(REVIEWS).document(entrantId).get()
-                        .addOnSuccessListener { reviewDoc ->
-                            val review = reviewDoc.toObject(Review::class.java)
-                            if (review != null) {
-                                results.add(UserReviewItem(review, campsiteName))
+                        val items = reviews
+                            .sortedByDescending { it.postedAt }
+                            .map { review ->
+                                val campsite = campsitesById[review.campsiteId]
+                                UserReviewItem(
+                                    review = review,
+                                    campsiteName = campsite?.name ?: "Unknown Campsite",
+                                    campsite = campsite
+                                )
                             }
-                            remaining--
-                            if (remaining == 0) {
-                                callback.onLoaded(results.sortedByDescending { it.review.postedAt })
-                            }
-                        }
-                        .addOnFailureListener {
-                            remaining--
-                            if (remaining == 0) {
-                                callback.onLoaded(results.sortedByDescending { it.review.postedAt })
-                            }
-                        }
-                }
+                        callback.onLoaded(items)
+                    }
+                    .addOnFailureListener { error -> callback.onError(error) }
             }
             .addOnFailureListener { error -> callback.onError(error) }
     }

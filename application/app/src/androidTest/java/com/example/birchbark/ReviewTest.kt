@@ -215,4 +215,16 @@ class ReviewTest {
         assertEquals(3, callback.errors?.size)
         assertNull(callback.savedReview)
     }
+
+    @Test
+    fun checkCanReview_withBlankIds_returnsFalseImmediately() {
+        var result: Boolean? = null
+        ReviewRepository().checkCanReview("", "entrant456", object : ReviewRepository.EligibilityCallback {
+            override fun onResult(canReview: Boolean) {
+                result = canReview
+            }
+            override fun onError(error: Exception) {}
+        })
+        assertEquals(false, result)
+    }
 }

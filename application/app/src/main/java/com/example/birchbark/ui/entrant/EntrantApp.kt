@@ -41,6 +41,9 @@ import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 import com.example.birchbark.ui.screens.BlankEntrantScreen
 import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
+import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.ReviewRepository
+
 
 /**
  * The entrant's whole app: a header, the current tab, and the bottom navigation.
@@ -175,7 +178,17 @@ private fun ProfileTab(
     onProfileUpdated: (UserProfile) -> Unit,
     onProfileDeleted: () -> Unit
 ) {
-    BackHandler(enabled = page != ProfilePage.MENU) { onPage(ProfilePage.MENU) }
+    var editingReviewItem by remember(page) {
+        mutableStateOf<ReviewRepository.UserReviewItem?>(null)
+    }
+
+    BackHandler(enabled = page != ProfilePage.MENU) {
+        if (editingReviewItem != null) {
+            editingReviewItem = null
+        } else {
+            onPage(ProfilePage.MENU)
+        }
+    }
 
     when (page) {
         ProfilePage.MENU -> ProfileMenu(profile, name, onPage)
@@ -202,10 +215,29 @@ private fun ProfileTab(
             }
             NotificationSettingsScreen()
         }
-        ProfilePage.REVIEWS -> UserReviewsRoute(
-            entrantId = profile.fid,
-            onBack = { onPage(ProfilePage.MENU) }
-        )
+        ProfilePage.REVIEWS -> {
+            val selectedItem = editingReviewItem
+            if (selectedItem != null) {
+                val targetCampsite = selectedItem.campsite
+                    ?: Campsite(
+                        id = selectedItem.review.campsiteId,
+                        name = selectedItem.campsiteName
+                    )
+                ReviewRoute(
+                    campsite = targetCampsite,
+                    entrantId = profile.fid,
+                    entrantName = name,
+                    onBack = { editingReviewItem = null }
+                )
+            } else {
+                UserReviewsRoute(
+                    entrantId = profile.fid,
+                    onBack = { onPage(ProfilePage.MENU) },
+                    onReviewClick = { item -> editingReviewItem = item }
+                )
+            }
+        }
+
         ProfilePage.POLICY -> PolicyScreen(
             onBack = { onPage(ProfilePage.MENU) }
         )

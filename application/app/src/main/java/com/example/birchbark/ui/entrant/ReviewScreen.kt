@@ -84,6 +84,7 @@ fun StarRating(
  * @param successMessage shown in gold after a save worked.
  * @param onSubmit called with the stars (null for none) and the written text (can be blank).
  * @param onBack called when the entrant taps Back.
+ * @param canReview false if the entrant hasn't completed a confirmed stay at this campsite.
  * @param modifier modifier from the parent layout.
  */
 @Composable
@@ -96,6 +97,7 @@ fun ReviewScreen(
     successMessage: String?,
     onSubmit: (Int?, String) -> Unit,
     onBack: () -> Unit,
+    canReview: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     // The stars and text. Rebuilt from the earlier review whenever a new one arrives (after loading, after saving)
@@ -126,10 +128,10 @@ fun ReviewScreen(
             StarRating(
                 rating = rating,
                 onRatingChange = { rating = it },
-                enabled = !saving
+                enabled = !saving && canReview
             )
             if (rating != null) {
-                TextButton(onClick = { rating = null }, enabled = !saving) {
+                TextButton(onClick = { rating = null }, enabled = !saving && canReview) {
                     Text("Clear rating", color = BirchBarkColors.Gold)
                 }
             }
@@ -141,7 +143,7 @@ fun ReviewScreen(
                 label = { Text("Write a review (optional)") },
                 supportingText = { Text("${comment.length}/${ReviewValidator.MAX_COMMENT_LENGTH}") },
                 minLines = 4,
-                enabled = !saving,
+                enabled = !saving && canReview,
                 colors = birchBarkFieldColors(),
                 modifier = Modifier.fillMaxWidth().testTag("reviewField")
             )
@@ -149,7 +151,7 @@ fun ReviewScreen(
             // Needs a rating, a review, or both
             Button(
                 onClick = { onSubmit(rating, comment) },
-                enabled = !saving && (rating != null || comment.isNotBlank()),
+                enabled = !saving && canReview && (rating != null || comment.isNotBlank()),
                 colors = birchBarkButtonColors(),
                 modifier = Modifier.fillMaxWidth().testTag("postReviewButton")
             ) {

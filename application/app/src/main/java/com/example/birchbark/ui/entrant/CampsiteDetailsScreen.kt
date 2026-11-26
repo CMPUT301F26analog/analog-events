@@ -72,6 +72,7 @@ fun CampsiteDetailsScreen(
     onJoin: () -> Unit,
     onLeave: () -> Unit,
     onReviewsClick: () -> Unit,
+    writtenReviewCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     // Setting up the tabs : See [1] in References.md, which was used for documentation
@@ -95,10 +96,14 @@ fun CampsiteDetailsScreen(
         PhotoCard(
             height = 240.dp,
             topRow = {
-                Box(modifier = Modifier.clickable { onReviewsClick() }) {
-                    StatusChip("${campsite.ratingLabel()}  ›")
+                val reviewSuffix = when (writtenReviewCount) {
+                    0 -> ""
+                    1 -> " · 1 review"
+                    else -> " · $writtenReviewCount reviews"
                 }
-                // Placeholder until the real promo image is loaded, only if the owner added one
+                Box(modifier = Modifier.clickable { onReviewsClick() }) {
+                    StatusChip("${campsite.ratingLabel()}$reviewSuffix  ›")
+                }
                 if (!campsite.imageUrl.isNullOrBlank()) {
                     StatusChip("Promo Image")
                 }
