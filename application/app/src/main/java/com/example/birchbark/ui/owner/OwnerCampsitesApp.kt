@@ -15,7 +15,8 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * owner's campsites (US 02.03.01). Tapping one opens its details (US 02.01.04),
  * the update button opens the edit screen (US 02.01.03), the Campsite Lottery
  * button opens the lottery form (US 02.04.01), the Edit Lottery button opens
- * the lottery edit screen (US 02.04.06), and the register button opens the
+ * the lottery edit screen (US 02.04.06), the View Gallery button opens the
+ * campsite's photos (US 02.01.02), and the register button opens the
  * register form (US 02.01.01, US 02.01.02). My Reservations opens the owner's
  * reservations (US 02.07.01, 02.07.02, 02.07.03).
  *
@@ -38,12 +39,14 @@ fun OwnerCampsitesApp(ownerId: String) {
     var lotteryCampsite by remember { mutableStateOf<Campsite?>(null) }
     var editingLotteryFor by remember { mutableStateOf<Campsite?>(null) }
     var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
+    var galleryCampsite by remember { mutableStateOf<Campsite?>(null) }
     var viewingReservations by remember { mutableStateOf(false) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val editLotteryFor = editingLotteryFor
     val selectedId = selectedCampsiteId
     val waitlistId = waitlistLotteryId
+    val galleryFor = galleryCampsite
 
     if (viewingReservations) {
         //reservations screen (US 02.07.01-03), back goes to the list
@@ -63,6 +66,13 @@ fun OwnerCampsitesApp(ownerId: String) {
             onBack = { waitlistLotteryId = null }
         )
 
+    } else if (galleryFor != null) {
+        //gallery screen (US 02.01.02), back goes to the details screen
+        BackHandler { galleryCampsite = null }
+        CampsiteGalleryScreen(
+            campsite = galleryFor,
+            onBack = { galleryCampsite = null }
+        )
     } else if (registering) {
         //register screen, back or finishing goes to the list
         BackHandler { registering = false }
@@ -97,14 +107,15 @@ fun OwnerCampsitesApp(ownerId: String) {
     } else if (selectedId != null) {
         //details screen, back goes to the list
         BackHandler { selectedCampsiteId = null }
-    CampsiteDetailsScreen(
-        campsiteId = selectedId,
-        onEditClick = { campsite -> editingCampsite = campsite },
-        onBack = { selectedCampsiteId = null },
-        onLotteryClick = { campsite -> lotteryCampsite = campsite },
-        onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
-        onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId }
-    )
+        CampsiteDetailsScreen(
+            campsiteId = selectedId,
+            onEditClick = { campsite -> editingCampsite = campsite },
+            onBack = { selectedCampsiteId = null },
+            onLotteryClick = { campsite -> lotteryCampsite = campsite },
+            onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
+            onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId },
+            onGalleryClick = { campsite -> galleryCampsite = campsite }
+        )
     } else {
         //list screen
         MyCampsitesScreen(

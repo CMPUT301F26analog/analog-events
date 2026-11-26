@@ -39,6 +39,7 @@ import com.example.birchbark.ui.theme.ScreenTitle
 import com.example.birchbark.ui.theme.UserHeader
 import com.example.birchbark.ui.notifications.NotificationSettingsScreen
 import com.example.birchbark.ui.screens.BlankEntrantScreen
+import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
 
 /**
@@ -205,9 +206,7 @@ private fun ProfileTab(
             entrantId = profile.fid,
             onBack = { onPage(ProfilePage.MENU) }
         )
-        // TBD
-        ProfilePage.POLICY -> BlankEntrantScreen(
-            title = "App Policy & Guidelines",
+        ProfilePage.POLICY -> PolicyScreen(
             onBack = { onPage(ProfilePage.MENU) }
         )
     }
