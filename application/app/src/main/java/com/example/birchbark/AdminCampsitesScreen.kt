@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.CampsiteRepository
 import com.example.birchbark.ui.theme.BirchBarkTheme
 
 //Shows the campsite cards from Firebase.
@@ -57,12 +59,6 @@ fun AdminCampsitesScreen() {
     var campsites by remember {
         mutableStateOf(emptyList<CampsitePreview>())
     }
-    // This saves the campsite that the admin wants to delete.
-    var campsiteToDelete by remember {
-        mutableStateOf<CampsitePreview?>(null)
-    }
-    // This shows an error if Firebase cannot delete the campsite.
-    var deleteError by remember { mutableStateOf<String?>(null) }
     // Tracks whether the campsite request is still running.
     var isLoading by remember { mutableStateOf(true) }
     // Stores a message to show if Firebase cannot load the campsite list.
@@ -278,13 +274,68 @@ fun AdminCampsitesScreen() {
                 TextButton(onClick = { showFilters = false }) {
                     Text("Cancel", color = Cream) } }) }
 
-    // Shows the details dialog for the campsite whose card was tapped.
+    // US 01.12.01: reuse the same moderation dialog for ordinary browsing and QR scans.
     selectedCampsite?.let { campsite ->
+        AdminCampsiteDetailsFlow(
+            campsite = campsite,
+            onClose = { selectedCampsite = null },
+            onDeleted = {
+                campsites = campsites.filterNot { it.campsiteId == campsite.campsiteId }
+                selectedCampsite = null
+            }
+        )
+    }
+}
+
+/**
+ * US 01.12.01, US 03.01.01, US 03.04.01: adapts a QR-resolved campsite to the
+ * existing admin details and delete-confirmation UI. No entrant actions are exposed.
+ * @param campsite current campsite returned from the server.
+ * @param onClose returns to the admin's previous screen.
+ * @param onDeleted closes the QR dialog and refreshes admin data after deletion.
+ */
+@Composable
+fun AdminScannedCampsiteDetails(
+    campsite: Campsite,
+    onClose: () -> Unit,
+    onDeleted: () -> Unit = onClose
+) {
+    AdminCampsiteDetailsFlow(
+        campsite = CampsitePreview(
+            campsiteId = campsite.id,
+            name = campsite.name,
+            location = campsite.location,
+            rating = campsite.averageRating() ?: 0.0,
+            owner = campsite.ownerId,
+            keywords = campsite.tags.joinToString(" "),
+            capacity = campsite.maxOccupancy
+        ),
+        onClose = onClose,
+        onDeleted = onDeleted
+    )
+}
+
+/**
+ * Shared existing admin details and confirmed deletion flow.
+ * @param campsite preview of the selected campsite.
+ * @param onClose closes the details without deletion.
+ * @param onDeleted called after the server confirms deletion.
+ */
+@Composable
+private fun AdminCampsiteDetailsFlow(
+    campsite: CampsitePreview,
+    onClose: () -> Unit,
+    onDeleted: () -> Unit
+) {
+    val finishDeletion = onDeleted
+    var confirming by remember(campsite.campsiteId) { mutableStateOf(false) }
+    var deleting by remember(campsite.campsiteId) { mutableStateOf(false) }
+    var deleteError by remember(campsite.campsiteId) { mutableStateOf<String?>(null) }
+    if (!confirming) {
         AlertDialog(
-            onDismissRequest = { selectedCampsite = null },
+            onDismissRequest = onClose,
             containerColor = TealCard,
-            title = {
-                Text(campsite.name, color = Cream) },
+            title = { Text(campsite.name, color = Cream) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Location: ${campsite.location}", color = Cream)
@@ -292,63 +343,45 @@ fun AdminCampsitesScreen() {
                     Text("Rating: ★ ${campsite.rating}", color = Gold)
                     Text("Site type: ${campsite.siteType}", color = Cream)
                     Text("Capacity: ${campsite.capacity}", color = Cream)
-                    Text("Status: ${campsite.status}", color = Cream) } },
+                    Text("Status: ${campsite.status}", color = Cream)
+                }
+            },
             dismissButton = {
-                TextButton(onClick = {
-                    // Opens the confirmation before deleting this campsite.
-                    campsiteToDelete = campsite
-                    deleteError = null
-                    selectedCampsite = null }) {
-                    Text("Delete campsite", color = Gold) } },
+                TextButton(onClick = { confirming = true; deleteError = null },
+                    modifier = Modifier.testTag("adminQrDeleteButton")) { Text("Delete campsite", color = Gold) }
+            },
             confirmButton = {
-                TextButton(onClick = { selectedCampsite = null }) {
-                    Text("Close", color = Gold) } }) }
-
-    // This asks the admin to confirm the delete before it is sent to Firebase.
-    // campsite is the campsite selected for deletion in the details dialog.
-    campsiteToDelete?.let { campsite ->
+                TextButton(onClick = onClose, modifier = Modifier.testTag("adminQrCloseButton")) { Text("Close", color = Gold) }
+            }
+        )
+    } else {
         AlertDialog(
-            onDismissRequest = {
-                campsiteToDelete = null
-                deleteError = null },
+            onDismissRequest = { if (!deleting) { confirming = false; deleteError = null } },
             containerColor = TealCard,
-            title = {
-                Text("Delete campsite?", color = Cream) },
-            text = {
-                Column {
-                    Text("Delete ${campsite.name} from the campsites?",
-                        color = Cream)
-                    // Shows the Firebase error in the dialog if there is one.
-                    deleteError?.let { error ->
-                        Text(error, color = Cream) } } },
+            title = { Text("Delete campsite?", color = Cream) },
+            text = { Column {
+                Text("Delete ${campsite.name} from the campsites?", color = Cream)
+                deleteError?.let { Text(it, color = Cream) }
+            } },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        // Deletes this campsite document from Firestore.
-                        Firebase.firestore
-                            .collection("campsites")
-                            .document(campsite.campsiteId)
-                            .delete()
-                            .addOnSuccessListener {
-                                // Takes the campsite off the screen after Firebase deletes it.
-                                campsites = campsites.filterNot {
-                                    it.campsiteId == campsite.campsiteId
-                                }
-                                campsiteToDelete = null
-                                deleteError = null
-                            }
-                            .addOnFailureListener { error ->
-                                // Shows the error if the delete does not work.
-                                deleteError =
-                                    error.localizedMessage ?: "Could not delete campsite." } }) {
-                    Text("Delete", color = Gold) } },
+                TextButton(enabled = !deleting, onClick = {
+                    deleting = true
+                    deleteError = null
+                    CampsiteRepository().deleteCampsite(campsite.campsiteId, object : CampsiteRepository.DeleteCallback {
+                        override fun onDeleted() { deleting = false; finishDeletion() }
+                        override fun onError(error: Exception) {
+                            deleting = false
+                            deleteError = error.localizedMessage ?: "Could not delete campsite."
+                        }
+                    })
+                }) { Text("Delete", color = Gold) }
+            },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        // Cancel closes this dialog without deleting the campsite.
-                        campsiteToDelete = null
-                        deleteError = null }) {
-                    Text("Cancel", color = Cream) } }) } }
+                TextButton(enabled = !deleting, onClick = { confirming = false; deleteError = null }) { Text("Cancel", color = Cream) }
+            }
+        )
+    }
+}
 
 //Shows one campsite card with its rating, name, location, and details button.
 // campsite contains the values displayed on the card.

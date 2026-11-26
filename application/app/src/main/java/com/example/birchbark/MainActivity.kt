@@ -1,6 +1,13 @@
 package com.example.birchbark
 
 import android.os.Bundle
+import android.content.Intent
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import com.example.birchbark.model.CampsiteQrResolver
+import com.example.birchbark.model.RepositoryCampsiteQrLookup
+import com.example.birchbark.ui.qr.CampsiteQrRoute
+import com.example.birchbark.ui.entrant.EntrantCampsiteDetailsRoute
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -39,12 +46,50 @@ import com.example.birchbark.ui.entrant.EntrantApp
 // Set this flag to disable firestore access or enable temporary database functionality
 private const val ENABLE_FIREBASE_TEST = false
 
+/**
+ * Main activity; US 01.12.01 receives external QR deep links without bypassing
+ * authentication, registration or role selection. Internal scans use the same state.
+ */
 class MainActivity : ComponentActivity() {
+    private var pendingQrPayload by mutableStateOf<String?>(null)
+
+    /** @param savedInstanceState previously saved request, if the activity is recreated. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingQrPayload = if (savedInstanceState != null) {
+            savedInstanceState.getString("pendingQrPayload")
+        } else qrPayload(intent)
         enableEdgeToEdge()
-        setContent { BirchBarkTheme { BirchBarkRoot() } }
+        setContent {
+            BirchBarkTheme {
+                BirchBarkRoot(
+                    pendingQrPayload = pendingQrPayload,
+                    onQrPayload = { pendingQrPayload = it },
+                    onQrClosed = { pendingQrPayload = null }
+                )
+            }
+        }
     }
+
+    /** @param intent new external URI delivered to the existing activity. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        qrPayload(intent)?.let { pendingQrPayload = it }
+    }
+
+    /** @param outState stores the unconsumed request across configuration changes. */
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("pendingQrPayload", pendingQrPayload)
+        super.onSaveInstanceState(outState)
+    }
+
+    /**
+     * @param intent potentially untrusted launch intent.
+     * @return raw external QR payload for validation after login, or null for ordinary startup.
+     */
+    private fun qrPayload(intent: Intent?): String? =
+        intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
 }
 
 private sealed interface Startup {
@@ -54,8 +99,17 @@ private sealed interface Startup {
     data class Error(val message: String) : Startup
 }
 
+/**
+ * @param pendingQrPayload pending internal scan or external link, retained through startup.
+ * @param onQrPayload receives a new internal scan.
+ * @param onQrClosed clears the request after dismissal or navigation back.
+ */
 @Composable
-private fun BirchBarkRoot() {
+private fun BirchBarkRoot(
+    pendingQrPayload: String?,
+    onQrPayload: (String) -> Unit,
+    onQrClosed: () -> Unit
+) {
     val authenticator = remember { Authenticator() }
     var restart by remember { mutableIntStateOf(0) }
     var startup by remember { mutableStateOf<Startup>(Startup.Loading) }
@@ -86,7 +140,10 @@ private fun BirchBarkRoot() {
         )
         is Startup.Ready -> RoleHome(
             profile = state.profile,
-            onProfileDeleted = { restart++ }
+            onProfileDeleted = { onQrClosed(); restart++ },
+            pendingQrPayload = pendingQrPayload,
+            onQrPayload = onQrPayload,
+            onQrClosed = onQrClosed
         )
     }
 }
@@ -100,10 +157,20 @@ private fun CenterContent(content: @Composable () -> Unit) {
     ) { content() }
 }
 
+/**
+ * @param profile authenticated profile.
+ * @param onProfileDeleted restarts authentication after deletion.
+ * @param pendingQrPayload request to route only after selecting an assigned role.
+ * @param onQrPayload receives internal scan data.
+ * @param onQrClosed dismisses QR navigation.
+ */
 @Composable
 private fun RoleHome(
     profile: UserProfile,
-    onProfileDeleted: () -> Unit
+    onProfileDeleted: () -> Unit,
+    pendingQrPayload: String?,
+    onQrPayload: (String) -> Unit,
+    onQrClosed: () -> Unit
 ) {
     val roles = profile.roles.map { it.lowercase() }.distinct()
     // If admin is a role, it is the default homescreen when entering the app
@@ -112,11 +179,14 @@ private fun RoleHome(
         roles.size == 1 -> roles.first()
         else -> null
     }
-    var activeRole by remember(profile.fid, roles) { mutableStateOf(firstRole) }
+    var activeRole by rememberSaveable(profile.fid, roles) { mutableStateOf(firstRole) }
+    val qrResolver = remember(profile.fid) { CampsiteQrResolver(RepositoryCampsiteQrLookup()) }
+    val entrantStateHolder = rememberSaveableStateHolder()
     var viewingProfile by remember(profile.fid) {
         mutableStateOf(false)
     }
-    val selected = activeRole
+    val selected = activeRole?.takeIf { it in roles }
+    var adminRefresh by remember { mutableIntStateOf(0) }
 
     if (selected == null) {
         RoleSelectionScreen(
@@ -133,9 +203,7 @@ private fun RoleHome(
             onBack = { viewingProfile = false },
             onDeleted = onProfileDeleted
         )
-        return
-    }
-    Column(
+    } else Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -156,25 +224,62 @@ private fun RoleHome(
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${selected.replaceFirstChar { it.uppercase() }} mode",
                     style = MaterialTheme.typography.titleMedium)
-                TextButton(onClick = { activeRole = null }) { Text("Switch role") }
+                TextButton(onClick = { onQrClosed(); activeRole = null }) { Text("Switch role") }
             }
         }
         Box(modifier = Modifier.weight(1f)) {
             key(selected) {
                 when (selected) {
-                    "entrant" -> EntrantApp(      // Was EntrantCampsitesApp()
-                            profile = profile,
-                            onProfileDeleted = onProfileDeleted
-                    )
+                    "entrant" -> {
+                        if (pendingQrPayload != null) {
+                            CampsiteQrRoute(
+                                payload = pendingQrPayload,
+                                activeRole = selected,
+                                resolver = qrResolver,
+                                onClose = onQrClosed,
+                                entrantDetails = { campsite, close ->
+                                    EntrantCampsiteDetailsRoute(campsite, close)
+                                },
+                                adminDetails = { _, _ -> }
+                            )
+                        } else {
+                            // Restore the previous entrant tab when the QR route closes.
+                            entrantStateHolder.SaveableStateProvider("entrantHome") {
+                                EntrantApp(
+                                    profile = profile,
+                                    onProfileDeleted = onProfileDeleted,
+                                    onQrPayload = onQrPayload
+                                )
+                            }
+                        }
+                    }
                     "owner" -> OwnerCampsitesApp(ownerId = profile.fid)
-                    "admin" -> AdminBrowseScreen(
-                        adminName = listOf(profile.firstName, profile.lastName)
-                            .filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Admin" }
-                    )
+                    "admin" -> key(adminRefresh) {
+                        AdminBrowseScreen(
+                            adminName = listOf(profile.firstName, profile.lastName)
+                                .filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Admin" }
+                        )
+                    }
                     else -> Text("Unrecognized role: $selected")
                 }
             }
         }
+    }
+    // Admin and owner QR outcomes are dialogs; preserve the existing role UI underneath.
+    if (pendingQrPayload != null && selected != "entrant") {
+        CampsiteQrRoute(
+            payload = pendingQrPayload,
+            activeRole = selected,
+            resolver = qrResolver,
+            onClose = onQrClosed,
+            entrantDetails = { _, _ -> },
+            adminDetails = { campsite, close ->
+                AdminScannedCampsiteDetails(campsite, close, onDeleted = {
+                    adminRefresh++
+                    close()
+                })
+            }
+        )
     }
 }
 

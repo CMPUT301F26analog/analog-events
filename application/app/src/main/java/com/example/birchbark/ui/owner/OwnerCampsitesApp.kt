@@ -19,6 +19,7 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * campsite's photos (US 02.01.02), and the register button opens the
  * register form (US 02.01.01, US 02.01.02). My Reservations opens the owner's
  * reservations (US 02.07.01, 02.07.02, 02.07.03).
+ * US 02.02.01: the QR screen can be opened from a campsite's details.
  *
  * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
@@ -40,6 +41,7 @@ fun OwnerCampsitesApp(ownerId: String) {
     var editingLotteryFor by remember { mutableStateOf<Campsite?>(null) }
     var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     var galleryCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var qrCampsite by remember { mutableStateOf<Campsite?>(null) }
     var viewingReservations by remember { mutableStateOf(false) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
@@ -47,6 +49,7 @@ fun OwnerCampsitesApp(ownerId: String) {
     val selectedId = selectedCampsiteId
     val waitlistId = waitlistLotteryId
     val galleryFor = galleryCampsite
+    val qrFor = qrCampsite
 
     if (viewingReservations) {
         //reservations screen (US 02.07.01-03), back goes to the list
@@ -66,6 +69,9 @@ fun OwnerCampsitesApp(ownerId: String) {
             onBack = { waitlistLotteryId = null }
         )
 
+    } else if (qrFor != null) {
+        BackHandler { qrCampsite = null }
+        CampsiteQrCodeScreen(campsite = qrFor, onBack = { qrCampsite = null })
     } else if (galleryFor != null) {
         //gallery screen (US 02.01.02), back goes to the details screen
         BackHandler { galleryCampsite = null }
@@ -114,7 +120,10 @@ fun OwnerCampsitesApp(ownerId: String) {
             onLotteryClick = { campsite -> lotteryCampsite = campsite },
             onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
             onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId },
-            onGalleryClick = { campsite -> galleryCampsite = campsite }
+            onGalleryClick = { campsite -> galleryCampsite = campsite },
+            onQrClick = { campsite ->
+                if (campsite.ownerId == ownerId) qrCampsite = campsite
+            }
         )
     } else {
         //list screen
