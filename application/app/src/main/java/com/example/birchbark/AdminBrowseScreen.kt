@@ -35,6 +35,7 @@ import com.google.firebase.auth.auth
 private enum class AdminSection {
     CAMPSITES,
     PROFILES,
+    IMAGES,
     LOGS
 }
 
@@ -44,7 +45,9 @@ private enum class AdminSection {
 @Composable
 fun AdminBrowseScreen(adminName: String = currentAdminName()) {
     // Saves the selected tab when the screen is recreated, such as after rotation.
-    var selectedSection by rememberSaveable { mutableStateOf(AdminSection.CAMPSITES) }
+    var selectedSection by rememberSaveable {
+        mutableStateOf(AdminSection.CAMPSITES)
+    }
 
     // Scaffold provides the main screen layout and a place for the bottom navigation bar.
     Scaffold(
@@ -62,16 +65,11 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                         Text(
                             "⌂",
                             color = if (selectedSection == AdminSection.CAMPSITES) {
-                                DarkGreen
-                            } else {
-                                MutedText
-                            }
-                        )
-                    },
+                                DarkGreen } else {
+                                MutedText }) },
                     label = { Text("Campsites") },
                     // Uses the same selected and unselected colors as the other tabs.
-                    colors = navigationItemColors()
-                )
+                    colors = navigationItemColors())
 
                 NavigationBarItem(
                     // Gives this tab a tag that can be used by UI tests.
@@ -86,13 +84,25 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                             color = if (selectedSection == AdminSection.PROFILES) {
                                 DarkGreen
                             } else {
-                                MutedText
-                            }
-                        )
-                    },
+                                MutedText }) },
                     label = { Text("Profiles") },
-                    colors = navigationItemColors()
-                )
+                    colors = navigationItemColors())
+
+                NavigationBarItem(
+                    // Gives this tab a tag that can be used by UI tests.
+                    modifier = Modifier.testTag("admin-images-tab"),
+                    selected = selectedSection == AdminSection.IMAGES,
+                    // Changes the selected section to Images when this tab is tapped.
+                    onClick = { selectedSection = AdminSection.IMAGES },
+                    // Shows the icon for the Images tab.
+                    icon = {
+                        Text(
+                            "▧",
+                            color = if (selectedSection == AdminSection.IMAGES) {
+                                DarkGreen } else {
+                                MutedText }) },
+                    label = { Text("Images") },
+                    colors = navigationItemColors())
 
                 NavigationBarItem(
                     // Gives this tab a tag that can be used by UI tests.
@@ -107,23 +117,15 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                             color = if (selectedSection == AdminSection.LOGS) {
                                 DarkGreen
                             } else {
-                                MutedText
-                            }
-                        )
-                    },
+                                MutedText }) },
                     label = { Text("Logs") },
-                    colors = navigationItemColors()
-                )
-            }
-        }
-    ) { padding ->
+                    colors = navigationItemColors()) } }) { padding ->
         // Applies the padding provided by Scaffold so content does not overlap the navigation bar.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DarkGreen)
-                .padding(padding)
-        ) {
+                .padding(padding)) {
             // Displays the admin's initials and name at the top of the screen.
             AdminUserHeader(adminName)
 
@@ -131,18 +133,15 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-            ) {
+                    .fillMaxWidth()) {
                 // Opens the screen that matches the selected navigation tab.
                 when (selectedSection) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
-                    AdminSection.LOGS -> PlaceholderScreen("Logs")
-                }
-            }
-        }
-    }
-}
+                    AdminSection.IMAGES -> AdminUploadedImagesScreen()
+                    AdminSection.LOGS -> PlaceholderScreen("Logs") } } } } }
+
+
 
 // Returns the colors used for selected and unselected navigation items.
 // There are no parameters; the function returns the navigation item's color settings.
@@ -158,8 +157,7 @@ private fun navigationItemColors() =
         // Sets the icon color for tabs that are not selected.
         unselectedIconColor = MutedText,
         // Sets the label color for tabs that are not selected.
-        unselectedTextColor = MutedText
-    )
+        unselectedTextColor = MutedText)
 
 // Shows the admin's initials, welcome message, and name.
 // name is the admin's name that will appear in the header.
@@ -178,17 +176,14 @@ private fun AdminUserHeader(name: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         // Shows the admin's initials inside a circular background.
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .background(Color(0xFF526B64), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(initials, color = Cream)
-        }
+            contentAlignment = Alignment.Center) {
+            Text(initials, color = Cream) }
 
         // Adds space between the initials circle and the text.
         Spacer(modifier = Modifier.width(10.dp))
@@ -196,10 +191,7 @@ private fun AdminUserHeader(name: String) {
         // Shows the welcome message and admin name in a column.
         Column {
             Text("Welcome", color = MutedText)
-            Text(name, color = Cream)
-        }
-    }
-}
+            Text(name, color = Cream) } } }
 
 // Shows a temporary message for a section that has not been implemented yet.
 // sectionName is the name shown in the message.
