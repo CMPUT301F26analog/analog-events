@@ -3084,3 +3084,456 @@ selectedImage?.let {
 > Claude provided ReservationRepository.reject (one batch that marks the reservation REJECTED and deletes its campsiteBookings nights), RejectionNotice for the entrant's notification, a Reject button with a confirm dialog on the owner reservations screen, Firestore rule changes, and unit and UI tests.
 
 ---
+## Prompt #081 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want the admin to find uploaded photos by the campsite or profile they belong to. Help me work out how the search query should be connected to each image’s associated name, and how the screen should filter the images as the query changes.
+
+### Answer
+
+The screen keeps the query in Compose state and filters the loaded images using their associated names:
+
+```kotlin
+var searchQuery by remember { mutableStateOf("") }
+
+val filteredImages = images.filter { image ->
+    AdminImageRules.matchesSearch(
+        name = imageAssociations[image.id]?.name,
+        query = searchQuery
+    )
+}
+```
+
+The search field updates that state:
+
+```kotlin
+OutlinedTextField(
+    value = searchQuery,
+    onValueChange = { searchQuery = it },
+    label = { Text("Search campsite or profile") },
+    modifier = Modifier.fillMaxWidth(),
+    singleLine = true
+)
+```
+
+---
+
+## Prompt #082 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> The image information should appear when the admin taps a photo, not underneath it. Help me figure out how to keep track of the selected image and show its campsite or profile name in a dialog.
+
+### Answer
+
+The selected image is held in Compose state. Tapping a photo selects it, and the dialog displays its association:
+
+```kotlin
+var selectedImage by remember { mutableStateOf<CampsiteImage?>(null) }
+
+Image(
+    bitmap = bitmap.asImageBitmap(),
+    contentDescription = "Uploaded campsite image",
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp)
+        .clickable { selectedImage = image },
+    contentScale = ContentScale.Crop
+)
+
+selectedImage?.let { image ->
+    val association = imageAssociations[image.id]
+
+    AlertDialog(
+        onDismissRequest = { selectedImage = null },
+        title = { Text("Image belongs to") },
+        text = {
+            Text(
+                text = association?.let { "${it.type}: ${it.name}" }
+                    ?: "Could not load the campsite or profile name."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { selectedImage = null }) {
+                Text("Close")
+            }
+        }
+    )
+}
+```
+
+---
+
+## Prompt #083 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> The admin needs to remove any uploaded photo, even if a different owner uploaded it. Help me understand how the screen should call the image repository and update its list only after Firestore confirms the deletion.
+
+### Answer
+
+The screen calls `deleteImage`. Its success callback removes the deleted image from the displayed list:
+
+```kotlin
+imageRepository.deleteImage(
+    imageId = image.id,
+    callback = object : ImageRepository.DeleteCallback {
+        override fun onDeleted() {
+            images = AdminImageRules.removeDeletedImage(
+                images = images,
+                imageId = image.id
+            )
+        }
+
+        override fun onError(error: Exception) {
+            deleteError = error.localizedMessage ?: "Could not delete image."
+        }
+    }
+)
+```
+
+A delete control can open the deletion flow for a particular image:
+
+```kotlin
+TextButton(
+    onClick = { imageToDelete = image }
+) {
+    Text("Delete")
+}
+```
+
+---
+
+## Prompt #084 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to test the admin image search and list updates without connecting to Firebase. Help me identify which parts of the behavior can be simple Kotlin rules and show how to keep those rules separate from the screen and repository.
+
+### Answer
+
+The pure search and list-removal behavior is in `AdminImageRules.kt`, so local unit tests can exercise it without Firebase:
+
+```kotlin
+package com.example.birchbark
+
+import com.example.birchbark.model.CampsiteImage
+
+/**
+ * Contains pure rules used by the admin uploaded-images screen.
+ */
+internal object AdminImageRules {
+
+    /**
+     * Checks whether an associated campsite or profile name matches a query.
+     *
+     * @param name campsite or profile name associated with an image, if available.
+     * @param query text entered in the admin image search field.
+     * @return true when the query matches the name or is blank.
+     */
+    fun matchesSearch(name: String?, query: String): Boolean {
+        val trimmedQuery = query.trim()
+        return trimmedQuery.isBlank() ||
+            name?.contains(trimmedQuery, ignoreCase = true) == true
+    }
+
+    /**
+     * Returns the image list without the image identified by [imageId].
+     *
+     * @param images current images shown in the admin list.
+     * @param imageId Firestore document ID of the image to remove.
+     * @return a new list with the matching image removed.
+     */
+    fun removeDeletedImage(
+        images: List<CampsiteImage>,
+        imageId: String
+    ): List<CampsiteImage> {
+        return images.filterNot { it.id == imageId }
+    }
+}
+```
+
+---
+
+## Prompt #085 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to check that the admin’s search works for both campsite and profile names. Help me decide which search cases to cover, including partial text, capitalization, extra spaces, blank input, missing names, and names that should not match.
+
+### Answer
+
+These local unit tests cover the search cases using `AdminImageRules.matchesSearch`:
+
+```kotlin
+@Test
+fun searchMatchesCampsiteName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Hope Lake"
+        )
+    )
+}
+
+@Test
+fun searchMatchesProfileName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Anahita Houshyar",
+            query = "Anahita"
+        )
+    )
+}
+
+@Test
+fun searchMatchesPartOfName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Camp"
+        )
+    )
+}
+
+@Test
+fun searchIsCaseInsensitive() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "hOpE lAkE"
+        )
+    )
+}
+
+@Test
+fun searchTrimsWhitespaceFromQuery() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Anahita Houshyar",
+            query = "  Houshyar  "
+        )
+    )
+}
+
+@Test
+fun blankSearchMatchesAnyImage() {
+    assertTrue(AdminImageRules.matchesSearch(name = null, query = ""))
+}
+
+@Test
+fun whitespaceOnlySearchMatchesAnyImage() {
+    assertTrue(AdminImageRules.matchesSearch(name = null, query = "   "))
+}
+
+@Test
+fun nonBlankSearchDoesNotMatchMissingName() {
+    assertFalse(AdminImageRules.matchesSearch(name = null, query = "Hope"))
+}
+
+@Test
+fun searchDoesNotMatchUnrelatedName() {
+    assertFalse(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Banff"
+        )
+    )
+}
+```
+
+---
+
+## Prompt #086 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to verify how the admin image list changes after a deletion. Help me cover the selected image being removed, other images staying in the list, deletion of another owner’s photo, and a deletion request for an ID that is not present.
+
+### Answer
+
+These tests check the list behavior implemented by `AdminImageRules.removeDeletedImage`:
+
+```kotlin
+@Test
+fun deleteRemovesSelectedImageAndKeepsOtherImages() {
+    val images = listOf(
+        image(id = "image-1", ownerId = "owner-1"),
+        image(id = "image-2", ownerId = "owner-2"),
+        image(id = "image-3", ownerId = "owner-3")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "image-2"
+    )
+
+    assertEquals(listOf("image-1", "image-3"), remainingImages.map { it.id })
+}
+
+@Test
+fun adminCanRemoveImageUploadedByAnotherOwner() {
+    val images = listOf(
+        image(id = "owner-photo", ownerId = "different-owner-id")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "owner-photo"
+    )
+
+    assertTrue(remainingImages.isEmpty())
+}
+
+@Test
+fun deleteWithUnknownIdLeavesImageListUnchanged() {
+    val images = listOf(
+        image(id = "image-1", ownerId = "owner-1"),
+        image(id = "image-2", ownerId = "owner-2")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "missing-image"
+    )
+
+    assertEquals(images, remainingImages)
+}
+```
+
+---
+
+## Prompt #087 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want each test’s purpose to be clear when someone reads the test class. Help me add a short KDoc comment to every test function without changing the test logic.
+
+### Answer
+
+A short KDoc comment goes above each `@Test` annotation. For example:
+
+```kotlin
+/** Verifies that a search finds a campsite when its name contains the query. */
+@Test
+fun searchMatchesCampsiteName() {
+    // Test assertions
+}
+
+/** Verifies that the admin can remove an image uploaded by another owner. */
+@Test
+fun adminCanRemoveImageUploadedByAnotherOwner() {
+    // Test assertions
+}
+```
+
+---
+
+## Prompt #088 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I am unsure where this test belongs in the Android project. Help me distinguish the main source folder from the local unit-test folder and explain which class each file should contain.
+
+### Answer
+
+The production helper and its unit test belong in separate source sets:
+
+```text
+app/src/main/java/com/example/birchbark/AdminImageRules.kt
+app/src/test/java/com/example/birchbark/AdminImageRulesTest.kt
+```
+
+`AdminImageRules.kt` contains the app’s pure Kotlin rules. `AdminImageRulesTest.kt` tests those rules without requiring Firebase or an Android emulator.
+
+---
+
+## Prompt #089 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> After adding the admin image tests, I want to know how to run just that test class in Android Studio and how to interpret its results. Explain the IDE option and the matching Gradle command.
+
+### Answer
+
+In Android Studio, use the green run icon beside `AdminImageRulesTest`, or right-click the class and select **Run 'AdminImageRulesTest'**.
+
+The equivalent Gradle command is:
+
+```bash
+./gradlew testDebugUnitTest --tests "com.example.birchbark.AdminImageRulesTest"
+```
+
+The test run shown in Android Studio reported:
+
+```text
+12 tests passed
+12 tests total
+```
+
+---
+
