@@ -2331,3 +2331,1265 @@ fun DeleteCampsiteDialog(
 > Claude provided EntrantWinScreens (won reservations list, date picking, rules confirmation, decline), connected it to the entrant profile menu, and added unit tests.
 
 ---
+## Prompt #057 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me check that the selected Firestore profile belongs to an owner before blocking it.
+
+### Answer
+
+LLM assistance was used to review the owner-role check in `ViolatingOwnerRepository`. The app reads the profile's `roles` list and proceeds only if it contains `owner`:
+
+```kotlin
+val roles = (user.get("roles") as? List<*>)
+    ?.filterIsInstance<String>()
+    .orEmpty()
+
+if (roles.none { it.equals("owner", ignoreCase = true) }) {
+    throw IllegalStateException("This profile is not an owner.")
+}
+```
+
+---
+
+## Prompt #058 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to get the owner's Auth UID from the profile.
+
+### Answer
+
+The profile's `authUid` identifies the account's block record and auth link. The code checks that the value is present:
+
+```kotlin
+val authUid = user.getString("authUid")
+    ?.takeIf { it.isNotBlank() }
+    ?: throw IllegalStateException(
+        "The owner profile does not have an authUid."
+    )
+```
+
+---
+
+## Prompt #059 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me find the campsites that belong to this owner.
+
+### Answer
+
+Campsite documents store the owner's FID in `ownerId`, so the repository queries that field:
+
+```kotlin
+db.collection("campsites")
+    .whereEqualTo("ownerId", fid)
+    .get()
+```
+
+---
+
+## Prompt #060 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to delete the matching campsites in Firestore batches.
+
+### Answer
+
+Firestore batches are limited to 500 writes. The matching documents are split into chunks, and the next batch starts only after the current batch succeeds:
+
+```kotlin
+val campsiteChunks = campsiteResult.documents.chunked(500)
+
+fun deleteNextCampsiteChunk(index: Int) {
+    if (index >= campsiteChunks.size) {
+        blockAndRemoveProfile(fid, authUid, onSuccess, onError)
+        return
+    }
+
+    val batch = db.batch()
+    campsiteChunks[index].forEach { campsite ->
+        batch.delete(campsite.reference)
+    }
+
+    batch.commit()
+        .addOnSuccessListener {
+            deleteNextCampsiteChunk(index + 1)
+        }
+        .addOnFailureListener(onError)
+}
+```
+
+The profile-removal step starts after all campsite deletion batches succeed.
+
+---
+
+## Prompt #061 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show the fields to store in the owner's block records.
+
+### Answer
+
+The block record contains the owner's Auth UID, FID, and a server timestamp:
+
+```kotlin
+val blockData = mapOf(
+    "authUid" to authUid,
+    "fid" to fid,
+    "blockedAt" to FieldValue.serverTimestamp()
+)
+```
+
+---
+
+## Prompt #062 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me write the block records and remove the profile in one Firestore transaction.
+
+### Answer
+
+The transaction stores one block document keyed by Auth UID and one keyed by FID, then deletes the profile:
+
+```kotlin
+val blockedOwnerRef =
+    db.collection("blockedOwners").document(authUid)
+val blockedFidRef =
+    db.collection("blockedOwnerFids").document(fid)
+
+transaction.set(blockedOwnerRef, blockData)
+transaction.set(blockedFidRef, blockData)
+transaction.delete(userRef)
+```
+
+Before writing, the transaction re-reads the profile and auth link and checks that the profile still exists, still has the owner role, and still has the expected Auth UID.
+
+---
+
+## Prompt #063 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show how to remove the auth link when the owner's profile is deleted.
+
+### Answer
+
+The auth link is deleted in the same transaction as the profile, if it exists and has been checked against the owner's FID:
+
+```kotlin
+val authLinkRef =
+    db.collection("authLinks").document(authUid)
+val authLink = transaction.get(authLinkRef)
+
+if (authLink.exists()) {
+    transaction.delete(authLinkRef)
+}
+```
+
+---
+
+## Prompt #064 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show where to add Firestore Rules helpers for looking up the block records.
+
+### Answer
+
+The path helpers go inside `match /databases/{database}/documents`, beside the other helper functions:
+
+```javascript
+function blockedAuthPath(uid) {
+  return /databases/$(database)/documents/blockedOwners/$(uid);
+}
+
+function blockedFidPath(fid) {
+  return /databases/$(database)/documents/blockedOwnerFids/$(fid);
+}
+```
+
+---
+
+## Prompt #065 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Help me prevent a blocked account or installation from creating a user profile again.
+
+### Answer
+
+The `allow create` rule inside `match /users/{fid}` checks that neither block record exists before it permits profile creation:
+
+```javascript
+allow create: if signedIn() &&
+  !exists(blockedAuthPath(request.auth.uid)) &&
+  !exists(blockedFidPath(fid)) &&
+  validNewProfile(request.resource.data, request.auth.uid) &&
+  getAfter(authLinkPath(request.auth.uid)).data.fid == fid;
+```
+
+---
+
+## Prompt #066 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-25-2026 |
+
+### Prompt
+
+Show the rules needed for the app to access and write FID-based block records.
+
+### Answer
+
+The `blockedOwnerFids` rule lets an admin manage these records and lets a signed-in account check the record for its linked FID:
+
+```javascript
+match /blockedOwnerFids/{fid} {
+  allow get: if signedIn() &&
+    (fid == get(authLinkPath(request.auth.uid)).data.fid || isAdmin());
+
+  allow list: if isAdmin();
+
+  allow create, update: if isAdmin() &&
+    request.resource.data.keys().hasAll([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.keys().hasOnly([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.fid == fid &&
+    request.resource.data.authUid is string &&
+    request.resource.data.blockedAt == request.time;
+
+  allow delete: if isAdmin();
+}
+```
+
+The Auth UID-keyed block collection uses a matching rule:
+
+```javascript
+match /blockedOwners/{authUid} {
+  allow get: if signedIn() &&
+    (authUid == request.auth.uid || isAdmin());
+
+  allow list: if isAdmin();
+
+  allow create, update: if isAdmin() &&
+    request.resource.data.keys().hasAll([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.keys().hasOnly([
+      'authUid', 'fid', 'blockedAt'
+    ]) &&
+    request.resource.data.authUid == authUid &&
+    request.resource.data.fid is string &&
+    request.resource.data.blockedAt == request.time;
+
+  allow delete: if isAdmin();
+}
+```
+
+Publish the Firestore Rules in the Firebase Console for the app to use them. The Auth UID block record supports account-level checks, while the FID record is tied to an app installation and may not identify the same installation after app data is cleared or the app is reinstalled.
+
+
+## Prompt #067 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add an Images section to the admin navigation.
+
+### Answer
+
+```kotlin
+private enum class AdminSection {
+    CAMPSITES,
+    PROFILES,
+    IMAGES,
+    LOGS
+}
+```
+
+---
+
+## Prompt #068 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a bottom navigation item for the Images section.
+
+### Answer
+
+```kotlin
+NavigationBarItem(
+    modifier = Modifier.testTag("admin-images-tab"),
+    selected = selectedSection == AdminSection.IMAGES,
+    onClick = { selectedSection = AdminSection.IMAGES },
+    icon = { Text("▧") },
+    label = { Text("Images") },
+    colors = navigationItemColors()
+)
+```
+
+---
+
+## Prompt #069 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Show the uploaded images screen when the admin selects Images.
+
+### Answer
+
+```kotlin
+when (selectedSection) {
+    AdminSection.CAMPSITES -> AdminCampsitesScreen()
+    AdminSection.PROFILES -> AdminProfilesScreen()
+    AdminSection.IMAGES -> AdminUploadedImagesScreen()
+    AdminSection.LOGS -> PlaceholderScreen("Logs")
+}
+```
+
+---
+
+## Prompt #070 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a callback for loading all campsite images from Firestore.
+
+### Answer
+
+```kotlin
+interface ListCallback {
+    fun onLoaded(images: List<CampsiteImage>)
+    fun onError(error: Exception)
+}
+```
+
+---
+
+## Prompt #071 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Add a repository function that loads every uploaded image.
+
+### Answer
+
+```kotlin
+fun getAllImages(callback: ListCallback) {
+    db.collection("images")
+        .get()
+        .addOnSuccessListener { result ->
+            val images = result.toObjects(CampsiteImage::class.java)
+            callback.onLoaded(images.sortedBy { it.createdAt })
+        }
+        .addOnFailureListener { error ->
+            callback.onError(error)
+        }
+}
+```
+
+---
+
+## Prompt #072 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Load the images in a Compose screen and handle loading and errors.
+
+### Answer
+
+```kotlin
+var images by remember {
+    mutableStateOf<List<CampsiteImage>>(emptyList())
+}
+var isLoading by remember { mutableStateOf(true) }
+var loadError by remember { mutableStateOf<String?>(null) }
+
+LaunchedEffect(Unit) {
+    ImageRepository().getAllImages(object : ImageRepository.ListCallback {
+        override fun onLoaded(imagesFromFirestore: List<CampsiteImage>) {
+            images = imagesFromFirestore
+            isLoading = false
+        }
+
+        override fun onError(error: Exception) {
+            loadError = error.localizedMessage ?: "Could not load images."
+            isLoading = false
+        }
+    })
+}
+```
+
+---
+
+## Prompt #073 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Decode the Base64 image data stored in Firestore.
+
+### Answer
+
+```kotlin
+private fun decodeBase64Image(data: String) =
+    runCatching {
+        val encodedData = data.substringAfter(",", data)
+        val bytes = Base64.decode(encodedData, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }.getOrNull()
+```
+
+---
+
+## Prompt #074 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Display uploaded image thumbnails in a scrollable list.
+
+### Answer
+
+```kotlin
+LazyColumn(
+    modifier = Modifier.fillMaxSize(),
+    contentPadding = PaddingValues(16.dp),
+    verticalArrangement = Arrangement.spacedBy(12.dp)
+) {
+    items(images, key = { it.id }) { image ->
+        val bitmap = remember(image.data) {
+            decodeBase64Image(image.data)
+        }
+
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "Uploaded campsite image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+```
+
+---
+
+## Prompt #075 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Make each photo tappable and store the selected image.
+
+### Answer
+
+```kotlin
+var selectedImage by remember {
+    mutableStateOf<CampsiteImage?>(null)
+}
+
+Image(
+    bitmap = bitmap.asImageBitmap(),
+    contentDescription = "Tap to view image details",
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp)
+        .clickable { selectedImage = image },
+    contentScale = ContentScale.Crop
+)
+```
+
+---
+
+## Prompt #076 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Look up the campsite name associated with an image.
+
+### Answer
+
+```kotlin
+FirebaseFirestore.getInstance()
+    .collection("campsites")
+    .document(image.campsiteId)
+    .get()
+    .addOnSuccessListener { document ->
+        associationName = document.getString("name")
+            ?: document.getString("campsiteName")
+            ?: document.getString("title")
+    }
+    .addOnFailureListener { error ->
+        associationError =
+            error.localizedMessage ?: "Could not load campsite."
+    }
+```
+
+---
+
+## Prompt #077 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Look up the profile name associated with an image when it has no campsite ID.
+
+### Answer
+
+```kotlin
+FirebaseFirestore.getInstance()
+    .collection("users")
+    .document(image.ownerId)
+    .get()
+    .addOnSuccessListener { document ->
+        associationName = document.getString("name")
+            ?: document.getString("displayName")
+            ?: document.getString("fullName")
+            ?: document.getString("username")
+    }
+    .addOnFailureListener { error ->
+        associationError =
+            error.localizedMessage ?: "Could not load profile."
+    }
+```
+
+---
+
+## Prompt #078 (Anahita)
+
+| Field | Details |
+|:---|:---|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Show the associated campsite or profile name in a dialog when a photo is tapped.
+
+### Answer
+
+```kotlin
+selectedImage?.let {
+    AlertDialog(
+        onDismissRequest = { selectedImage = null },
+        title = { Text("Image belongs to") },
+        text = {
+            when {
+                associationLoading -> CircularProgressIndicator()
+                associationError != null ->
+                    Text(associationError ?: "Could not load the name.")
+                associationName != null ->
+                    Text("$associationType: $associationName")
+                else -> Text("Name not found.")
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { selectedImage = null }) {
+                Text("Close")
+            }
+        }
+    )
+}
+```
+
+## Prompt #079 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-25-2026 |
+
+### Prompt
+
+> Prevent two entrants from booking the same campsite night at the same time.
+
+### Answer
+
+> Claude provided BookingNights (one booking document per night), changed ReservationRepository.confirm to a transaction that checks and writes every night, wrote a Firestore rule that forbids overwriting a booked night, and added unit tests.
+
+---
+
+
+## Prompt #080 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Let a campsite owner reject a reservation, free up its booked nights, and notify the entrant.
+
+### Answer
+
+> Claude provided ReservationRepository.reject (one batch that marks the reservation REJECTED and deletes its campsiteBookings nights), RejectionNotice for the entrant's notification, a Reject button with a confirm dialog on the owner reservations screen, Firestore rule changes, and unit and UI tests.
+
+---
+## Prompt #081 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want the admin to find uploaded photos by the campsite or profile they belong to. Help me work out how the search query should be connected to each image’s associated name, and how the screen should filter the images as the query changes.
+
+### Answer
+
+The screen keeps the query in Compose state and filters the loaded images using their associated names:
+
+```kotlin
+var searchQuery by remember { mutableStateOf("") }
+
+val filteredImages = images.filter { image ->
+    AdminImageRules.matchesSearch(
+        name = imageAssociations[image.id]?.name,
+        query = searchQuery
+    )
+}
+```
+
+The search field updates that state:
+
+```kotlin
+OutlinedTextField(
+    value = searchQuery,
+    onValueChange = { searchQuery = it },
+    label = { Text("Search campsite or profile") },
+    modifier = Modifier.fillMaxWidth(),
+    singleLine = true
+)
+```
+
+---
+
+## Prompt #082 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> The image information should appear when the admin taps a photo, not underneath it. Help me figure out how to keep track of the selected image and show its campsite or profile name in a dialog.
+
+### Answer
+
+The selected image is held in Compose state. Tapping a photo selects it, and the dialog displays its association:
+
+```kotlin
+var selectedImage by remember { mutableStateOf<CampsiteImage?>(null) }
+
+Image(
+    bitmap = bitmap.asImageBitmap(),
+    contentDescription = "Uploaded campsite image",
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(200.dp)
+        .clickable { selectedImage = image },
+    contentScale = ContentScale.Crop
+)
+
+selectedImage?.let { image ->
+    val association = imageAssociations[image.id]
+
+    AlertDialog(
+        onDismissRequest = { selectedImage = null },
+        title = { Text("Image belongs to") },
+        text = {
+            Text(
+                text = association?.let { "${it.type}: ${it.name}" }
+                    ?: "Could not load the campsite or profile name."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { selectedImage = null }) {
+                Text("Close")
+            }
+        }
+    )
+}
+```
+
+---
+
+## Prompt #083 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> The admin needs to remove any uploaded photo, even if a different owner uploaded it. Help me understand how the screen should call the image repository and update its list only after Firestore confirms the deletion.
+
+### Answer
+
+The screen calls `deleteImage`. Its success callback removes the deleted image from the displayed list:
+
+```kotlin
+imageRepository.deleteImage(
+    imageId = image.id,
+    callback = object : ImageRepository.DeleteCallback {
+        override fun onDeleted() {
+            images = AdminImageRules.removeDeletedImage(
+                images = images,
+                imageId = image.id
+            )
+        }
+
+        override fun onError(error: Exception) {
+            deleteError = error.localizedMessage ?: "Could not delete image."
+        }
+    }
+)
+```
+
+A delete control can open the deletion flow for a particular image:
+
+```kotlin
+TextButton(
+    onClick = { imageToDelete = image }
+) {
+    Text("Delete")
+}
+```
+
+---
+
+## Prompt #084 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to test the admin image search and list updates without connecting to Firebase. Help me identify which parts of the behavior can be simple Kotlin rules and show how to keep those rules separate from the screen and repository.
+
+### Answer
+
+The pure search and list-removal behavior is in `AdminImageRules.kt`, so local unit tests can exercise it without Firebase:
+
+```kotlin
+package com.example.birchbark
+
+import com.example.birchbark.model.CampsiteImage
+
+/**
+ * Contains pure rules used by the admin uploaded-images screen.
+ */
+internal object AdminImageRules {
+
+    /**
+     * Checks whether an associated campsite or profile name matches a query.
+     *
+     * @param name campsite or profile name associated with an image, if available.
+     * @param query text entered in the admin image search field.
+     * @return true when the query matches the name or is blank.
+     */
+    fun matchesSearch(name: String?, query: String): Boolean {
+        val trimmedQuery = query.trim()
+        return trimmedQuery.isBlank() ||
+            name?.contains(trimmedQuery, ignoreCase = true) == true
+    }
+
+    /**
+     * Returns the image list without the image identified by [imageId].
+     *
+     * @param images current images shown in the admin list.
+     * @param imageId Firestore document ID of the image to remove.
+     * @return a new list with the matching image removed.
+     */
+    fun removeDeletedImage(
+        images: List<CampsiteImage>,
+        imageId: String
+    ): List<CampsiteImage> {
+        return images.filterNot { it.id == imageId }
+    }
+}
+```
+
+---
+
+## Prompt #085 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to check that the admin’s search works for both campsite and profile names. Help me decide which search cases to cover, including partial text, capitalization, extra spaces, blank input, missing names, and names that should not match.
+
+### Answer
+
+These local unit tests cover the search cases using `AdminImageRules.matchesSearch`:
+
+```kotlin
+@Test
+fun searchMatchesCampsiteName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Hope Lake"
+        )
+    )
+}
+
+@Test
+fun searchMatchesProfileName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Anahita Houshyar",
+            query = "Anahita"
+        )
+    )
+}
+
+@Test
+fun searchMatchesPartOfName() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Camp"
+        )
+    )
+}
+
+@Test
+fun searchIsCaseInsensitive() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "hOpE lAkE"
+        )
+    )
+}
+
+@Test
+fun searchTrimsWhitespaceFromQuery() {
+    assertTrue(
+        AdminImageRules.matchesSearch(
+            name = "Anahita Houshyar",
+            query = "  Houshyar  "
+        )
+    )
+}
+
+@Test
+fun blankSearchMatchesAnyImage() {
+    assertTrue(AdminImageRules.matchesSearch(name = null, query = ""))
+}
+
+@Test
+fun whitespaceOnlySearchMatchesAnyImage() {
+    assertTrue(AdminImageRules.matchesSearch(name = null, query = "   "))
+}
+
+@Test
+fun nonBlankSearchDoesNotMatchMissingName() {
+    assertFalse(AdminImageRules.matchesSearch(name = null, query = "Hope"))
+}
+
+@Test
+fun searchDoesNotMatchUnrelatedName() {
+    assertFalse(
+        AdminImageRules.matchesSearch(
+            name = "Hope Lake Campground",
+            query = "Banff"
+        )
+    )
+}
+```
+
+---
+
+## Prompt #086 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want to verify how the admin image list changes after a deletion. Help me cover the selected image being removed, other images staying in the list, deletion of another owner’s photo, and a deletion request for an ID that is not present.
+
+### Answer
+
+These tests check the list behavior implemented by `AdminImageRules.removeDeletedImage`:
+
+```kotlin
+@Test
+fun deleteRemovesSelectedImageAndKeepsOtherImages() {
+    val images = listOf(
+        image(id = "image-1", ownerId = "owner-1"),
+        image(id = "image-2", ownerId = "owner-2"),
+        image(id = "image-3", ownerId = "owner-3")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "image-2"
+    )
+
+    assertEquals(listOf("image-1", "image-3"), remainingImages.map { it.id })
+}
+
+@Test
+fun adminCanRemoveImageUploadedByAnotherOwner() {
+    val images = listOf(
+        image(id = "owner-photo", ownerId = "different-owner-id")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "owner-photo"
+    )
+
+    assertTrue(remainingImages.isEmpty())
+}
+
+@Test
+fun deleteWithUnknownIdLeavesImageListUnchanged() {
+    val images = listOf(
+        image(id = "image-1", ownerId = "owner-1"),
+        image(id = "image-2", ownerId = "owner-2")
+    )
+
+    val remainingImages = AdminImageRules.removeDeletedImage(
+        images = images,
+        imageId = "missing-image"
+    )
+
+    assertEquals(images, remainingImages)
+}
+```
+
+---
+
+## Prompt #087 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I want each test’s purpose to be clear when someone reads the test class. Help me add a short KDoc comment to every test function without changing the test logic.
+
+### Answer
+
+A short KDoc comment goes above each `@Test` annotation. For example:
+
+```kotlin
+/** Verifies that a search finds a campsite when its name contains the query. */
+@Test
+fun searchMatchesCampsiteName() {
+    // Test assertions
+}
+
+/** Verifies that the admin can remove an image uploaded by another owner. */
+@Test
+fun adminCanRemoveImageUploadedByAnotherOwner() {
+    // Test assertions
+}
+```
+
+---
+
+## Prompt #088 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I am unsure where this test belongs in the Android project. Help me distinguish the main source folder from the local unit-test folder and explain which class each file should contain.
+
+### Answer
+
+The production helper and its unit test belong in separate source sets:
+
+```text
+app/src/main/java/com/example/birchbark/AdminImageRules.kt
+app/src/test/java/com/example/birchbark/AdminImageRulesTest.kt
+```
+
+`AdminImageRules.kt` contains the app’s pure Kotlin rules. `AdminImageRulesTest.kt` tests those rules without requiring Firebase or an Android emulator.
+
+---
+
+## Prompt #089 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> After adding the admin image tests, I want to know how to run just that test class in Android Studio and how to interpret its results. Explain the IDE option and the matching Gradle command.
+
+### Answer
+
+In Android Studio, use the green run icon beside `AdminImageRulesTest`, or right-click the class and select **Run 'AdminImageRulesTest'**.
+
+The equivalent Gradle command is:
+
+```bash
+./gradlew testDebugUnitTest --tests "com.example.birchbark.AdminImageRulesTest"
+```
+
+The test run shown in Android Studio reported:
+
+```text
+12 tests passed
+12 tests total
+```
+
+---
+## Prompt #090 (Anahita)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Anahita Houshyar |
+| **Agent** | ChatGPT |
+| **Model** | GPT-6 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> I’m working on the admin uploaded-images screen for US 03.06.01. Help me identify the small rules that should be kept separate from the Compose UI so I can search images by campsite or profile name and remove an image from the displayed list after deletion. The search should ignore capitalization and surrounding query spaces, and a blank query should match every image. Include KDoc explaining the helper and its functions.
+
+### Answer
+
+> Suggested keeping the search and list-update behavior in a small, Firebase-independent helper. The helper can be tested with local unit tests.
+
+```kotlin
+package com.example.birchbark
+
+import com.example.birchbark.model.CampsiteImage
+
+/**
+ * Contains pure rules used by the admin uploaded-images screen.
+ */
+internal object AdminImageRules {
+
+    /**
+     * Checks whether an associated campsite or profile name matches a query.
+     *
+     * A blank query matches every image. Matching ignores letter case and
+     * leading or trailing whitespace in the query.
+     *
+     * @param name campsite or profile name associated with an image, if available.
+     * @param query text entered in the admin image search field.
+     * @return `true` when the query matches the name or is blank.
+     */
+    fun matchesSearch(name: String?, query: String): Boolean {
+        val trimmedQuery = query.trim()
+        return trimmedQuery.isBlank() ||
+            name?.contains(trimmedQuery, ignoreCase = true) == true
+    }
+
+    /**
+     * Returns the image list without the image identified by [imageId].
+     *
+     * @param images current images shown in the admin list.
+     * @param imageId Firestore document ID of the image to remove.
+     * @return a new list with the matching image removed.
+     */
+    fun removeDeletedImage(
+        images: List<CampsiteImage>,
+        imageId: String
+    ): List<CampsiteImage> {
+        return images.filterNot { it.id == imageId }
+    }
+}

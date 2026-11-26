@@ -2,38 +2,41 @@ package com.example.birchbark.ui.entrant
 
 // Importing required libraries
 import androidx.compose.foundation.background
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.Lottery
+import com.example.birchbark.ui.entrant.DetailTab
+import com.example.birchbark.ui.theme.BirchBarkColors
+import com.example.birchbark.ui.theme.PhotoCard
+import com.example.birchbark.ui.theme.StatusChip
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.priceLabel
 import com.example.birchbark.util.ratingLabel
-import com.example.birchbark.model.Lottery
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import com.example.birchbark.ui.theme.PhotoCard
-import com.example.birchbark.ui.theme.StatusChip
-import com.example.birchbark.ui.theme.BirchBarkColors
 
 /**
  * Displays the complete details view for an individual campsite, styled like the
@@ -54,8 +57,9 @@ import com.example.birchbark.ui.theme.BirchBarkColors
  * @param message The user-facing contextual status or action message regarding lottery entry status.
  * @param onBack Callback execution when the user elects to navigate back to the previous screen.
  * @param onJoin Callback triggered when the user commits an entry action to join the lottery.
- * @param modifier The modifier chain to pass down to the root scrolling Column layout.
  * @param onLeave Callback triggered when the user elects to leave the lottery.
+ * @param onReviewsClick Callback triggered when the user taps the rating chip to view all reviews.
+ * @param modifier The modifier chain to pass down to the root scrolling Column layout.
  */
 @Composable
 fun CampsiteDetailsScreen(
@@ -67,6 +71,8 @@ fun CampsiteDetailsScreen(
     onBack: () -> Unit,
     onJoin: () -> Unit,
     onLeave: () -> Unit,
+    onReviewsClick: () -> Unit,
+    writtenReviewCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     // Setting up the tabs : See [1] in References.md, which was used for documentation
@@ -90,8 +96,14 @@ fun CampsiteDetailsScreen(
         PhotoCard(
             height = 240.dp,
             topRow = {
-                StatusChip(campsite.ratingLabel())
-                // Placeholder until the real promo image is loaded, only if the owner added one
+                val reviewSuffix = when (writtenReviewCount) {
+                    0 -> ""
+                    1 -> " · 1 review"
+                    else -> " · $writtenReviewCount reviews"
+                }
+                Box(modifier = Modifier.clickable { onReviewsClick() }) {
+                    StatusChip("${campsite.ratingLabel()}$reviewSuffix  ›")
+                }
                 if (!campsite.imageUrl.isNullOrBlank()) {
                     StatusChip("Promo Image")
                 }
@@ -124,25 +136,25 @@ fun CampsiteDetailsScreen(
                 TabButton(tab.label, selectedTab == tab) { selectedTab = tab }
             }
         }
-            val tabText = when (selectedTab) {
-                DetailTab.DESCRIPTION -> campsite.description
-                DetailTab.RULES -> campsite.rules
-                DetailTab.POLICY -> campsite.cancellationPolicy
-            }.ifBlank { selectedTab.emptyText }
-            Text(
-                text = tabText,
-                color = BirchBarkColors.Cream,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(BirchBarkColors.TealCard)
-                    .padding(16.dp)
-            )
+        val tabText = when (selectedTab) {
+            DetailTab.DESCRIPTION -> campsite.description
+            DetailTab.RULES -> campsite.rules
+            DetailTab.POLICY -> campsite.cancellationPolicy
+        }.ifBlank { selectedTab.emptyText }
+        Text(
+            text = tabText,
+            color = BirchBarkColors.Cream,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(BirchBarkColors.TealCard)
+                .padding(16.dp)
+        )
 
-            // Lottery: shows the join button while registration is open
-            EntrantWaitlistSection(lottery = lottery)
-        }
+        // Lottery: shows the join button while registration is open
+        EntrantWaitlistSection(lottery = lottery)
     }
+}
 
 /** A rounded tab button: gold when selected, dark teal when not. */
 @Composable
@@ -151,57 +163,19 @@ private fun TabButton(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-        Button(
-            onClick = onClick,
-            shape = RoundedCornerShape(50),
-            contentPadding = PaddingValues(horizontal = 14.dp),
-            colors = if (selected) {
-                birchBarkButtonColors()
-            } else {
-                ButtonDefaults.buttonColors(
-                    containerColor = BirchBarkColors.TealCard,
-                    contentColor = BirchBarkColors.Cream
-                )
-            }
-        ) {
-            Text(label)
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(horizontal = 14.dp),
+        colors = if (selected) {
+            birchBarkButtonColors()
+        } else {
+            ButtonDefaults.buttonColors(
+                containerColor = BirchBarkColors.TealCard,
+                contentColor = BirchBarkColors.Cream
+            )
         }
-    }
-
-/*
-// See [3] in LLM.md
-@Preview(showBackground = true, name = "Campsite Details Screen Preview")
-@Composable
-fun CampsiteDetailsScreenPreview() {
-    // 1. Create a dummy campsite model with sample text for tabs
-    // Note: Adjust the parameter names based on your actual Campsite data class structure
-    val mockCampsite = Campsite(
-        name = "Birchwood Haven",
-        location = "Jasper National Park, AB",
-        maxOccupancy = 4,
-        imageUrl = "placeholder_url", // Set to null if you want to test layout without the promo box
-        description = "A beautiful secluded spot surrounded by ancient birch trees with an excellent lakeside view.",
-        rules = "1. Pack out what you pack in.\n2. Quiet hours from 10 PM to 7 AM.",
-        cancellationPolicy = "Full refund if canceled at least 48 hours before check-in."
-    )
-
-    // 2. Create a dummy lottery model (using an empty constructor or mock fields)
-    // If your Lottery model requires constructor arguments, add mock values here.
-    val mockLottery = Lottery()
-
-    // 3. Wrap your screen inside the theme wrapper to see proper colors and buttons
-    // Switch to 'BirchBarkTheme' if you have a custom theme wrapper set up.
-    MaterialTheme {
-        CampsiteDetailsScreen(
-            campsite = mockCampsite,
-            lottery = mockLottery,
-            joined = false,
-            isFull = false,
-            message = "Registration for the weekend lottery is currently open!",
-            onBack = {},
-            onJoin = {},
-            onLeave = {}
-        )
+    ) {
+        Text(label)
     }
 }
- */
