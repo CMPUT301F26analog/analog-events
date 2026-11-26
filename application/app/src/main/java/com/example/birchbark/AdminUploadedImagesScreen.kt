@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +52,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 fun AdminUploadedImagesScreen() {
     var images by remember {
         mutableStateOf<List<CampsiteImage>>(emptyList()) }
+    var associationNames by remember {
+        mutableStateOf<Map<String, String>>(emptyMap()) }
+    var searchQuery by remember {
+        mutableStateOf("") }
     var isLoading by remember {
         mutableStateOf(true) }
     var loadError by remember {
@@ -78,64 +83,111 @@ fun AdminUploadedImagesScreen() {
                                 "IDs: ${imagesFromFirestore.map { it.id }}")
 
                     images = imagesFromFirestore
-                    isLoading = false }
+                    loadImageAssociationNames(imagesFromFirestore) { names ->
+                        associationNames = names
+                        isLoading = false
+                    }
+                }
 
                 override fun onError(error: Exception) {
                     Log.e("ImageRepository", "Failed to load images.", error)
                     loadError = error.localizedMessage ?: "Could not load images."
                     isLoading = false } }) }
 
-    // Shows loading, error, empty, or image-list content as appropriate.
-    when {isLoading -> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center) {
-                CircularProgressIndicator() } }
+    val query = searchQuery.trim()
+    val filteredImages = images.filter { image ->
+        query.isBlank() || associationNames[image.id]
+            ?.contains(query, ignoreCase = true) == true
+    }
 
-        loadError != null -> {
-            Text(
-                text = loadError ?: "Could not load images.",
-                modifier = Modifier.padding(16.dp)
-            )}
-        images.isEmpty() -> {
-            Text(
-                text = "No uploaded images found.",
-                modifier = Modifier.padding(16.dp)) }
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            label = { Text("Search campsite or profile") },
+            singleLine = true
+        )
 
-        else -> {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(images, key = { it.id }) { image ->
-                    // Decodes each image when its Base64 data changes.
-                    val bitmap = remember(image.data) {
-                        decodeBase64Image(image.data) }
+        // Shows loading, error, empty, or image-list content as appropriate.
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
 
-                    if (bitmap != null) {
-                        Image(
-                            bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "Tap to see the campsite or profile name",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clickable {
-                                    selectedImage = image
-                                    associationType = ""
-                                    associationName = null
-                                    associationError = null
-                                    associationLoading = true
+            loadError != null -> {
+                Text(
+                    text = loadError ?: "Could not load images.",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
 
-                                    // Fetches the associated campsite or profile name.
-                                    loadImageAssociation(image) { type, name, error ->
-                                        // Ignores a result if another image was selected meanwhile.
-                                        if (selectedImage?.id == image.id) {
-                                            associationType = type
-                                            associationName = name
-                                            associationError = error
-                                            associationLoading = false } } },
-                            contentScale = ContentScale.Crop) } else {
-                        Text("Could not display this image.") } } } }}
+            images.isEmpty() -> {
+                Text(
+                    text = "No uploaded images found.",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            filteredImages.isEmpty() -> {
+                Text(
+                    text = "No images match that campsite or profile.",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredImages, key = { it.id }) { image ->
+                        // Decodes each image when its Base64 data changes.
+                        val bitmap = remember(image.data) {
+                            decodeBase64Image(image.data) }
+
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Tap to see the campsite or profile name",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clickable {
+                                        selectedImage = image
+                                        associationType = ""
+                                        associationName = null
+                                        associationError = null
+                                        associationLoading = true
+
+                                        // Fetches the associated campsite or profile name.
+                                        loadImageAssociation(image) { type, name, error ->
+                                            // Ignores a result if another image was selected meanwhile.
+                                            if (selectedImage?.id == image.id) {
+                                                associationType = type
+                                                associationName = name
+                                                associationError = error
+                                                associationLoading = false } } },
+                                contentScale = ContentScale.Crop) } else {
+                            Text("Could not display this image.")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Displays the selected image's campsite or profile name in a dialog.
     selectedImage?.let { image ->
@@ -168,6 +220,50 @@ fun AdminUploadedImagesScreen() {
                     }
                 ) {
                     Text("Close") } }) } }
+
+/**
+ * Loads campsite and profile names once so the Images search field can filter by name.
+ *
+ * @param images uploaded images whose associated names should be cached.
+ * @param onLoaded called with a map from image document IDs to associated names.
+ */
+private fun loadImageAssociationNames(
+    images: List<CampsiteImage>,
+    onLoaded: (Map<String, String>) -> Unit
+) { val db = FirebaseFirestore.getInstance()
+    db.collection("campsites")
+        .get()
+        .addOnSuccessListener { campsiteResult ->
+            val campsiteNames = campsiteResult.documents.mapNotNull { document ->
+                val name = document.getString("name")
+                    ?: document.getString("campsiteName")
+                    ?: document.getString("title")
+                name?.let { document.id to it }
+            }.toMap()
+
+            db.collection("users")
+                .get()
+                .addOnSuccessListener { profileResult ->
+                    val profileNames = profileResult.documents.mapNotNull { document ->
+                        val firstName = document.getString("firstName").orEmpty()
+                        val lastName = document.getString("lastName").orEmpty()
+                        val joinedName = "$firstName $lastName".trim()
+                        val name = joinedName.takeIf { it.isNotBlank() }
+                            ?: document.getString("name")
+                            ?: document.getString("displayName")
+                            ?: document.getString("fullName")
+                            ?: document.getString("username")
+                        name?.takeIf { it.isNotBlank() }?.let { document.id to it } }.toMap()
+
+                    val namesByImageId = images.mapNotNull { image ->
+                        val associatedName = if (image.campsiteId.isNotBlank()) {
+                            campsiteNames[image.campsiteId] }
+                        else {
+                            profileNames[image.ownerId] }
+                        associatedName?.let { image.id to it } }.toMap()
+                    onLoaded(namesByImageId) }
+                .addOnFailureListener { onLoaded(emptyMap()) } }
+        .addOnFailureListener { onLoaded(emptyMap()) } }
 
 /**
  * Loads the name of the campsite or profile associated with [image].
