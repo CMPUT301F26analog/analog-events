@@ -2312,3 +2312,22 @@ fun DeleteCampsiteDialog(
 > Claude connected DrawNotifications to ReservationRepository.runDrawIfDue: once the draw transaction succeeds on this device, every waitlist entrant gets a LOTTERY_WON or LOTTERY_LOST notification through NotificationRepository.send, which skips opted-out entrants. A failure to send is only logged so it can't affect the saved draw.
 
 ---
+
+## Prompt #056 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-25-2026 |
+
+### Prompt
+
+> Build the entrant screens for answering a lottery win: pick dates, accept the rules, or decline.
+
+### Answer
+
+> Claude provided EntrantWinScreens (won reservations list, date picking, rules confirmation, decline), connected it to the entrant profile menu, and added unit tests.
+
+---

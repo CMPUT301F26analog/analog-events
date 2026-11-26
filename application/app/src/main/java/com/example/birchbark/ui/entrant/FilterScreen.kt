@@ -1,4 +1,4 @@
-package com.example.birchbark.ui.screens
+package com.example.birchbark.ui.entrant
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -36,10 +36,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.TextFieldDefaults.colors
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 
 /**
  * Renders the filter form for the browse screen (US 01.01.02).
