@@ -8,6 +8,7 @@ import com.google.zxing.qrcode.QRCodeReader
 import org.junit.Assert.*
 import org.junit.Test
 
+
 /**
  * US 01.12.01 and US 02.02.01: concrete JUnit 4 functional test suite.
  * Tests real encoding/decoding, role dispatch, and resolver behaviour with
