@@ -26,3 +26,4 @@ secrets.properties
 .DS_Store
 Thumbs.db
 *.log
+/doc/LLM.md

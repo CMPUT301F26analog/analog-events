@@ -17,7 +17,8 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * button opens the lottery form (US 02.04.01), the Edit Lottery button opens
  * the lottery edit screen (US 02.04.06), the View Gallery button opens the
  * campsite's photos (US 02.01.02), and the register button opens the
- * register form (US 02.01.01, US 02.01.02).
+ * register form (US 02.01.01, US 02.01.02). My Reservations opens the owner's
+ * reservations (US 02.07.01, 02.07.02, 02.07.03).
  *
  * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
@@ -39,6 +40,7 @@ fun OwnerCampsitesApp(ownerId: String) {
     var editingLotteryFor by remember { mutableStateOf<Campsite?>(null) }
     var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     var galleryCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var viewingReservations by remember { mutableStateOf(false) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val editLotteryFor = editingLotteryFor
@@ -46,7 +48,14 @@ fun OwnerCampsitesApp(ownerId: String) {
     val waitlistId = waitlistLotteryId
     val galleryFor = galleryCampsite
 
-    if (waitlistId != null) {
+    if (viewingReservations) {
+        //reservations screen (US 02.07.01-03), back goes to the list
+        BackHandler { viewingReservations = false }
+        OwnerReservationsScreen(
+            ownerId = ownerId,
+            onBack = { viewingReservations = false }
+        )
+    } else if (waitlistId != null) {
 
         BackHandler {
             waitlistLotteryId = null
@@ -112,7 +121,8 @@ fun OwnerCampsitesApp(ownerId: String) {
         MyCampsitesScreen(
             ownerId = ownerId,
             onCampsiteClick = { campsite -> selectedCampsiteId = campsite.id },
-            onRegisterClick = { registering = true }
+            onRegisterClick = { registering = true },
+            onReservationsClick = { viewingReservations = true }
         )
     }
 }
