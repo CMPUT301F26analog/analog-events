@@ -301,6 +301,7 @@ class ReservationRepository {
     }
 
     /**
+     *     // See #TBD12 in LLM.md
      * Gives a reservation its new [status] and, if it was confirmed, removes it
      * from each of its nights in "campsiteBookings". Both happen in one batch,
      * so a stay that ended never keeps its nights.
