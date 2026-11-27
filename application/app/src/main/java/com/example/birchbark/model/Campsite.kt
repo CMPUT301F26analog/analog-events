@@ -38,6 +38,7 @@ data class Campsite(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val imageUrl: String? = null,
+    val galleryUrls: List<String> = listOf(),
     val tags: List<String> = listOf(),
     val price: Double? = null,
     val rules: String = "",
@@ -71,4 +72,13 @@ data class Campsite(
         return name.contains(search, ignoreCase = true) ||
                 location.contains(search, ignoreCase = true)
     }
+
+    /**
+     * Returns a deduplicated list of all non-blank image URLs associated with this item,
+     * combining the primary [imageUrl] (if present) with [galleryUrls].
+     *
+     * @return A list of unique, non-blank image URLs, ordered with [imageUrl] first.
+     */
+    fun allImages(): List<String> =
+        (listOfNotNull(imageUrl) + galleryUrls).filter { it.isNotBlank() }.distinct()
 }

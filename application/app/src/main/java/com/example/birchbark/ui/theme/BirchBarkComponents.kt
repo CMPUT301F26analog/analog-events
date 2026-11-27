@@ -38,6 +38,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.URL
+
 
 // See [TBD 6] in LLM.md
 
@@ -193,6 +202,7 @@ fun PhotoPlaceholder(modifier: Modifier = Modifier) {
     )
 }
 
+// See [TBD 11] on LLM.md
 /**
  * A big rounded card with a photo behind it, chips along the top and text along
  * the bottom. Used for campsites and reservations, like the cards in the mockup.
@@ -209,10 +219,31 @@ fun PhotoCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     height: Dp = 190.dp,
+    imageUrl: String? = null,
+    campsiteId: String? = null,
     topRow: @Composable RowScope.() -> Unit = {},
+    topEnd: @Composable RowScope.() -> Unit = {},
     bottomStart: @Composable ColumnScope.() -> Unit,
     bottomEnd: @Composable () -> Unit = {}
 ) {
+    var fetchedImageData by remember(campsiteId, imageUrl) { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(campsiteId, imageUrl) {
+        if (imageUrl.isNullOrBlank() && !campsiteId.isNullOrBlank()) {
+            com.example.birchbark.model.ImageRepository().getImagesForCampsite(
+                campsiteId,
+                object : com.example.birchbark.model.ImageRepository.ListCallback {
+                    override fun onLoaded(images: List<com.example.birchbark.model.CampsiteImage>) {
+                        fetchedImageData = images.firstOrNull()?.data
+                    }
+                    override fun onError(error: Exception) {}
+                }
+            )
+        }
+    }
+
+    val resolvedImage = imageUrl?.takeIf { it.isNotBlank() } ?: fetchedImageData
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -220,7 +251,11 @@ fun PhotoCard(
             .clip(RoundedCornerShape(20.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
-        PhotoPlaceholder(modifier = Modifier.fillMaxSize())
+        RemotePhoto(
+            imageUrl = resolvedImage,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
+        )
 
         Row(
             modifier = Modifier
@@ -228,6 +263,14 @@ fun PhotoCard(
                 .padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             content = topRow
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            content = topEnd
         )
 
         Row(
@@ -262,6 +305,8 @@ fun CampsiteCard(
     PhotoCard(
         modifier = modifier,
         onClick = onClick,
+        imageUrl = campsite.allImages().firstOrNull(),
+        campsiteId = campsite.id,
         topRow = { StatusChip(campsite.ratingLabel()) },
         bottomStart = {
             Text(
@@ -326,5 +371,42 @@ fun EmptyState(title: String, hint: String, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(hint, color = BirchBarkColors.MutedText, textAlign = TextAlign.Center)
+    }
+}
+
+// See [TBD 7] in LLL.md
+@Composable
+fun RemotePhoto(
+    imageUrl: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    var bitmap by remember(imageUrl) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(imageUrl) {
+        bitmap = if (imageUrl.isNullOrBlank()) {
+            null
+        } else {
+            withContext(Dispatchers.IO) {
+                com.example.birchbark.util.ImageUtils.base64ToImageBitmap(imageUrl)
+                    ?: runCatching {
+                        URL(imageUrl).openStream().use { stream ->
+                            BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                        }
+                    }.getOrNull()
+            }
+        }
+    }
+
+    val loaded = bitmap
+    if (loaded != null) {
+        Image(
+            bitmap = loaded,
+            contentDescription = contentDescription,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    } else {
+        PhotoPlaceholder(modifier = modifier)
     }
 }

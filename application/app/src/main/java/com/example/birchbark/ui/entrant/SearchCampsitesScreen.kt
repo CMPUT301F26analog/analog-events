@@ -34,6 +34,13 @@ import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.ui.theme.CampsiteCard
 import com.example.birchbark.ui.theme.birchBarkFieldColors
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.font.FontWeight
+import com.example.birchbark.ui.theme.birchBarkButtonColors
 
 /**
  * US 01.01.01 Search for campsites. The entrant search page from the Entrant
@@ -135,56 +142,95 @@ fun SearchCampsitesContent(
     onFilterClick: (() -> Unit)? = null
 ) {
     var keyword by remember { mutableStateOf("") }
-    //has to match the search and pass the filter
     val results = campsites.filter { it.matchesSearch(keyword) && filter(it) }
 
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             OutlinedTextField(
                 value = keyword,
                 onValueChange = { keyword = it },
                 placeholder = { Text("Search your campsite") },
                 singleLine = true,
-                shape = RoundedCornerShape(50),
+                shape = RoundedCornerShape(14.dp),
                 colors = birchBarkFieldColors(),
-                modifier = Modifier.weight(1f).testTag("searchField")
+                trailingIcon = {
+                    if (keyword.isNotEmpty()) {
+                        IconButton(onClick = { keyword = "" }) {
+                            Text("✕", color = BirchBarkColors.Gold)
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("searchField")
             )
-            //clear button only shows once they've typed something
-            if (keyword.isNotEmpty()) {
-                TextButton(onClick = { keyword = "" }) { Text("Clear", color = BirchBarkColors.Gold )}
-            }
-        }
-        //filters button only shows if the screen using this gave it somewhere to go
-        if (onFilterClick != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = onFilterClick,
-                border = BorderStroke(1.dp, BirchBarkColors.Gold),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = BirchBarkColors.Gold),
-                modifier = Modifier.testTag("filterButton")
+
+            Button(
+                onClick = { },
+                shape = RoundedCornerShape(14.dp),
+                colors = birchBarkButtonColors(),
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.size(52.dp)
             ) {
-                Text("Filters")
+                Text("⌕", fontWeight = FontWeight.Bold)
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val countText = if (results.size == 1) "Found 1 campsite" else "Found ${results.size} campsites"
+            Text(
+                text = countText,
+                fontWeight = FontWeight.Bold,
+                color = BirchBarkColors.Cream
+            )
+
+            if (onFilterClick != null) {
+                OutlinedButton(
+                    onClick = onFilterClick,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, BirchBarkColors.Gold),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("filterButton")
+                ) {
+                    Text("☰", color = BirchBarkColors.Gold)
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text("Filters", color = BirchBarkColors.Gold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (results.isEmpty()) {
             EmptyState(
                 title = "Site not found",
                 hint = "Try search with a different keyword",
-                modifier = Modifier.fillMaxSize().testTag("notFound")
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("notFound")
             )
         } else {
-            val countText = if (results.size == 1) "Found 1 campsite" else "Found ${results.size} campsites"
-            Text(countText, color = BirchBarkColors.MutedText)
-            Spacer(modifier = Modifier.height(8.dp))
-
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(results) { campsite ->
-                    CampsiteCard(
+                    CampsiteSummary(
                         campsite = campsite,
                         onClick = { onCampsiteClick(campsite) },
-                        modifier = Modifier.testTag("searchResult"))
+                        modifier = Modifier.testTag("searchResult")
+                    )
                 }
             }
         }

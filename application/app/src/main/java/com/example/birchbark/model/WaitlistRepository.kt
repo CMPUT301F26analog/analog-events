@@ -96,6 +96,7 @@ class WaitlistRepository {
                 onFailure(error)
             }
     }
+
     enum class LeaveResult {
         LEFT,
         NOT_JOINED,
@@ -204,4 +205,52 @@ class WaitlistRepository {
             }
     }
 
+    // See [TBD 1] for LLM.md
+    /**
+     * Asynchronously retrieves a list of lottery IDs for which the specified entrant has an
+     * entry in the lottery's `waitlist` subcollection.
+     *
+     * Fetches all documents in the `lotteries` collection and checks each lottery's `waitlist`
+     * subcollection for a document keyed by [userId]. If [userId] is blank or no lotteries exist,
+     * [onResult] is invoked immediately with an empty list.
+     *
+     * @param userId The unique identifier of the entrant to check across lottery waitlists.
+     * @param onResult Callback invoked with the list of matching lottery IDs once all checks complete.
+     * @param onFailure Callback invoked with the [Exception] if fetching the `lotteries` collection fails.
+     */
+    fun getWaitlistLotteryIdsForEntrant(
+        userId: String,
+        onResult: (List<String>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        if (userId.isBlank()) {
+            onResult(emptyList())
+            return
+        }
+        db.collection("lotteries").get()
+            .addOnSuccessListener { snapshot ->
+                val docs = snapshot.documents
+                if (docs.isEmpty()) {
+                    onResult(emptyList())
+                    return@addOnSuccessListener
+                }
+                val matched = java.util.Collections.synchronizedList(mutableListOf<String>())
+                var remaining = docs.size
+                for (lotteryDoc in docs) {
+                    lotteryDoc.reference.collection("waitlist").document(userId).get()
+                        .addOnSuccessListener { entry ->
+                            if (entry.exists()) {
+                                matched.add(lotteryDoc.id)
+                            }
+                        }
+                        .addOnCompleteListener {
+                            remaining--
+                            if (remaining == 0) {
+                                onResult(matched.toList())
+                            }
+                        }
+                }
+            }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
 }

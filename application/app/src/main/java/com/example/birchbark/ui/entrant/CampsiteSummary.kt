@@ -48,16 +48,7 @@ fun CampsiteSummary(
     CampsiteCard(
         campsite = campsite,
         onClick = onClick,
-        modifier = modifier,
-        bottomEnd = {
-            // View button --> to see the details
-            Button(
-                onClick = onClick,
-                colors = birchBarkButtonColors()
-            ) {
-                Text("View")
-            }
-        }
+        modifier = modifier
     )
 }
 

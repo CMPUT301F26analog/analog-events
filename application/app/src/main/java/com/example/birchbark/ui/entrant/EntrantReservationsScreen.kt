@@ -36,7 +36,7 @@ import com.example.birchbark.ui.theme.StatusChip
 import com.example.birchbark.ui.theme.BirchBarkColors
 
 private enum class ReservationTab {
-    ACTIVE, PAST
+    ACTIVE, PAST, CANCELLED
 }
 
 /**
@@ -93,6 +93,7 @@ fun EntrantReservationsScreen(
             val (statusText, statusKind) = statusOf(details, today)
             PhotoCard(
                 height = 220.dp,
+                imageUrl = details.imageUrl,
                 topRow = { StatusChip(statusText, statusKind) },
                 bottomStart = {
                     Text(
@@ -138,22 +139,27 @@ fun EntrantReservationsScreen(
                     onClick = { selectedTab = ReservationTab.PAST },
                     modifier = Modifier.testTag("pastTab")
                 )
+                TabButton(
+                    text = "Cancelled",
+                    selected = selectedTab == ReservationTab.CANCELLED,
+                    onClick = { selectedTab = ReservationTab.CANCELLED },
+                    modifier = Modifier.testTag("cancelledTab")
+                )
+
             }
 
             val visibleReservations = when (selectedTab) {
-                ReservationTab.ACTIVE ->
-                    activeReservations(reservations, today)
-
-                ReservationTab.PAST ->
-                    pastReservations(reservations, today)
+                ReservationTab.ACTIVE -> activeReservations(reservations, today)
+                ReservationTab.PAST -> pastReservations(reservations, today)
+                ReservationTab.CANCELLED -> cancelledReservations(reservations)
             }
 
             if (visibleReservations.isEmpty()) {
                 Text(
-                    text = if (selectedTab == ReservationTab.ACTIVE) {
-                        "No active reservations"
-                    } else {
-                        "No past reservations"
+                    text = when (selectedTab) {
+                        ReservationTab.ACTIVE -> "No active reservations"
+                        ReservationTab.PAST -> "No past reservations"
+                        ReservationTab.CANCELLED -> "No cancelled reservations"
                     },
                     style = MaterialTheme.typography.titleLarge,
                     color = BirchBarkColors.Cream,
@@ -171,6 +177,7 @@ fun EntrantReservationsScreen(
                         PhotoCard(
                             modifier = Modifier.testTag("reservation-${reservation.id}"),
                             onClick = { selectedReservation = reservation },
+                            imageUrl = reservation.imageUrl,
                             topRow = { StatusChip(statusText, statusKind) },
                             bottomStart = {
                                 Text(

@@ -37,6 +37,32 @@ import com.example.birchbark.ui.theme.StatusChip
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.priceLabel
 import com.example.birchbark.util.ratingLabel
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import com.example.birchbark.ui.theme.RemotePhoto
+import java.util.Locale
+import androidx.compose.ui.platform.testTag
+
+/**
+ * Represents the sections displayed on a details screen, along with their UI metadata.
+ *
+ * @property label The display title for the section header.
+ * @property emptyText The fallback message shown when the section has no content.
+ */
+private enum class DetailsSection(val label: String, val emptyText: String) {
+    DESCRIPTION("Description", "No description provided."),
+    LOCATION("Location", "No coordinates provided."),
+    RULES("Rules", "No rules provided."),
+    POLICY("Policy", "No cancellation policy provided.")
+}
 
 /**
  * Displays the complete details view for an individual campsite, styled like the
@@ -75,8 +101,29 @@ fun CampsiteDetailsScreen(
     writtenReviewCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
-    // Setting up the tabs : See [1] in References.md, which was used for documentation
-    var selectedTab by remember { mutableStateOf(DetailTab.DESCRIPTION) }
+    // OUT OF DATE: Setting up the tabs : See [1] in References.md, which was used for documentation
+    // var selectedTab by remember { mutableStateOf(DetailTab.DESCRIPTION) }
+
+    // See [TBD 10] in LLM.md
+    var selectedSection by remember { mutableStateOf(DetailsSection.DESCRIPTION) }
+    var repoImages by remember(campsite.id) { mutableStateOf<List<String>>(emptyList()) }
+    androidx.compose.runtime.LaunchedEffect(campsite.id) {
+        if (campsite.id.isNotBlank()) {
+            com.example.birchbark.model.ImageRepository().getImagesForCampsite(
+                campsite.id,
+                object : com.example.birchbark.model.ImageRepository.ListCallback {
+                    override fun onLoaded(found: List<com.example.birchbark.model.CampsiteImage>) {
+                        repoImages = found.map { it.data }.filter { it.isNotBlank() }
+                    }
+                    override fun onError(error: Exception) {}
+                }
+            )
+        }
+    }
+    val images = remember(campsite.id, campsite.imageUrl, campsite.galleryUrls, repoImages) {
+        (campsite.allImages() + repoImages).distinct()
+    }
+    var selectedImageIndex by remember(campsite.id) { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier
@@ -94,7 +141,8 @@ fun CampsiteDetailsScreen(
 
         // Photo card with details: rating on top, then name, location and max occupancy
         PhotoCard(
-            height = 240.dp,
+            height = 280.dp,
+            imageUrl = images.getOrNull(selectedImageIndex),
             topRow = {
                 val reviewSuffix = when (writtenReviewCount) {
                     0 -> ""
@@ -104,8 +152,36 @@ fun CampsiteDetailsScreen(
                 Box(modifier = Modifier.clickable { onReviewsClick() }) {
                     StatusChip("${campsite.ratingLabel()}$reviewSuffix  ›")
                 }
-                if (!campsite.imageUrl.isNullOrBlank()) {
-                    StatusChip("Promo Image")
+                if (images.size > 1) {
+                    StatusChip("${selectedImageIndex + 1} / ${images.size}")
+                }
+            },
+            topEnd = {
+                if (images.size > 1) {
+                    Column(
+                        modifier = Modifier
+                            .height(180.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        images.forEachIndexed { idx, url ->
+                            val isSelected = idx == selectedImageIndex
+                            RemotePhoto(
+                                imageUrl = url,
+                                contentDescription = "Gallery image ${idx + 1}",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .border(
+                                        width = if (isSelected) 2.5.dp else 1.dp,
+                                        color = if (isSelected) BirchBarkColors.Gold else BirchBarkColors.Cream.copy(alpha = 0.6f),
+                                        shape = CircleShape
+                                    )
+                                    .clickable { selectedImageIndex = idx }
+                            )
+                        }
+                    }
                 }
             },
             bottomStart = {
@@ -120,9 +196,48 @@ fun CampsiteDetailsScreen(
                     text = if (campsite.maxOccupancy == 1) "Up to 1 guest" else "Up to ${campsite.maxOccupancy} guests",
                     color = BirchBarkColors.MutedText
                 )
+            },
+            bottomEnd = {
+                if (images.size > 1) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(BirchBarkColors.TealCard.copy(alpha = 0.9f))
+                                .clickable {
+                                    selectedImageIndex = (selectedImageIndex - 1 + images.size) % images.size
+                                }
+                        ) {
+                            Text(
+                                text = "‹",
+                                color = BirchBarkColors.Gold,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(BirchBarkColors.TealCard.copy(alpha = 0.9f))
+                                .clickable {
+                                    selectedImageIndex = (selectedImageIndex + 1) % images.size
+                                }
+                        ) {
+                            Text(
+                                text = "›",
+                                color = BirchBarkColors.Gold,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         )
-
         // Price
         Text(
             text = campsite.priceLabel(),
@@ -132,27 +247,89 @@ fun CampsiteDetailsScreen(
 
         // Details : Description, rules, cancellation policy
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (tab in DetailTab.entries) {
-                TabButton(tab.label, selectedTab == tab) { selectedTab = tab }
+            for (section in DetailsSection.entries) {
+                TabButton(section.label, selectedSection == section) { selectedSection = section }
             }
         }
-        val tabText = when (selectedTab) {
-            DetailTab.DESCRIPTION -> campsite.description
-            DetailTab.RULES -> campsite.rules
-            DetailTab.POLICY -> campsite.cancellationPolicy
-        }.ifBlank { selectedTab.emptyText }
-        Text(
-            text = tabText,
-            color = BirchBarkColors.Cream,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(BirchBarkColors.TealCard)
-                .padding(16.dp)
-        )
+
+        if (selectedSection == DetailsSection.LOCATION) {
+            CampsiteMapAndCoordinatesCard(campsite = campsite)
+        } else {
+            val tabText = when (selectedSection) {
+                DetailsSection.DESCRIPTION -> campsite.description
+                DetailsSection.RULES -> campsite.rules
+                DetailsSection.POLICY -> campsite.cancellationPolicy
+                DetailsSection.LOCATION -> ""
+            }.ifBlank { selectedSection.emptyText }
+
+            Text(
+                text = tabText,
+                color = BirchBarkColors.Cream,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(BirchBarkColors.TealCard)
+                    .padding(16.dp)
+            )
+        }
 
         // Lottery: shows the join button while registration is open
         EntrantWaitlistSection(lottery = lottery)
+    }
+}
+
+// See [TBD 9] in LLM.md
+/**
+ * Displays a card showing the [campsite]'s location name, formatted coordinates, and an
+ * interactive [com.example.birchbark.ui.owner.CampsiteMap] when valid coordinates are available.
+ *
+ * Falls back to `"Location"` if [Campsite.location] is blank, and renders a placeholder message
+ * instead of the map if [Campsite.latitude] or [Campsite.longitude] fails validation via
+ * [com.example.birchbark.util.MapUtils.isValidLocation].
+ *
+ * @param campsite The [Campsite] data model providing the location name, coordinates, and pin title.
+ */
+@Composable
+private fun CampsiteMapAndCoordinatesCard(campsite: Campsite) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(BirchBarkColors.TealCard)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = campsite.location.ifBlank { "Location" },
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = BirchBarkColors.Cream
+        )
+
+        if (com.example.birchbark.util.MapUtils.isValidLocation(campsite.latitude, campsite.longitude)) {
+            Text(
+                text = com.example.birchbark.util.MapUtils.locationText(campsite.latitude, campsite.longitude),
+                color = BirchBarkColors.Gold,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.testTag("mapLocationText")
+            )
+            com.example.birchbark.ui.owner.CampsiteMap(
+                latitude = campsite.latitude,
+                longitude = campsite.longitude,
+                pinTitle = campsite.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .testTag("detailsMap")
+            )
+        } else {
+            Text(
+                text = "Map location not set for this campsite.",
+                color = BirchBarkColors.MutedText
+            )
+        }
     }
 }
 

@@ -39,10 +39,14 @@ fun selectOpenLottery(
  */
 @Composable
 fun EntrantCampsitesApp(
-    entrantId: String = "",     // Pass the signed-in user's ID/FID from MainActivity/Auth
-    entrantName: String = ""    // Pass the signed-in user's name from MainActivity/Auth
+    //entrantId: String = "",     // Pass the signed-in user's ID/FID from MainActivity/Auth
+    //entrantName: String = ""    // Pass the signed-in user's name from MainActivity/Auth
+    entrantId: String = "",
+    entrantName: String = "Entrant",
+    initialCampsite: Campsite? = null,
+    onInitialCampsiteConsumed: () -> Unit = {}
 ) {
-    var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var selectedCampsite by remember(initialCampsite) { mutableStateOf(initialCampsite) }
     var filters by remember { mutableStateOf(EntrantFilters()) }
     var showFilters by remember { mutableStateOf(false) }
     var lotteries by remember { mutableStateOf<List<Lottery>>(emptyList()) }
@@ -81,11 +85,18 @@ fun EntrantCampsitesApp(
         }
 
         else -> {
+            BackHandler {
+                selectedCampsite = null
+                onInitialCampsiteConsumed()
+            }
             EntrantCampsiteDetailsRoute(
                 campsite = campsite,
                 entrantId = entrantId,
                 entrantName = entrantName,
-                onBack = { selectedCampsite = null }
+                onBack = {
+                    selectedCampsite = null
+                    onInitialCampsiteConsumed()
+                }
             )
         }
     }
