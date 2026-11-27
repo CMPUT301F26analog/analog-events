@@ -272,9 +272,8 @@ class ReservationRepository {
 
     /**
      * US 02.08.01: the owner rejects a reservation. Marks it REJECTED and, if it
-     * was confirmed, deletes its nights from "campsiteBookings" so others can
-     * book them. Both happen in one batch, so a rejected stay never keeps its
-     * nights. See #080 in LLM.md.
+     * was confirmed, frees its nights in "campsiteBookings" so others can book
+     * them. See #080 in LLM.md.
      *
      * @param reservation the active reservation being rejected.
      */
@@ -283,10 +282,42 @@ class ReservationRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
+        endStay(reservation, ReservationStatus.REJECTED, onSuccess, onFailure)
+    }
+
+    /**
+     * US 01.07.01: the entrant cancels their own reservation. Marks it
+     * CANCELLED and frees its nights the same way [reject] does, so those
+     * dates open up again for other winners.
+     *
+     * @param reservation the active reservation being cancelled.
+     */
+    fun cancel(
+        reservation: Reservation,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        endStay(reservation, ReservationStatus.CANCELLED, onSuccess, onFailure)
+    }
+
+    /**
+     * Gives a reservation its new [status] and, if it was confirmed, removes it
+     * from each of its nights in "campsiteBookings". Both happen in one batch,
+     * so a stay that ended never keeps its nights.
+     *
+     * @param reservation the reservation that's ending.
+     * @param status REJECTED (owner) or CANCELLED (entrant).
+     */
+    private fun endStay(
+        reservation: Reservation,
+        status: ReservationStatus,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
         val batch = db.batch()
         batch.update(
             db.collection("reservations").document(reservation.id),
-            "status", ReservationStatus.REJECTED.name
+            "status", status.name
         )
 
         val campsiteId = reservation.campsiteId
