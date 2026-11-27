@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.Lottery
 import com.example.birchbark.ui.screens.EditLotteryRoute
 import com.example.birchbark.waitlist.OwnerWaitlistScreen
 
@@ -18,7 +19,8 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * the lottery edit screen (US 02.04.06), the View Gallery button opens the
  * campsite's photos (US 02.01.02), and the register button opens the
  * register form (US 02.01.01, US 02.01.02). My Reservations opens the owner's
- * reservations (US 02.07.01, 02.07.02, 02.07.03).
+ * reservations (US 02.07.01, 02.07.02, 02.07.03). Invite Another Owner opens
+ * the invite screen and Lottery Invites opens the owner's invites (US 02.04.08).
  *
  * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
@@ -41,14 +43,32 @@ fun OwnerCampsitesApp(ownerId: String) {
     var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     var galleryCampsite by remember { mutableStateOf<Campsite?>(null) }
     var viewingReservations by remember { mutableStateOf(false) }
+    //US 02.04.08: the lottery being invited into, and the invites screen
+    var invitingInto by remember { mutableStateOf<Lottery?>(null) }
+    var viewingInvites by remember { mutableStateOf(false) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val editLotteryFor = editingLotteryFor
     val selectedId = selectedCampsiteId
     val waitlistId = waitlistLotteryId
     val galleryFor = galleryCampsite
+    val inviteLottery = invitingInto
 
-    if (viewingReservations) {
+    if (viewingInvites) {
+        //lottery invites screen (US 02.04.08), back goes to the list
+        BackHandler { viewingInvites = false }
+        LotteryInvitesScreen(
+            ownerId = ownerId,
+            onBack = { viewingInvites = false }
+        )
+    } else if (inviteLottery != null) {
+        //invite another owner (US 02.04.08), back goes to the details screen
+        BackHandler { invitingInto = null }
+        InviteCampsiteScreen(
+            lottery = inviteLottery,
+            onBack = { invitingInto = null }
+        )
+    } else if (viewingReservations) {
         //reservations screen (US 02.07.01-03), back goes to the list
         BackHandler { viewingReservations = false }
         OwnerReservationsScreen(
@@ -114,7 +134,8 @@ fun OwnerCampsitesApp(ownerId: String) {
             onLotteryClick = { campsite -> lotteryCampsite = campsite },
             onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
             onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId },
-            onGalleryClick = { campsite -> galleryCampsite = campsite }
+            onGalleryClick = { campsite -> galleryCampsite = campsite },
+            onInviteClick = { lottery -> invitingInto = lottery }
         )
     } else {
         //list screen
@@ -122,7 +143,8 @@ fun OwnerCampsitesApp(ownerId: String) {
             ownerId = ownerId,
             onCampsiteClick = { campsite -> selectedCampsiteId = campsite.id },
             onRegisterClick = { registering = true },
-            onReservationsClick = { viewingReservations = true }
+            onReservationsClick = { viewingReservations = true },
+            onInvitesClick = { viewingInvites = true }
         )
     }
 }
