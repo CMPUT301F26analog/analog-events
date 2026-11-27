@@ -3595,7 +3595,7 @@ internal object AdminImageRules {
 }
 
 ---
-
+---
 ## Prompt #081 (Akshat)
 
 | Field | Details |
