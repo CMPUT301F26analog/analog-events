@@ -1,21 +1,18 @@
 package com.example.birchbark.ui.entrant
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -32,6 +29,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.model.CampsiteRepository
+import com.example.birchbark.ui.theme.EmptyState
+import com.example.birchbark.ui.theme.BirchBarkColors
+import com.example.birchbark.ui.theme.CampsiteCard
+import com.example.birchbark.ui.theme.birchBarkFieldColors
+import androidx.compose.foundation.BorderStroke
 
 /**
  * US 01.01.01 Search for campsites. The entrant search page from the Entrant
@@ -40,7 +42,7 @@ import com.example.birchbark.model.CampsiteRepository
  * shows a not found message.
  *
  * Also works with filters (US 01.01.02, US 01.01.03). The browse screen can pass
- * a filter, like CampsiteFilter.matches with the entrant's filters, and only
+ * a filter, like CampsiteFilter. Matches with the entrant's filters, and only
  * campsites that match both the search and the filter show up. It can also pass
  * onFilterClick to show a Filters button that opens the filter screen.
  *
@@ -49,9 +51,14 @@ import com.example.birchbark.model.CampsiteRepository
  * can give it fake campsites. Tapping a result calls onCampsiteClick, so the
  * entrant details screen (US 01.01.05) can be opened from here.
  *
+ * Styled like the mockup: a rounded search bar and photo cards from
+ * BirchBarkComponents. It no longer adds its own status bar padding, the
+ * entrant shell (EntrantApp) takes care of that.
+ *
  * Outstanding issues. Recommended campsites and recommended searches from the
  * mockup aren't here yet. The result cards are plain for now and can be swapped
- * for the campsite summary card (US 01.01.04).
+ * for the campsite summary card (US 01.01.04). The photo is a placeholder until
+ * image upload is done.
  */
 
 /**
@@ -88,19 +95,18 @@ fun SearchCampsitesScreen(
     val error = errorMessage
 
     if (error != null) {
-        Box(
-            modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(error)
-        }
+        EmptyState(
+            title = "Something went wrong",
+            hint = error,
+            modifier = Modifier.fillMaxSize()
+        )
     } else if (list == null) {
         //still loading
         Box(
-            modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = BirchBarkColors.Gold)
         }
     } else {
         SearchCampsitesContent(
@@ -132,18 +138,20 @@ fun SearchCampsitesContent(
     //has to match the search and pass the filter
     val results = campsites.filter { it.matchesSearch(keyword) && filter(it) }
 
-    Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = keyword,
                 onValueChange = { keyword = it },
                 placeholder = { Text("Search your campsite") },
                 singleLine = true,
+                shape = RoundedCornerShape(50),
+                colors = birchBarkFieldColors(),
                 modifier = Modifier.weight(1f).testTag("searchField")
             )
             //clear button only shows once they've typed something
             if (keyword.isNotEmpty()) {
-                TextButton(onClick = { keyword = "" }) { Text("Clear") }
+                TextButton(onClick = { keyword = "" }) { Text("Clear", color = BirchBarkColors.Gold )}
             }
         }
         //filters button only shows if the screen using this gave it somewhere to go
@@ -151,6 +159,8 @@ fun SearchCampsitesContent(
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
                 onClick = onFilterClick,
+                border = BorderStroke(1.dp, BirchBarkColors.Gold),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = BirchBarkColors.Gold),
                 modifier = Modifier.testTag("filterButton")
             ) {
                 Text("Filters")
@@ -159,38 +169,22 @@ fun SearchCampsitesContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         if (results.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().testTag("notFound"),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("Site not found", style = MaterialTheme.typography.headlineSmall)
-                Text("Try search with a different keyword")
-            }
+            EmptyState(
+                title = "Site not found",
+                hint = "Try search with a different keyword",
+                modifier = Modifier.fillMaxSize().testTag("notFound")
+            )
         } else {
             val countText = if (results.size == 1) "Found 1 campsite" else "Found ${results.size} campsites"
-            Text(countText, style = MaterialTheme.typography.titleMedium)
+            Text(countText, color = BirchBarkColors.MutedText)
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(results) { campsite ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onCampsiteClick(campsite) }
-                            .testTag("searchResult")
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(campsite.name, style = MaterialTheme.typography.titleMedium)
-                            Text(campsite.location, style = MaterialTheme.typography.bodyMedium)
-                            Text("Up to ${campsite.maxOccupancy} guests", style = MaterialTheme.typography.bodySmall)
-                            val rating = campsite.averageRating()
-                            Text(
-                                if (rating == null) "No ratings" else "Rating " + String.format("%.1f", rating),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+                    CampsiteCard(
+                        campsite = campsite,
+                        onClick = { onCampsiteClick(campsite) },
+                        modifier = Modifier.testTag("searchResult"))
                 }
             }
         }

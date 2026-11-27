@@ -14,11 +14,13 @@ import com.example.birchbark.model.ProfileDeletionCoordinator
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
 import com.google.firebase.installations.FirebaseInstallations
+import com.google.firebase.firestore.Blob
 
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
-    onDeleted: () -> Unit = {}
+    onDeleted: () -> Unit = {},
+    onProfileUpdated: (UserProfile) -> Unit = {}
 ) {
     val repository = remember { UserRepository() }
     val deletionCoordinator = remember {
@@ -99,6 +101,21 @@ fun EditProfileScreen(
             else -> {
                 val currentProfile = profile!!
 
+                val photo = remember(currentProfile.profileImage) { currentProfile.profileImage?.toBytes() }
+
+                ProfilePhotoEditor(
+                    fid = currentProfile.fid,
+                    name = "${currentProfile.firstName} ${currentProfile.lastName}".trim(),
+                    imageBytes = photo,
+                    onImageChanged = { bytes ->
+                        //keep the profile in step with the saved photo, or Save Changes could write the old one back
+                        profile?.copy(profileImage = bytes?.let { Blob.fromBytes(it) })?.let {
+                            profile = it
+                            onProfileUpdated(it)       // the header and menu update from this
+                        }
+                    }
+                )
+
                 EditProfileForm(
                     profile = currentProfile,
                     saving = saving || deleting,
@@ -119,6 +136,7 @@ fun EditProfileScreen(
                                     profile = cleaned
                                     saving = false
                                     message = "Profile updated successfully."
+                                    onProfileUpdated(cleaned)
                                 },
                                 onFailure = { exception ->
                                     saving = false
@@ -171,15 +189,6 @@ fun EditProfileScreen(
                 if (deleting) {
                     CircularProgressIndicator()
                 }
-
-                if (message.isNotBlank()) {
-                    Text(
-                        text = message,
-                        modifier = Modifier.testTag(
-                            "deletionStatus"
-                        )
-                    )
-                }
             }
         }
     }
@@ -192,19 +201,19 @@ fun EditProfileForm(
     message: String,
     onSave: (UserProfile) -> Unit
 ) {
-    var firstName by remember(profile) {
+    var firstName by remember(profile.firstName) {
         mutableStateOf(profile.firstName)
     }
 
-    var lastName by remember(profile) {
+    var lastName by remember(profile.lastName) {
         mutableStateOf(profile.lastName)
     }
 
-    var email by remember(profile) {
+    var email by remember(profile.email) {
         mutableStateOf(profile.email)
     }
 
-    var phoneNumber by remember(profile) {
+    var phoneNumber by remember(profile.phoneNumber) {
         mutableStateOf(profile.phoneNumber)
     }
 
@@ -278,7 +287,6 @@ fun EditProfileForm(
                 if (saving) "Saving..." else "Save Changes"
             )
         }
-
         if (message.isNotBlank()) {
             Text(
                 text = message,

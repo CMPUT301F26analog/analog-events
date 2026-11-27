@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.ui.theme.birchBarkFieldColors
@@ -70,7 +71,7 @@ fun RegisterProfileScreen(
 
     BackHandler(enabled = termsVisible) { termsVisible = false }
     if (termsVisible) {
-        TermsPlaceholder(onBack = { termsVisible = false })
+        PolicyScreen(onBack = { termsVisible = false })
         return
     }
 
@@ -179,18 +180,5 @@ fun RegisterProfileScreen(
                 Text("Terms of Service (optional)", color = BirchBarkColors.Gold)
             }
         }
-    }
-}
-
-@Composable
-private fun TermsPlaceholder(onBack: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(BirchBarkColors.DarkGreen)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TextButton(onClick = onBack) { Text("Back") }
-        Text("Terms of Service", style = MaterialTheme.typography.headlineMedium)
-        Text("The approved BirchBark policy will be added in a later user story.")
     }
 }

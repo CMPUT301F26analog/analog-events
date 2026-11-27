@@ -2,6 +2,7 @@ package com.example.birchbark.model
 
 import com.example.birchbark.util.Time
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -10,7 +11,8 @@ import java.time.LocalDate
 // See #051 in LLM.md
 /**
  * Unit tests for working out and checking the days a lottery winner can book.
- * Covers US 01.04.01.
+ * Covers US 01.04.01, including that a winner can't pick days another
+ * winner already booked (no double booking).
  */
 class AvailableDatesTest {
 
@@ -88,5 +90,86 @@ class AvailableDatesTest {
     fun daysNextToBooking_areOk() {
         val taken = listOf(booking(nov20.plusDays(4), nov20.plusDays(6)))
         assertNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(1), nov20.plusDays(3)))
+    }
+
+    // US 01.04.01: no double booking (another winner already confirmed Nov 24 to Nov 26)
+
+    private val taken = listOf(booking(nov20.plusDays(4), nov20.plusDays(6)))
+
+    @Test
+    fun sameDaysAsBooking_areRejected() {
+        assertNotNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(4), nov20.plusDays(6)))
+    }
+
+    @Test
+    fun stayInsideBooking_isRejected() {
+        assertNotNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(5), nov20.plusDays(5)))
+    }
+
+    @Test
+    fun stayCoveringWholeBooking_isRejected() {
+        assertNotNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(3), nov20.plusDays(7)))
+    }
+
+    @Test
+    fun stayStartingOnBookingsLastDay_isRejected() {
+        assertNotNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(6), nov20.plusDays(8)))
+    }
+
+    @Test
+    fun stayStartingDayAfterBooking_isOk() {
+        assertNull(AvailableDates.problemWith(lottery, taken, nov20.plusDays(7), nov20.plusDays(9)))
+    }
+
+    @Test
+    fun takenDays_areNotListedAsFree() {
+        val free = AvailableDates.freeRanges(lottery, taken)
+        val freeDays = free.flatMap { (first, last) ->
+            generateSequence(first) { it.plusDays(1) }.takeWhile { !it.isAfter(last) }.toList()
+        }
+        for (offset in 4L..6L) {
+            assertFalse(nov20.plusDays(offset) in freeDays)
+        }
+    }
+
+    // Capacity (Riley's PR feedback): a campground holds up to maxOccupancy parties a night
+
+    private fun bookingWith(day: LocalDate, vararg reservationIds: String) =
+        CampsiteBooking(
+            id = "C1_$day",
+            campsiteId = "C1",
+            startDate = Time.startOfDay(day),
+            endDate = Time.endOfDay(day),
+            reservationIds = reservationIds.toList()
+        )
+
+    @Test
+    fun underCapacity_dayIsStillFree() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertEquals(emptySet<LocalDate>(), AvailableDates.bookedDays(bookings, capacity = 2))
+    }
+
+    @Test
+    fun atCapacity_dayIsFull() {
+        val bookings = listOf(bookingWith(nov20, "R1", "R2"))
+        assertEquals(setOf(nov20), AvailableDates.bookedDays(bookings, capacity = 2))
+    }
+
+    @Test
+    fun underCapacity_winnerCanPickABookedDay() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertNull(AvailableDates.problemWith(lottery, bookings, nov20, nov20.plusDays(1), capacity = 2))
+    }
+
+    @Test
+    fun atCapacity_winnerCantPickAFullDay() {
+        val bookings = listOf(bookingWith(nov20, "R1", "R2"))
+        assertNotNull(AvailableDates.problemWith(lottery, bookings, nov20, nov20.plusDays(1), capacity = 2))
+    }
+
+    @Test
+    fun noMaxOccupancySet_actsLikeOneParty() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertEquals(setOf(nov20), AvailableDates.bookedDays(bookings, capacity = 0))
     }
 }

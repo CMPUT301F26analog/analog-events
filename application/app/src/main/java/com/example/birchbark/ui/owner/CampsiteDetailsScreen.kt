@@ -32,6 +32,7 @@ import com.example.birchbark.model.CampsiteRepository
 import com.example.birchbark.model.CurrentLottery
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
+import com.example.birchbark.util.MapUtils
 import com.example.birchbark.util.Time
 import com.example.birchbark.model.BookedDates
 import com.example.birchbark.model.Reservation
@@ -49,10 +50,14 @@ import android.util.Log
  * CampsiteDetailsContent just draws what it's given so the intent tests can use
  * fake data.
  *
- * Outstanding issues. The mockup also has View Gallery and Generate QR Code
- * buttons, those belong to other stories so they aren't here yet. The image
- * isn't shown since image upload isn't done, and map location just shows the
- * coordinates for now.
+ * The View Gallery button opens the campsite's photos, where the owner can
+ * add or remove them (US 02.01.02).
+ *
+ * If the owner set a map location, it shows on a small map with the camp pin
+ * (US 02.01.02).
+ *
+ * Outstanding issues. The mockup also has a Generate QR Code button, that
+ * belongs to another story so it isn't here yet.
  */
 
 /**
@@ -64,6 +69,8 @@ import android.util.Log
  * @param onBack called when the owner taps back.
  * @param onLotteryClick called with the campsite when the owner taps Campsite Lottery.
  * @param onEditLotteryClick called with the campsite when the owner taps Edit Lottery (US 02.04.06).
+ * @param onGalleryClick called with the campsite when the owner taps View Gallery (US 02.01.02).
+ * @param onInviteClick called with the current lottery when the owner taps Invite Another Owner (US 02.04.08).
  */
 @Composable
 fun CampsiteDetailsScreen(
@@ -72,8 +79,10 @@ fun CampsiteDetailsScreen(
     onBack: () -> Unit,
     onLotteryClick: (Campsite) -> Unit = {},
     onEditLotteryClick: (Campsite) -> Unit = {},
-    onViewWaitlist: (String) -> Unit = {}
-  ) {
+    onViewWaitlist: (String) -> Unit = {},
+    onGalleryClick: (Campsite) -> Unit = {},
+    onInviteClick: (Lottery) -> Unit = {}
+) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
     val reservationRepository = remember { ReservationRepository() }
@@ -175,34 +184,41 @@ fun CampsiteDetailsScreen(
             lotteryStatusText(lotteryList, now)
         }
         //only let them make a new lottery if there isn't one going already
-    val canCreateLottery = lotteryList != null &&
-        currentLottery(lotteryList, now) == null
+        val canCreateLottery = lotteryList != null &&
+                currentLottery(lotteryList, now) == null
 
-    val canEditLottery = lotteryList != null &&
-        CurrentLottery.pick(lotteryList) != null
+        //US 02.04.08: the campsite could be in another owner's lottery, only the
+        //owner who made it can edit it or invite more campsites
+        val current = lotteryList?.let { CurrentLottery.pick(it) }
+        val ownsLottery = current != null && current.ownerId == shown.ownerId
 
-    val selectedLottery = lotteryList?.let { list ->
-        currentLottery(list, now)
-            ?: list.maxByOrNull { it.registrationStart }
-    }
+        val canEditLottery = ownsLottery
 
-    CampsiteDetailsContent(
-        campsite = shown,
-        onEditClick = { onEditClick(shown) },
-        onBack = onBack,
-        lotteryText = lotteryText,
-        canCreateLottery = canCreateLottery,
-        onLotteryClick = { onLotteryClick(shown) },
-        canEditLottery = canEditLottery,
-        onEditLotteryClick = { onEditLotteryClick(shown) },
-        bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
-        canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
-        onViewWaitlist = {
-            selectedLottery?.id
-                ?.takeIf { it.isNotBlank() }
-                ?.let { lotteryId -> onViewWaitlist(lotteryId) }
+        val selectedLottery = lotteryList?.let { list ->
+            currentLottery(list, now)
+                ?: list.maxByOrNull { it.registrationStart }
         }
-    )
+
+        CampsiteDetailsContent(
+            campsite = shown,
+            onEditClick = { onEditClick(shown) },
+            onBack = onBack,
+            lotteryText = lotteryText,
+            canCreateLottery = canCreateLottery,
+            onLotteryClick = { onLotteryClick(shown) },
+            canEditLottery = canEditLottery,
+            onEditLotteryClick = { onEditLotteryClick(shown) },
+            onGalleryClick = { onGalleryClick(shown) },
+            canInvite = ownsLottery,
+            onInviteClick = { current?.let { onInviteClick(it) } },
+            bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
+            canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
+            onViewWaitlist = {
+                selectedLottery?.id
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { lotteryId -> onViewWaitlist(lotteryId) }
+            }
+        )
     }
 }
 
@@ -218,6 +234,9 @@ fun CampsiteDetailsScreen(
  * @param onLotteryClick called when the owner taps Campsite Lottery.
  * @param canEditLottery true to show the Edit Lottery button.
  * @param onEditLotteryClick called when the owner taps Edit Lottery.
+ * @param onGalleryClick called when the owner taps View Gallery (US 02.01.02).
+ * @param canInvite true to show the Invite Another Owner button (US 02.04.08).
+ * @param onInviteClick called when the owner taps Invite Another Owner.
  * @param bookedDatesText the campsite's booked date ranges, one per line (US 02.06.01).
  */
 @Composable
@@ -230,6 +249,9 @@ fun CampsiteDetailsContent(
     onLotteryClick: () -> Unit = {},
     canEditLottery: Boolean = false,
     onEditLotteryClick: () -> Unit = {},
+    onGalleryClick: () -> Unit = {},
+    canInvite: Boolean = false,
+    onInviteClick: () -> Unit = {},
     bookedDatesText: String = "No booked dates yet",
     canViewWaitlist: Boolean = false,
     onViewWaitlist: () -> Unit = {}
@@ -258,14 +280,24 @@ fun CampsiteDetailsContent(
         DetailRow("Price per night", campsite.price?.let { "$" + String.format("%.2f", it) } ?: "")
         DetailRow("Rules", campsite.rules)
         DetailRow("Cancellation policy", campsite.cancellationPolicy)
-        DetailRow(
-            "Map location",
-            if (campsite.latitude != null && campsite.longitude != null) {
-                "${campsite.latitude}, ${campsite.longitude}"
-            } else {
-                ""
+        //US 02.01.02: the camp pin on a map, or Not set if there isn't one
+        if (MapUtils.isValidLocation(campsite.latitude, campsite.longitude)) {
+            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                Text("Map location", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    MapUtils.locationText(campsite.latitude, campsite.longitude),
+                    modifier = Modifier.testTag("mapLocationText")
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                CampsiteMap(
+                    latitude = campsite.latitude,
+                    longitude = campsite.longitude,
+                    modifier = Modifier.fillMaxWidth().height(200.dp).testTag("detailsMap")
+                )
             }
-        )
+        } else {
+            DetailRow("Map location", "")
+        }
         DetailRow(
             "Rating",
             campsite.averageRating()?.let { String.format("%.1f", it) } ?: "No ratings"
@@ -287,6 +319,14 @@ fun CampsiteDetailsContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+        //US 02.01.02: the campsite's photos, same spot as the mockup
+        OutlinedButton(
+            onClick = onGalleryClick,
+            modifier = Modifier.fillMaxWidth().testTag("viewGalleryButton")
+        ) {
+            Text("View Gallery")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onEditClick,
             modifier = Modifier.fillMaxWidth().testTag("editButton")
@@ -310,6 +350,16 @@ fun CampsiteDetailsContent(
                 modifier = Modifier.fillMaxWidth().testTag("editLotteryButton")
             ) {
                 Text("Edit Lottery")
+            }
+        }
+        //US 02.04.08: invite other owners' campsites into this lottery
+        if (canInvite) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onInviteClick,
+                modifier = Modifier.fillMaxWidth().testTag("inviteOwnerButton")
+            ) {
+                Text("Invite Another Owner")
             }
         }
     }

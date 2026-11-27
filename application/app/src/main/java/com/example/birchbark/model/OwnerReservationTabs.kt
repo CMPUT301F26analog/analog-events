@@ -55,4 +55,16 @@ object OwnerReservationTabs {
     fun forTab(reservations: List<Reservation>, tab: OwnerReservationTab, now: Long): List<Reservation> {
         return reservations.filter { tabOf(it, now) == tab }
     }
+
+    /**
+     * US 02.08.01: owners can only reject a reservation that is still active
+     * (waiting for the entrant, or confirmed and not over yet).
+     *
+     * @param reservation the reservation to check.
+     * @param now current time in epoch ms.
+     * @return true if the Reject button should show for it.
+     */
+    fun canReject(reservation: Reservation, now: Long): Boolean {
+        return tabOf(reservation, now) == OwnerReservationTab.ACTIVE
+    }
 }

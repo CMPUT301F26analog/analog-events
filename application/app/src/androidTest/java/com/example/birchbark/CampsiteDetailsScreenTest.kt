@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.birchbark.model.Campsite
-import com.example.birchbark.ui.screens.CampsiteDetailsScreen
+import com.example.birchbark.ui.entrant.CampsiteDetailsScreen
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -52,6 +52,7 @@ class CampsiteDetailsTest {
                 message = null,
                 onBack = onBack,
                 onJoin = {},
+                onReviewsClick = {},
                 onLeave = {}
             )
         }

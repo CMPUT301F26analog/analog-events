@@ -1,4 +1,4 @@
-package com.example.birchbark.ui.screens
+package com.example.birchbark.ui.entrant
 
 // Importing required libraries
 import androidx.compose.runtime.Composable
@@ -18,16 +18,22 @@ import com.example.birchbark.ui.theme.BirchBarkColors.TealCard
 import com.example.birchbark.ui.theme.birchBarkButtonColors
 import com.example.birchbark.util.ratingLabel
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import com.example.birchbark.ui.theme.CampsiteCard
 
 
 /**
  * Displays a summary card for a specific campsite, including its name, location,
- * rating, and max occupancy.
+ * rating, and max occupancy, with a gold "View" button at the bottom right like
+ *  the cards in the mockup.
  *
  * US 01.01.04 See campsite summary information including name, location, maximum
  * occupancy, and rating
+ *
+ *
+ * This is the shared [CampsiteCard] with the View button added, so the summary
+ * looks the same everywhere. Tapping the card or the button calls [onClick].
  *
  * @param campsite The campsite data model containing details to display.
  * @param onClick Callback triggered when the card or the "View" button is clicked.
@@ -39,27 +45,11 @@ fun CampsiteSummary(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = TealCard)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Our UI Mockups has rating, occupancy, name, then location
-            // Rating
-            Text(campsite.ratingLabel(),
-                color = Color.White)
-            // Occupancy
-            Text(text = "Up to ${campsite.maxOccupancy} guests",
-                color = Color.White)
-            // Name
-            Text(text = campsite.name, style = MaterialTheme.typography.titleLarge,
-                color = Color.White)
-            // Location
-            Text(text = campsite.location,
-                color = Color.White)
+    CampsiteCard(
+        campsite = campsite,
+        onClick = onClick,
+        modifier = modifier,
+        bottomEnd = {
             // View button --> to see the details
             Button(
                 onClick = onClick,
@@ -68,7 +58,7 @@ fun CampsiteSummary(
                 Text("View")
             }
         }
-    }
+    )
 }
 
 /*

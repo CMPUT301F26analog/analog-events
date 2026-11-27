@@ -1,6 +1,7 @@
 package com.example.birchbark
 
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.Blob
 
 /**
  * Current working version for [UserProfile] data class. The data
@@ -20,6 +21,7 @@ import com.google.firebase.firestore.DocumentId
  * @param roles A string list of roles that users can have [entrant, owner, admin]
  * @param authUid A string for the anonymous firestore user ID
  * @param registrationComplete Simple flag to check that registration was complete
+ * @property profileImage The profile photo as a small JPEG, or null. US 01.08.02
  *
  * The registrationComplete flag will be deprecated in part 4 to use a verification system
  * should the team resolve for that.
@@ -37,7 +39,8 @@ data class UserProfile(
     val userName: String = "",
     val roles: List<String> = emptyList(),
     val authUid: String = "",
-    val registrationComplete: Boolean = false
+    val registrationComplete: Boolean = false,
+    val profileImage: Blob? = null          // See [TBD 1] in LLM.md
 ) {
 
 }

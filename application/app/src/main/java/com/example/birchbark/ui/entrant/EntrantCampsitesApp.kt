@@ -1,4 +1,3 @@
-
 package com.example.birchbark.ui.entrant
 
 import androidx.activity.compose.BackHandler
@@ -10,14 +9,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.CampsiteFilter
+import com.example.birchbark.model.EntrantFilters
 import com.example.birchbark.model.Lottery
 import com.example.birchbark.model.LotteryRepository
 import com.example.birchbark.model.LotteryStatus
 import com.example.birchbark.model.LotteryStatusCalculator
 import com.example.birchbark.model.RegistrationChecker
-import com.example.birchbark.ui.screens.CampsiteDetailsScreen
 import com.example.birchbark.util.Time
 import com.example.birchbark.waitlist.JoinWaitlistButton
+import com.example.birchbark.model.Review
+import com.example.birchbark.model.ReviewRepository
 
 fun selectOpenLottery(
     lotteries: List<Lottery>,
@@ -31,37 +33,69 @@ fun selectOpenLottery(
         .maxByOrNull { it.registrationStart }
 }
 
+/**
+ * The Browse tab: search results, the filter screen, and campsite details.
+ * System back closes the filter screen or the details first.
+ */
 @Composable
-fun EntrantCampsitesApp() {
-    var selectedCampsite by remember {
-        mutableStateOf<Campsite?>(null)
+fun EntrantCampsitesApp(
+    entrantId: String = "",     // Pass the signed-in user's ID/FID from MainActivity/Auth
+    entrantName: String = ""    // Pass the signed-in user's name from MainActivity/Auth
+) {
+    var selectedCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var filters by remember { mutableStateOf(EntrantFilters()) }
+    var showFilters by remember { mutableStateOf(false) }
+    var lotteries by remember { mutableStateOf<List<Lottery>>(emptyList()) }
+
+    // Load lotteries once so CampsiteFilter can match booking dates
+    LaunchedEffect(Unit) {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("lotteries")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                lotteries = snapshot.toObjects(Lottery::class.java)
+            }
     }
 
     val campsite = selectedCampsite
 
-    if (campsite == null) {
-        SearchCampsitesScreen(
-            onCampsiteClick = {
-                selectedCampsite = it
-            }
-        )
-    } else {
-        BackHandler {
-            selectedCampsite = null
+    when {
+        showFilters -> {
+            BackHandler { showFilters = false }
+            FilterScreen(
+                currentFilters = filters,
+                onApply = {
+                    filters = it
+                    showFilters = false
+                },
+                onCancel = { showFilters = false }
+            )
         }
 
-        EntrantCampsiteDetailsRoute(
-            campsite = campsite,
-            onBack = {
-                selectedCampsite = null
-            }
-        )
+        campsite == null -> {
+            SearchCampsitesScreen(
+                onCampsiteClick = { selectedCampsite = it },
+                filter = { CampsiteFilter.matches(it, filters, lotteries) },
+                onFilterClick = { showFilters = true }
+            )
+        }
+
+        else -> {
+            EntrantCampsiteDetailsRoute(
+                campsite = campsite,
+                entrantId = entrantId,
+                entrantName = entrantName,
+                onBack = { selectedCampsite = null }
+            )
+        }
     }
 }
 
 @Composable
 private fun EntrantCampsiteDetailsRoute(
     campsite: Campsite,
+    entrantId: String,
+    entrantName: String,
     onBack: () -> Unit
 ) {
     val repository = remember { LotteryRepository() }
@@ -72,6 +106,32 @@ private fun EntrantCampsiteDetailsRoute(
 
     var error by remember(campsite.id) {
         mutableStateOf<String?>(null)
+    }
+
+    // Track updated campsite (so rating averages refresh immediately after posting a review)
+    var currentCampsite by remember(campsite) { mutableStateOf(campsite) }
+
+    // Track which sub-screen is active: "details", "all_reviews", or "write_review"
+    var activeSubScreen by remember(campsite.id) { mutableStateOf("details") }
+
+    var writtenReviewCount by remember(campsite.id) { mutableStateOf(0) }
+
+    LaunchedEffect(currentCampsite) {
+        ReviewRepository().getAllReviews(currentCampsite.id, object : ReviewRepository.LoadAllCallback {
+            override fun onLoaded(reviews: List<Review>) {
+                writtenReviewCount = reviews.count { it.comment.isNotBlank() }
+            }
+            override fun onError(error: Exception) {}
+        })
+    }
+
+    // Handle Android system back button cleanly across all sub-screens
+    BackHandler {
+        when (activeSubScreen) {
+            "write_review" -> activeSubScreen = "all_reviews"
+            "all_reviews" -> activeSubScreen = "details"
+            else -> onBack()
+        }
     }
 
     LaunchedEffect(campsite.id) {
@@ -120,16 +180,42 @@ private fun EntrantCampsiteDetailsRoute(
             val lottery = selectOpenLottery(list, System.currentTimeMillis())
                 ?: list.maxByOrNull { it.registrationStart }
 
-            CampsiteDetailsScreen(
-                campsite = campsite,
-                lottery = lottery,
-                joined = false,
-                isFull = false,
-                message = null,
-                onBack = onBack,
-                onJoin = {},
-                onLeave = {}
-            )
+            when (activeSubScreen) {
+                "details" -> {
+                    CampsiteDetailsScreen(
+                        campsite = currentCampsite,
+                        lottery = lottery,
+                        joined = false,
+                        isFull = false,
+                        message = null,
+                        onBack = onBack,
+                        onJoin = {},
+                        onLeave = {},
+                        onReviewsClick = { activeSubScreen = "all_reviews" },
+                        writtenReviewCount = writtenReviewCount
+                    )
+                }
+
+                "all_reviews" -> {
+                    ReviewsRoute(
+                        campsite = currentCampsite,
+                        onBack = { activeSubScreen = "details" },
+                        onWriteReview = { activeSubScreen = "write_review" }
+                    )
+                }
+
+                "write_review" -> {
+                    ReviewRoute(
+                        campsite = currentCampsite,
+                        entrantId = entrantId,
+                        entrantName = entrantName,
+                        onBack = { activeSubScreen = "all_reviews" },
+                        onCampsiteUpdated = { updatedCampsite ->
+                            currentCampsite = updatedCampsite
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -159,14 +245,6 @@ fun EntrantWaitlistSection(
     }
 }
 
-// See #052 in LLM.md
-/**
- * US 01.01.06: what to show instead of the join button when the entrant can't join.
- *
- * @param lottery the campsite's latest lottery, or null if it has none.
- * @param now current time in epoch ms.
- * @return the message, or null if the lottery is open (the join button shows instead).
- */
 fun lotteryMessage(lottery: Lottery?, now: Long): String? {
     if (lottery == null || lottery.id.isBlank()) return "No lottery for this campsite right now."
     return when (LotteryStatusCalculator.status(lottery, now)) {
