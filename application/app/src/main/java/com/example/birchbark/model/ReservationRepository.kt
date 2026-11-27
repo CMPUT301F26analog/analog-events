@@ -4,8 +4,11 @@ package com.example.birchbark.model
 // See #054 in LLM.md (confirm with dates, decline, bookings)
 
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
+import com.example.birchbark.util.Time
 
 /**
  * Saves and loads [Reservation] objects in the top-level Firestore
@@ -157,11 +160,19 @@ class ReservationRepository {
      * US 01.04.01, 02.11.01, 02.07.01: the entrant accepts their reservation
      * for the days they picked, after agreeing to the campsite rules.
      *
-     * In one batch it marks the reservation CONFIRMED with the campsite and
-     * dates, copies in the entrant's contact details (so the owner can see who
-     * booked without reading their profile), and saves a [CampsiteBooking] so
-     * other winners can see those days are taken. Check the days first with
-     * [AvailableDates.problemWith].
+     * In one transaction it marks the reservation CONFIRMED with the campsite
+     * and dates, copies in the entrant's contact details (so the owner can see
+     * who booked without reading their profile), and saves one
+     * [CampsiteBooking] per night ([BookingNights]) holding the reservations on
+     * that night, so other winners can see which days are full.
+     *
+     * Capacity: a campground holds up to [Campsite.maxOccupancy] parties a
+     * night (Riley's PR feedback), so the transaction reads the campsite and
+     * every night first, and stops if any night already has that many
+     * reservations. Firestore retries the transaction if a night changes while
+     * it runs, so two entrants can't both take the last spot: one gets
+     * [DatesTakenException] and nothing of theirs is saved. See #079 and #091
+     * in LLM.md.
      *
      * @param reservation the PENDING reservation being accepted.
      * @param campsiteId the campsite being booked.
@@ -182,31 +193,68 @@ class ReservationRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val batch = db.batch()
-        batch.update(
-            db.collection("reservations").document(reservation.id),
-            mapOf(
-                "status" to ReservationStatus.CONFIRMED.name,
-                "campsiteId" to campsiteId,
-                "startDate" to startDate,
-                "endDate" to endDate,
-                "entrantName" to name,
-                "entrantEmail" to email,
-                "entrantPhone" to phone
-            )
+        val reservationRef = db.collection("reservations").document(reservation.id)
+        //one booking per night (BookingNights), so two stays can never share a night
+        val nights = BookingNights.bookingsFor(
+            campsiteId,
+            Time.toLocalDate(startDate),
+            Time.lastDayOf(endDate)
         )
-        //same ID as the reservation, so each reservation has at most one booking
-        batch.set(
-            db.collection("campsiteBookings").document(reservation.id),
-            mapOf(
-                "campsiteId" to campsiteId,
-                "startDate" to startDate,
-                "endDate" to endDate
+        val nightRefs = nights.map { db.collection("campsiteBookings").document(it.id) }
+
+        val campsiteRef = db.collection("campsites").document(campsiteId)
+
+        db.runTransaction { transaction ->
+            //all reads before any writes: stop if any night filled up since the screen loaded
+            val capacity = maxOf(1, transaction.get(campsiteRef).getLong("maxOccupancy")?.toInt() ?: 1)
+            val nightDocs = nightRefs.map { transaction.get(it) }
+            if (nightDocs.any { reservationIdsOf(it).size >= capacity }) {
+                throw DatesTakenException()
+            }
+
+            transaction.update(
+                reservationRef,
+                mapOf(
+                    "status" to ReservationStatus.CONFIRMED.name,
+                    "campsiteId" to campsiteId,
+                    "startDate" to startDate,
+                    "endDate" to endDate,
+                    "entrantName" to name,
+                    "entrantEmail" to email,
+                    "entrantPhone" to phone
+                )
             )
-        )
-        batch.commit()
+            for ((night, doc) in nights.zip(nightDocs)) {
+                if (doc.exists()) {
+                    //someone else is already on this night, take the next spot
+                    transaction.update(doc.reference, "reservationIds", FieldValue.arrayUnion(reservation.id))
+                } else {
+                    transaction.set(
+                        doc.reference,
+                        mapOf(
+                            "campsiteId" to night.campsiteId,
+                            "startDate" to night.startDate,
+                            "endDate" to night.endDate,
+                            "reservationIds" to listOf(reservation.id)
+                        )
+                    )
+                }
+            }
+        }
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
+     * Thrown inside [confirm]'s transaction when one of the picked nights was
+     * booked by someone else after the screen loaded. Nothing is saved.
+     */
+    class DatesTakenException : Exception("Some of those days just filled up, pick other days")
+
+    /** The reservations on one night document, or none if it doesn't exist. */
+    private fun reservationIdsOf(night: DocumentSnapshot): List<String> {
+        @Suppress("UNCHECKED_CAST")
+        return night.get("reservationIds") as? List<String> ?: emptyList()
     }
 
     /**
@@ -223,6 +271,47 @@ class ReservationRepository {
     }
 
     /**
+     * US 02.08.01: the owner rejects a reservation. Marks it REJECTED and, if it
+     * was confirmed, deletes its nights from "campsiteBookings" so others can
+     * book them. Both happen in one batch, so a rejected stay never keeps its
+     * nights. See #080 in LLM.md.
+     *
+     * @param reservation the active reservation being rejected.
+     */
+    fun reject(
+        reservation: Reservation,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val batch = db.batch()
+        batch.update(
+            db.collection("reservations").document(reservation.id),
+            "status", ReservationStatus.REJECTED.name
+        )
+
+        val campsiteId = reservation.campsiteId
+        val start = reservation.startDate
+        val end = reservation.endDate
+        //only confirmed reservations have nights booked
+        if (reservation.status == ReservationStatus.CONFIRMED &&
+            campsiteId != null && start != null && end != null
+        ) {
+            val nights = BookingNights.bookingsFor(campsiteId, Time.toLocalDate(start), Time.lastDayOf(end))
+            //free this reservation's spot on each night, others on the same night stay
+            for (night in nights) {
+                batch.update(
+                    db.collection("campsiteBookings").document(night.id),
+                    "reservationIds", FieldValue.arrayRemove(reservation.id)
+                )
+            }
+        }
+
+        batch.commit()
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { error -> onFailure(error) }
+    }
+
+    /**
      * US 01.04.01: the days already booked at a campsite, for working out
      * which days a winner can still pick ([AvailableDates]).
      *
@@ -235,12 +324,14 @@ class ReservationRepository {
     ) {
         db.collection("campsiteBookings").whereEqualTo("campsiteId", campsiteId).get()
             .addOnSuccessListener { result ->
-                onResult(result.documents.map { document ->
+                //a night everyone has left (rejected) is empty, not booked
+                onResult(result.documents.filter { reservationIdsOf(it).isNotEmpty() }.map { document ->
                     CampsiteBooking(
                         id = document.id,
                         campsiteId = document.getString("campsiteId") ?: "",
                         startDate = document.getLong("startDate") ?: 0L,
-                        endDate = document.getLong("endDate") ?: 0L
+                        endDate = document.getLong("endDate") ?: 0L,
+                        reservationIds = reservationIdsOf(document)
                     )
                 })
             }

@@ -2,6 +2,7 @@ package com.example.birchbark.model
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Source
 
 /**
  * Saves and loads [Campsite] objects in the Firestore "campsites" collection.
@@ -90,15 +91,16 @@ class CampsiteRepository {
      *
      * @param id the campsite's Firestore document ID ([Campsite.id]).
      * @param callback receives the campsite, a not-found result, or an error.
+     * @param source Firestore source; US 01.12.01 QR reads require Source.SERVER.
      */
-    fun getCampsite(id: String, callback: LoadCallback) {
-        db.collection("campsites").document(id).get()
+    fun getCampsite(id: String, callback: LoadCallback, source: Source = Source.DEFAULT) {
+        db.collection("campsites").document(id).get(source)
             .addOnSuccessListener { document ->
                 val campsite = document.toObject(Campsite::class.java)
                 if (campsite == null) {
                     callback.onNotFound()
                 } else {
-                    callback.onLoaded(campsite)
+                    callback.onLoaded(campsite.copy(id = document.id))
                 }
             }
             .addOnFailureListener { error -> callback.onError(error) }

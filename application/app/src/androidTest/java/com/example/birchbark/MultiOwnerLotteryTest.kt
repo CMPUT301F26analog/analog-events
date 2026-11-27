@@ -29,7 +29,7 @@ class MultiOwnerLotteryTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val lottery = Lottery(id = "L1", ownerId = "ownerA", campsiteIds = listOf("a1"))
+    private val lottery = Lottery(id = "L1", ownerId = "ownerA", campsiteIds = listOf("a1"), registrationEnd = Long.MAX_VALUE)
     private val whistlers = Campsite(id = "a1", ownerId = "ownerA", name = "Whistlers Campground", location = "Jasper")
     private val twoJack = Campsite(id = "b1", ownerId = "ownerB", name = "Two Jack Lakeside", location = "Banff")
     private val tunnel = Campsite(id = "c1", ownerId = "ownerC", name = "Tunnel Mountain", location = "Banff")

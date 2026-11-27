@@ -1,5 +1,7 @@
 package com.example.birchbark.ui.owner
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,12 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.model.CampsiteRepository
+import com.example.birchbark.model.NotificationRepository
 import com.example.birchbark.model.OwnerReservationTab
 import com.example.birchbark.model.OwnerReservationTabs
+import com.example.birchbark.model.RejectionNotice
 import com.example.birchbark.model.Reservation
 import com.example.birchbark.model.ReservationRepository
 import com.example.birchbark.model.ReservationStatus
@@ -38,7 +44,7 @@ import com.example.birchbark.util.Time
 // See #049 in LLM.md
 
 /**
- * US 02.07.01, 02.07.02, 02.07.03: the owner's reservations across all their
+ * US 02.07.01, 02.07.02, 02.07.03, 02.08.01: the owner's reservations across all their
  * campsites, split into Active, Past and Cancelled. Loads the reservations and
  * the owner's campsites (for their names), then shows [OwnerReservationsList].
  *
@@ -55,6 +61,7 @@ fun OwnerReservationsScreen(
     var reservations by remember { mutableStateOf<List<Reservation>?>(null) }
     var campsiteNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     //load every time the screen opens
     LaunchedEffect(ownerId) {
@@ -93,7 +100,27 @@ fun OwnerReservationsScreen(
             reservations = list,
             campsiteNames = campsiteNames,
             now = System.currentTimeMillis(),
-            onBack = onBack
+            onBack = onBack,
+            onReject = { reservation ->
+                reservationRepository.reject(
+                    reservation,
+                    onSuccess = {
+                        //move it to the Cancelled tab without reloading
+                        reservations = reservations?.map {
+                            if (it.id == reservation.id) it.copy(status = ReservationStatus.REJECTED) else it
+                        }
+                        val name = reservation.campsiteId?.let { campsiteNames[it] }
+                        NotificationRepository().send(
+                            listOf(RejectionNotice.build(reservation, name, System.currentTimeMillis())),
+                            onResult = {},
+                            onFailure = { error -> Log.e("OwnerReservations", "Couldn't notify entrant", error) }
+                        )
+                    },
+                    onFailure = {
+                        Toast.makeText(context, "Couldn't reject, check your connection and try again", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
         )
     }
 }
@@ -107,15 +134,19 @@ fun OwnerReservationsScreen(
  * @param campsiteNames campsite ID to name, for showing which campsite was booked.
  * @param now current time in epoch ms, used to split active from past.
  * @param onBack called when the owner taps Back.
+ * @param onReject called when the owner confirms rejecting a reservation. US 02.08.01.
  */
 @Composable
 fun OwnerReservationsList(
     reservations: List<Reservation>,
     campsiteNames: Map<String, String>,
     now: Long,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onReject: (Reservation) -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(OwnerReservationTab.ACTIVE) }
+    //the reservation waiting on the "are you sure" dialog, null when it's closed
+    var toReject by remember { mutableStateOf<Reservation?>(null) }
     val shown = OwnerReservationTabs.forTab(reservations, selectedTab, now)
 
     Column(
@@ -143,10 +174,38 @@ fun OwnerReservationsList(
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(items = shown, key = { it.id }) { reservation ->
-                    ReservationCard(reservation, campsiteNames)
+                    ReservationCard(
+                        reservation,
+                        campsiteNames,
+                        onReject = if (OwnerReservationTabs.canReject(reservation, now)) {
+                            { toReject = reservation }
+                        } else {
+                            null
+                        }
+                    )
                 }
             }
         }
+    }
+
+    toReject?.let { reservation ->
+        AlertDialog(
+            onDismissRequest = { toReject = null },
+            title = { Text("Reject this reservation?") },
+            text = { Text("The entrant will be told and the dates will open up again. This can't be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onReject(reservation)
+                        toReject = null
+                    },
+                    modifier = Modifier.testTag("confirmRejectButton")
+                ) { Text("Reject") }
+            },
+            dismissButton = {
+                TextButton(onClick = { toReject = null }) { Text("Keep it") }
+            }
+        )
     }
 }
 
@@ -171,9 +230,14 @@ private fun TabButton(
 /**
  * One reservation: campsite, dates, status and, once confirmed, the entrant's
  * contact details (TA feedback: owners should see who booked).
+ * Shows a Reject button when [onReject] isn't null (US 02.08.01).
  */
 @Composable
-private fun ReservationCard(reservation: Reservation, campsiteNames: Map<String, String>) {
+private fun ReservationCard(
+    reservation: Reservation,
+    campsiteNames: Map<String, String>,
+    onReject: (() -> Unit)?
+) {
     Card(modifier = Modifier.fillMaxWidth().testTag("ownerReservation-${reservation.id}")) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -193,6 +257,13 @@ private fun ReservationCard(reservation: Reservation, campsiteNames: Map<String,
                 reservation.entrantPhone?.let { Text("Phone: $it") }
             } else {
                 Text("Waiting for the entrant to confirm")
+            }
+
+            if (onReject != null) {
+                TextButton(
+                    onClick = onReject,
+                    modifier = Modifier.testTag("rejectButton-${reservation.id}")
+                ) { Text("Reject") }
             }
         }
     }

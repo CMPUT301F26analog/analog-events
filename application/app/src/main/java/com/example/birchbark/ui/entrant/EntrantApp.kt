@@ -32,15 +32,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.UserProfile
+import com.example.birchbark.qr.QrCodeScanner
+import com.example.birchbark.qr.QrScanResult
+import com.example.birchbark.qr.rememberZXingQrCodeScanner
 import com.example.birchbark.ui.theme.Avatar
 import com.example.birchbark.ui.theme.EmptyState
 import com.example.birchbark.ui.theme.MenuRow
 import com.example.birchbark.ui.theme.ScreenTitle
 import com.example.birchbark.ui.theme.UserHeader
 import com.example.birchbark.ui.notifications.NotificationSettingsScreen
+import com.example.birchbark.ui.qr.QrScanScreen
 import com.example.birchbark.ui.screens.BlankEntrantScreen
 import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
+import com.example.birchbark.model.Campsite
+import com.example.birchbark.model.ReviewRepository
+
 
 /**
  * The entrant's whole app: a header, the current tab, and the bottom navigation.
@@ -50,17 +57,22 @@ import com.example.birchbark.ui.theme.BirchBarkColors
  * Outstanding issues. The Home tab only shows the empty "Your Lotteries" message,
  * it needs the lotteries the entrant has joined. Bookmarks isn't a user story
  * yet, so it's a placeholder. The bell in the header is hidden until the
- * notifications screen exists. The reservations list has to be loaded by the caller.
+ * notifications screen exists. Reservations are loaded by [EntrantReservationsRoute].
  *
  * @param profile the signed-in entrant's profile.
  * @param onProfileDeleted called after the entrant deletes their profile.
  * @param reservations the entrant's reservations for the booking list.
+ * @param onQrPayload raw scan callback for US 01.12.01 shared QR navigation.
+ * @param qrScannerFactory injectable scanner factory for tests.
  */
 @Composable
 fun EntrantApp(
     profile: UserProfile,
     onProfileDeleted: () -> Unit,
-    reservations: List<ReservationListItem> = emptyList()
+    reservations: List<ReservationListItem> = emptyList(),
+    onQrPayload: (String) -> Unit = {},
+    qrScannerFactory: @Composable ((QrScanResult) -> Unit) -> QrCodeScanner =
+        { callback -> rememberZXingQrCodeScanner(callback) }
 ) {
     var currentProfile by remember { mutableStateOf(profile) } // TBD
     var tab by rememberSaveable { mutableStateOf(EntrantTab.HOME) }
@@ -70,6 +82,9 @@ fun EntrantApp(
         .filter { it.isNotBlank() }
         .joinToString(" ")
         .ifBlank { "Entrant" }
+
+    // See [TBD 2] in LLM.md
+    val photo = remember(currentProfile.profileImage) { currentProfile.profileImage?.toBytes() }
 
     // See [TBD 1] in LLM.md
     Scaffold(
@@ -89,7 +104,7 @@ fun EntrantApp(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             //the profile tab shows who you are in its own page
             if (tab != EntrantTab.PROFILE) {
-                UserHeader(name)
+                UserHeader(name, imageBytes = photo)
             }
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -100,14 +115,16 @@ fun EntrantApp(
                         hint = "Campsites you bookmark will show up here",
                         modifier = Modifier.fillMaxSize()
                     )
-                    EntrantTab.BROWSE -> EntrantCampsitesApp()
+                    EntrantTab.BROWSE -> EntrantCampsitesApp(
+                        entrantId = currentProfile.fid,
+                        entrantName = name)
+                    EntrantTab.SCAN -> QrScanScreen(onQrPayload, qrScannerFactory)
                     EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = currentProfile,
                         name = name,
                         page = profilePage,
                         onPage = { profilePage = it },
-                        reservations = reservations,
                         onProfileUpdated = { currentProfile = it },
                         onProfileDeleted = onProfileDeleted
                     )
@@ -168,11 +185,20 @@ private fun ProfileTab(
     name: String,
     page: ProfilePage,
     onPage: (ProfilePage) -> Unit,
-    reservations: List<ReservationListItem>,
     onProfileUpdated: (UserProfile) -> Unit,
     onProfileDeleted: () -> Unit
 ) {
-    BackHandler(enabled = page != ProfilePage.MENU) { onPage(ProfilePage.MENU) }
+    var editingReviewItem by remember(page) {
+        mutableStateOf<ReviewRepository.UserReviewItem?>(null)
+    }
+
+    BackHandler(enabled = page != ProfilePage.MENU) {
+        if (editingReviewItem != null) {
+            editingReviewItem = null
+        } else {
+            onPage(ProfilePage.MENU)
+        }
+    }
 
     when (page) {
         ProfilePage.MENU -> ProfileMenu(profile, name, onPage)
@@ -181,12 +207,11 @@ private fun ProfileTab(
             onProfileUpdated = onProfileUpdated,
             onDeleted = onProfileDeleted
         )
-        ProfilePage.RESERVATIONS -> Column(modifier = Modifier.fillMaxSize()) {
-            TextButton(onClick = { onPage(ProfilePage.MENU) }) {
-                Text("Back", color = BirchBarkColors.Gold)
-            }
-            EntrantReservationsScreen(reservations = reservations)
-        }
+        //US 01.04.01, 01.04.03, 01.06.01, 01.06.02: wins to answer, then active / past stays
+        ProfilePage.RESERVATIONS -> EntrantReservationsRoute(
+            profile = profile,
+            onBack = { onPage(ProfilePage.MENU) }
+        )
         // TBD
         ProfilePage.WAITLIST -> BlankEntrantScreen(
             title = "Current Waitlists",
@@ -199,11 +224,29 @@ private fun ProfileTab(
             }
             NotificationSettingsScreen()
         }
-        // TBD
-        ProfilePage.REVIEWS -> BlankEntrantScreen(
-            title = "Ratings & Reviews",
-            onBack = { onPage(ProfilePage.MENU) }
-        )
+        ProfilePage.REVIEWS -> {
+            val selectedItem = editingReviewItem
+            if (selectedItem != null) {
+                val targetCampsite = selectedItem.campsite
+                    ?: Campsite(
+                        id = selectedItem.review.campsiteId,
+                        name = selectedItem.campsiteName
+                    )
+                ReviewRoute(
+                    campsite = targetCampsite,
+                    entrantId = profile.fid,
+                    entrantName = name,
+                    onBack = { editingReviewItem = null }
+                )
+            } else {
+                UserReviewsRoute(
+                    entrantId = profile.fid,
+                    onBack = { onPage(ProfilePage.MENU) },
+                    onReviewClick = { item -> editingReviewItem = item }
+                )
+            }
+        }
+
         ProfilePage.POLICY -> PolicyScreen(
             onBack = { onPage(ProfilePage.MENU) }
         )
@@ -213,6 +256,8 @@ private fun ProfileTab(
 /** The list of options on the profile page. */
 @Composable
 private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage) -> Unit) {
+    val photo = remember(profile.profileImage) { profile.profileImage?.toBytes() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -221,7 +266,7 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(name, size = 56.dp)
+            Avatar(name, size = 56.dp, imageBytes = photo)
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
                     name,

@@ -35,6 +35,7 @@ import com.google.firebase.auth.auth
 private enum class AdminSection {
     CAMPSITES,
     PROFILES,
+    IMAGES,
     LOGS
 }
 
@@ -93,6 +94,19 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                     label = { Text("Profiles") },
                     colors = navigationItemColors()
                 )
+                NavigationBarItem(
+                    modifier = Modifier.testTag("admin-images-tab"),
+                    selected = selectedSection == AdminSection.IMAGES,
+                    onClick = { selectedSection = AdminSection.IMAGES },
+                    icon = {
+                        Text(
+                            "▧",
+                            color = if (selectedSection == AdminSection.IMAGES) DarkGreen else MutedText
+                        )
+                    },
+                    label = { Text("Images") },
+                    colors = navigationItemColors()
+                )
 
                 NavigationBarItem(
                     // Gives this tab a tag that can be used by UI tests.
@@ -137,6 +151,7 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                 when (selectedSection) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
+                    AdminSection.IMAGES -> AdminUploadedImagesScreen()
                     AdminSection.LOGS -> PlaceholderScreen("Logs")
                 }
             }

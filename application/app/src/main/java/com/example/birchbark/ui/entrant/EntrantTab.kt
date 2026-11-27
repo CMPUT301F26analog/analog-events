@@ -10,6 +10,8 @@ package com.example.birchbark.ui.entrant
 enum class EntrantTab(val label: String, val icon: String) {
     HOME("Home", "⌂"),
     BROWSE("Browse", "⌕"),
+
+    SCAN("Scan", "▦"),
     BOOKMARKS("Bookmarks", "☆"),
     MESSAGES("Messages", "✉"),
     PROFILE("Profile", "⚙")

@@ -44,6 +44,8 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-installations")
+    //OpenStreetMap map for the campsite map pin (US 02.01.02), approved by our TA
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -60,4 +62,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.embedded)
 }

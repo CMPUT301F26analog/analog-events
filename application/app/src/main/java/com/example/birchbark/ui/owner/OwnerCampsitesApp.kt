@@ -19,7 +19,9 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * the lottery edit screen (US 02.04.06), the View Gallery button opens the
  * campsite's photos (US 02.01.02), and the register button opens the
  * register form (US 02.01.01, US 02.01.02). My Reservations opens the owner's
- * reservations (US 02.07.01, 02.07.02, 02.07.03). Invite Another Owner opens
+ * reservations (US 02.07.01, 02.07.02, 02.07.03).
+ * US 02.02.01: the QR screen can be opened from a campsite's details.
+ * Invite Another Owner opens
  * the invite screen and Lottery Invites opens the owner's invites (US 02.04.08).
  * Sent Notifications opens everything the owner has sent (US 02.10.02).
  *
@@ -43,6 +45,7 @@ fun OwnerCampsitesApp(ownerId: String) {
     var editingLotteryFor by remember { mutableStateOf<Campsite?>(null) }
     var waitlistLotteryId by remember { mutableStateOf<String?>(null) }
     var galleryCampsite by remember { mutableStateOf<Campsite?>(null) }
+    var qrCampsite by remember { mutableStateOf<Campsite?>(null) }
     var viewingReservations by remember { mutableStateOf(false) }
     //US 02.04.08: the lottery being invited into, and the invites screen
     var invitingInto by remember { mutableStateOf<Lottery?>(null) }
@@ -55,6 +58,7 @@ fun OwnerCampsitesApp(ownerId: String) {
     val selectedId = selectedCampsiteId
     val waitlistId = waitlistLotteryId
     val galleryFor = galleryCampsite
+    val qrFor = qrCampsite
     val inviteLottery = invitingInto
 
     if (viewingSent) {
@@ -96,6 +100,9 @@ fun OwnerCampsitesApp(ownerId: String) {
             onBack = { waitlistLotteryId = null }
         )
 
+    } else if (qrFor != null) {
+        BackHandler { qrCampsite = null }
+        CampsiteQrCodeScreen(campsite = qrFor, onBack = { qrCampsite = null })
     } else if (galleryFor != null) {
         //gallery screen (US 02.01.02), back goes to the details screen
         BackHandler { galleryCampsite = null }
@@ -145,6 +152,9 @@ fun OwnerCampsitesApp(ownerId: String) {
             onEditLotteryClick = { campsite -> editingLotteryFor = campsite },
             onViewWaitlist = { lotteryId -> waitlistLotteryId = lotteryId },
             onGalleryClick = { campsite -> galleryCampsite = campsite },
+            onQrClick = { campsite ->
+                if (campsite.ownerId == ownerId) qrCampsite = campsite
+            },
             onInviteClick = { lottery -> invitingInto = lottery }
         )
     } else {
