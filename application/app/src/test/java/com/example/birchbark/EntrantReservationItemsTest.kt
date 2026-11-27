@@ -47,13 +47,19 @@ class EntrantReservationItemsTest {
     }
 
     @Test
-    fun pendingDeclinedAndRejected_areLeftOut() {
+    fun pendingAndDeclined_areLeftOut() {
         val reservations = listOf(
             reservation("p", ReservationStatus.PENDING, withDates = false),
             reservation("d", ReservationStatus.DECLINED),
-            reservation("r", ReservationStatus.REJECTED),
         )
         assertTrue(toListItems(reservations, campsites).isEmpty())
+    }
+
+    // US 02.08.01: the entrant sees that the owner rejected their stay
+    @Test
+    fun rejected_isListedAsCancelled() {
+        val item = toListItems(listOf(reservation("r", ReservationStatus.REJECTED)), campsites).single()
+        assertTrue(item.cancelled)
     }
 
     @Test
