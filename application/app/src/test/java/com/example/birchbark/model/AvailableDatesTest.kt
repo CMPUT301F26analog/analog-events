@@ -131,4 +131,45 @@ class AvailableDatesTest {
             assertFalse(nov20.plusDays(offset) in freeDays)
         }
     }
+
+    // Capacity (Riley's PR feedback): a campground holds up to maxOccupancy parties a night
+
+    private fun bookingWith(day: LocalDate, vararg reservationIds: String) =
+        CampsiteBooking(
+            id = "C1_$day",
+            campsiteId = "C1",
+            startDate = Time.startOfDay(day),
+            endDate = Time.endOfDay(day),
+            reservationIds = reservationIds.toList()
+        )
+
+    @Test
+    fun underCapacity_dayIsStillFree() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertEquals(emptySet<LocalDate>(), AvailableDates.bookedDays(bookings, capacity = 2))
+    }
+
+    @Test
+    fun atCapacity_dayIsFull() {
+        val bookings = listOf(bookingWith(nov20, "R1", "R2"))
+        assertEquals(setOf(nov20), AvailableDates.bookedDays(bookings, capacity = 2))
+    }
+
+    @Test
+    fun underCapacity_winnerCanPickABookedDay() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertNull(AvailableDates.problemWith(lottery, bookings, nov20, nov20.plusDays(1), capacity = 2))
+    }
+
+    @Test
+    fun atCapacity_winnerCantPickAFullDay() {
+        val bookings = listOf(bookingWith(nov20, "R1", "R2"))
+        assertNotNull(AvailableDates.problemWith(lottery, bookings, nov20, nov20.plusDays(1), capacity = 2))
+    }
+
+    @Test
+    fun noMaxOccupancySet_actsLikeOneParty() {
+        val bookings = listOf(bookingWith(nov20, "R1"))
+        assertEquals(setOf(nov20), AvailableDates.bookedDays(bookings, capacity = 0))
+    }
 }

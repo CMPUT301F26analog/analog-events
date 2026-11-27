@@ -73,6 +73,7 @@ import android.util.Log
  * @param onEditLotteryClick called with the campsite when the owner taps Edit Lottery (US 02.04.06).
  * @param onGalleryClick called with the campsite when the owner taps View Gallery (US 02.01.02).
  * @param onQrClick called with the campsite when the owner taps View QR Code (US 02.02.01).
+ * @param onInviteClick called with the current lottery when the owner taps Invite Another Owner (US 02.04.08).
  */
 @Composable
 fun CampsiteDetailsScreen(
@@ -83,7 +84,8 @@ fun CampsiteDetailsScreen(
     onEditLotteryClick: (Campsite) -> Unit = {},
     onViewWaitlist: (String) -> Unit = {},
     onGalleryClick: (Campsite) -> Unit = {},
-    onQrClick: ((Campsite) -> Unit)? = null
+    onQrClick: ((Campsite) -> Unit)? = null,
+    onInviteClick: (Lottery) -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
     val lotteryRepository = remember { LotteryRepository() }
@@ -189,8 +191,12 @@ fun CampsiteDetailsScreen(
         val canCreateLottery = lotteryList != null &&
                 currentLottery(lotteryList, now) == null
 
-        val canEditLottery = lotteryList != null &&
-                CurrentLottery.pick(lotteryList) != null
+        //US 02.04.08: the campsite could be in another owner's lottery, only the
+        //owner who made it can edit it or invite more campsites
+        val current = lotteryList?.let { CurrentLottery.pick(it) }
+        val ownsLottery = current != null && current.ownerId == shown.ownerId
+
+        val canEditLottery = ownsLottery
 
         val selectedLottery = lotteryList?.let { list ->
             currentLottery(list, now)
@@ -208,6 +214,8 @@ fun CampsiteDetailsScreen(
             onEditLotteryClick = { onEditLotteryClick(shown) },
             onGalleryClick = { onGalleryClick(shown) },
             onQrClick = onQrClick?.let { callback -> { callback(shown) } },
+            canInvite = ownsLottery,
+            onInviteClick = { current?.let { onInviteClick(it) } },
             bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
             canViewWaitlist = selectedLottery?.id?.isNotBlank() == true,
             onViewWaitlist = {
@@ -232,6 +240,8 @@ fun CampsiteDetailsScreen(
  * @param canEditLottery true to show the Edit Lottery button.
  * @param onEditLotteryClick called when the owner taps Edit Lottery.
  * @param onGalleryClick called when the owner taps View Gallery (US 02.01.02).
+ * @param canInvite true to show the Invite Another Owner button (US 02.04.08).
+ * @param onInviteClick called when the owner taps Invite Another Owner.
  * @param bookedDatesText the campsite's booked date ranges, one per line (US 02.06.01).
  * @param onQrClick optional action for viewing the campsite QR code (US 02.02.01).
  */
@@ -246,6 +256,8 @@ fun CampsiteDetailsContent(
     canEditLottery: Boolean = false,
     onEditLotteryClick: () -> Unit = {},
     onGalleryClick: () -> Unit = {},
+    canInvite: Boolean = false,
+    onInviteClick: () -> Unit = {},
     bookedDatesText: String = "No booked dates yet",
     canViewWaitlist: Boolean = false,
     onViewWaitlist: () -> Unit = {},
@@ -352,6 +364,16 @@ fun CampsiteDetailsContent(
                 modifier = Modifier.fillMaxWidth().testTag("editLotteryButton")
             ) {
                 Text("Edit Lottery")
+            }
+        }
+        //US 02.04.08: invite other owners' campsites into this lottery
+        if (canInvite) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onInviteClick,
+                modifier = Modifier.fillMaxWidth().testTag("inviteOwnerButton")
+            ) {
+                Text("Invite Another Owner")
             }
         }
     }
