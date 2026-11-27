@@ -11,8 +11,8 @@ import org.junit.Test
  */
 class InviteCheckerTest {
 
-    //lottery made by owner A for one of their campsites
-    private val lottery = Lottery(id = "L1", ownerId = "ownerA", campsiteIds = listOf("a1"))
+    //lottery made by owner A for one of their campsites, still open for registration
+    private val lottery = Lottery(id = "L1", ownerId = "ownerA", campsiteIds = listOf("a1"), registrationEnd = Long.MAX_VALUE)
 
     private val ownCampsite = Campsite(id = "a2", ownerId = "ownerA", name = "Whistlers Campground", location = "Jasper")
     private val otherCampsite = Campsite(id = "b1", ownerId = "ownerB", name = "Two Jack Lakeside", location = "Banff")
@@ -37,6 +37,16 @@ class InviteCheckerTest {
     @Test
     fun campsiteWithNoOwner_cantBeInvited() {
         assertFalse(InviteChecker.canInvite(noOwner, lottery))
+    }
+
+    @Test
+    fun drawnLottery_cantInvite() {
+        assertFalse(InviteChecker.canInvite(otherCampsite, lottery.copy(drawn = true)))
+    }
+
+    @Test
+    fun closedLottery_cantInvite() {
+        assertFalse(InviteChecker.canInvite(otherCampsite, lottery.copy(registrationEnd = 1L)))
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.example.birchbark.model
 
+import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -8,8 +9,7 @@ import com.google.firebase.firestore.FirebaseFirestore
  * "lotteryInvites" collection, and adds the campsite to the lottery when an
  * invite is accepted.
  *
- * Outstanding issues. The same campsite can be invited more than once if the
- * owner taps Invite on two different days.
+ * Outstanding issues. An owner can't withdraw their campsite after accepting.
  */
 class LotteryInviteRepository {
 
@@ -48,7 +48,8 @@ class LotteryInviteRepository {
      * @param callback told if it saved.
      */
     fun sendInvite(campsite: Campsite, lottery: Lottery, callback: DoneCallback) {
-        val ref = db.collection("lotteryInvites").document()
+        //one invite per campsite per lottery, so the same campsite can't be invited twice
+        val ref = db.collection("lotteryInvites").document("${lottery.id}_${campsite.id}")
         val invite = LotteryInvite(
             id = ref.id,
             lotteryId = lottery.id,
@@ -110,7 +111,10 @@ class LotteryInviteRepository {
                 )
                 batch.commit()
                     .addOnSuccessListener { callback.onDone() }
-                    .addOnFailureListener { callback.onError("Couldn't accept, check your connection and try again") }
+                    .addOnFailureListener { error ->
+                        Log.e("LotteryInviteRepository", "Accept failed", error)
+                        callback.onError("Couldn't accept the invitation")
+                    }
             }
 
             override fun onError(error: Exception) {
