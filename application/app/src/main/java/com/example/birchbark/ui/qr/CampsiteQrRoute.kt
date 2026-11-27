@@ -15,8 +15,8 @@ import com.example.birchbark.model.*
  * Loading/error/owner outcomes are dialogs; successful entrant and admin outcomes
  * are delegated to existing role-specific interfaces. No Firebase calls live here.
  *
- * @Note See [RW-3] in References.md
- * @Note See [RW-3-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @param payload raw scanner/deep-link contents.
  * @param activeRole role already authorized by RoleHome.

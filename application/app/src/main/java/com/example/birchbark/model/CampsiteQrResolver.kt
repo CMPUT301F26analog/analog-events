@@ -5,8 +5,8 @@ package com.example.birchbark.model
  *
  * Sealed result of validating and resolving a scanned campsite URI (that is, QR code).
  *
- * @Note See [RW-1] in Rerences.md
- * @Note see [RW-1-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  **/
 sealed interface CampsiteQrResult {
     /** @property campsite the current campsite returned by the data source. */

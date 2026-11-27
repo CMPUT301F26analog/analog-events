@@ -7,8 +7,8 @@ package com.example.birchbark.model
  * Codec is independent of the scanner, Android and Firestore. The URI
  * identifies a campsite, not a user, and grants no access permissions.
  *
- * @Note See [RW-QR] in References.md
- * @Note See [RM-QR-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  */
 class CampsiteQrCodec {
     private val prefix = "birchbark://campsite/"

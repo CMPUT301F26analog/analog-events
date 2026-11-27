@@ -8,8 +8,8 @@ import com.google.firebase.firestore.Source
  * Concrete adapter reusing CampsiteRepository rather than adding
  * another Firestore implementation. Only QR reads require the server explicitly.
  *
- * @Note See [RW-2] in References.md
- * @Note See [RW-1-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @param repository existing campsite persistence implementation.
  */

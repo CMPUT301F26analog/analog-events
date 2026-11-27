@@ -14,8 +14,8 @@ import com.journeyapps.barcodescanner.ScanOptions
  * US 01.12.01
  * Concrete scanner adapter; hides the Android camera launcher.
  *
- * @Note See [RW-2] in References.md
- * @Note Seet [RW-1-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @param launch action that starts the configured JourneyApps activity.
  */

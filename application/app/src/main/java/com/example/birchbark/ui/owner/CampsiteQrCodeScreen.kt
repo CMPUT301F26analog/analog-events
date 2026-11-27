@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
  * The unique QR payload is derived from the campsite ID created at registration;
  * the bitmap is rendered only when this route (screen) is opened.
  *
- * @Note See [RW-3-LLM] in LLM.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @param campsite the owner's existing, registered campsite.
  * @param onBack returns to its details.

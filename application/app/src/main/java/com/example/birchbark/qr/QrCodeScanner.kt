@@ -2,7 +2,7 @@ package com.example.birchbark.qr
 
 /** US 01.12.01
  *
- * @Note See [RW-1-LLM] in LLM.md
+ * @Note See #[RW+91] in LLM.md
  *
  *  Sealed result interface for a single scanner request.
  **/

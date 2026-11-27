@@ -7,7 +7,7 @@ package com.example.birchbark.qr
  *
  * Interfaces with the QRCodeGenerator class to encode text as QR image.
  *
- * @Note See [RW-1-LLM] in LLM.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @property width image width in pixels.
  * @property height image height in pixels.

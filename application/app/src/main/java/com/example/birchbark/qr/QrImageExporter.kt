@@ -15,8 +15,8 @@ import java.io.OutputStream
  *
  * Concrete Android extension converting a platform-independent QR image.
  *
- * @Note See [RW-2] in References.md
- * @Note See [RW-2-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  *
  * @return a lossless ARGB bitmap suitable for Compose and PNG export.
  */

@@ -14,8 +14,8 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
  * Adapts the BitMatrix-to-pixels approach from Blair Fernandes' article:
  * https://blair49.medium.com/how-to-add-qr-code-generation-and-scanning-in-your-android-app-7baff15bd7c6
  *
- * @Note See [RW-1] in References.md
- * @Note See [RW-2-LLM] in LLM.md
+ * @Note See #[RW-15], #[RW-16], #[RW-17], #[RW-18] in References.md
+ * @Note See #[RW+91] in LLM.md
  *
  * A black-on-white symbol and four-module quiet zone preserve scan contrast.
  * No Android Bitmap is needed until presentation/export, enabling JVM tests.
