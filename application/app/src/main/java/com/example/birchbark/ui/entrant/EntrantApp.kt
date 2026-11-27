@@ -461,11 +461,6 @@ private fun ProfileTab(
             profile = profile,
             onBack = { onPage(ProfilePage.MENU) }
         )
-        ProfilePage.WAITLIST -> CurrentWaitlistsScreen(
-            items = waitlistItems,
-            onBack = { onPage(ProfilePage.MENU) },
-            onCampsiteClick = onOpenCampsiteFromWaitlist
-        )
         //US 01.10.01, the notifications on/off switch
         ProfilePage.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
             TextButton(onClick = { onPage(ProfilePage.MENU) }) {
@@ -602,7 +597,6 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
 
         MenuRow("Your Profile") { onPage(ProfilePage.EDIT) }
         MenuRow("Reservations History") { onPage(ProfilePage.RESERVATIONS) }
-        MenuRow("Current Waitlists") { onPage(ProfilePage.WAITLIST  ) }
         MenuRow("Ratings & Reviews") { onPage(ProfilePage.REVIEWS  ) }
         MenuRow("Settings") { onPage(ProfilePage.SETTINGS) }
         MenuRow("App Policy") { onPage(ProfilePage.POLICY) }
