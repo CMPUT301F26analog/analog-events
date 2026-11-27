@@ -247,6 +247,7 @@ fun EntrantApp(
                 onSelect = {
                     tab = it
                     profilePage = ProfilePage.MENU
+                    refreshTrigger++
                 }
             )
         }
@@ -281,7 +282,10 @@ fun EntrantApp(
                         profile = currentProfile,
                         name = name,
                         page = profilePage,
-                        onPage = { profilePage = it },
+                        onPage = {
+                            profilePage = it
+                            refreshTrigger++
+                                 },
                         waitlistItems = lotteryItems.filter { it.lottery.id in waitlistLotteryIds },
                         onOpenCampsiteFromWaitlist = { camp ->
                             browseInitialCampsite = camp
