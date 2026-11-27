@@ -33,7 +33,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.CampsiteImage
 import com.example.birchbark.model.ImageRepository
-import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 
 /**
@@ -50,6 +49,10 @@ import com.google.firebase.firestore.FirebaseFirestore
  */
 @Composable
 fun AdminUploadedImagesScreen() {
+    // See #072 in LLM.md
+    // See #074 in LLM.md
+    // See #075 in LLM.md
+    // See #078 in LLM.md
     var images by remember {
         mutableStateOf<List<CampsiteImage>>(emptyList()) }
     var associationNames by remember {
@@ -82,12 +85,6 @@ fun AdminUploadedImagesScreen() {
         ImageRepository().getAllImages(
             object : ImageRepository.ListCallback {
                 override fun onLoaded(imagesFromFirestore: List<CampsiteImage>) {
-                    Log.d(
-                        "ImageRepository",
-                        "Project: ${FirebaseApp.getInstance().options.projectId}, " +
-                                "images returned: ${imagesFromFirestore.size}, " +
-                                "IDs: ${imagesFromFirestore.map { it.id }}")
-
                     images = imagesFromFirestore
                     loadImageAssociationNames(imagesFromFirestore) { names ->
                         associationNames = names
@@ -102,8 +99,7 @@ fun AdminUploadedImagesScreen() {
 
     val query = searchQuery.trim()
     val filteredImages = images.filter { image ->
-        query.isBlank() || associationNames[image.id]
-            ?.contains(query, ignoreCase = true) == true
+        AdminImageRules.matchesSearch(associationNames[image.id], query)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -160,29 +156,29 @@ fun AdminUploadedImagesScreen() {
                                 .fillMaxWidth()
                                 .height(200.dp)
                         ) { if (bitmap != null) {
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = "Tap to see the campsite or profile name",
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clickable {
-                                            selectedImage = image
-                                            associationType = ""
-                                            associationName = null
-                                            associationError = null
-                                            associationLoading = true
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Tap to see the campsite or profile name",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable {
+                                        selectedImage = image
+                                        associationType = ""
+                                        associationName = null
+                                        associationError = null
+                                        associationLoading = true
 
-                                            // Fetches the associated campsite or profile name.
-                                            loadImageAssociation(image) { type, name, error ->
-                                                // Ignores a result if another image was selected meanwhile.
-                                                if (selectedImage?.id == image.id) {
-                                                    associationType = type
-                                                    associationName = name
-                                                    associationError = error
-                                                    associationLoading = false } } },
-                                    contentScale = ContentScale.Crop)
-                            } else {
-                                Text("Could not display this image.") }} } } } } }
+                                        // Fetches the associated campsite or profile name.
+                                        loadImageAssociation(image) { type, name, error ->
+                                            // Ignores a result if another image was selected meanwhile.
+                                            if (selectedImage?.id == image.id) {
+                                                associationType = type
+                                                associationName = name
+                                                associationError = error
+                                                associationLoading = false } } },
+                                contentScale = ContentScale.Crop)
+                        } else {
+                            Text("Could not display this image.") }} } } } } }
 
     // Confirms and performs deletion of the selected photo.
     imageToDelete?.let { image ->
@@ -214,7 +210,7 @@ fun AdminUploadedImagesScreen() {
                             image.id,
                             object : ImageRepository.DeleteCallback {
                                 override fun onDeleted() {
-                                    images = images.filterNot { it.id == image.id }
+                                    images = AdminImageRules.removeDeletedImage(images, image.id)
                                     associationNames = associationNames - image.id
                                     if (selectedImage?.id == image.id) {
                                         selectedImage = null
@@ -244,8 +240,8 @@ fun AdminUploadedImagesScreen() {
                     associationLoading -> { CircularProgressIndicator() }
 
                     associationError != null -> { Text(
-                            associationError
-                                ?: "Could not load the name.") }
+                        associationError
+                            ?: "Could not load the name.") }
                     associationName != null -> {
                         Text("$associationType: $associationName") }
 
@@ -276,13 +272,13 @@ private fun loadImageAssociationNames(
     images: List<CampsiteImage>,
     onLoaded: (Map<String, String>) -> Unit
 ) { val db = FirebaseFirestore.getInstance()
+    // See #076 in LLM.md
+    // See #077 in LLM.md
     db.collection("campsites")
         .get()
         .addOnSuccessListener { campsiteResult ->
             val campsiteNames = campsiteResult.documents.mapNotNull { document ->
                 val name = document.getString("name")
-                    ?: document.getString("campsiteName")
-                    ?: document.getString("title")
                 name?.let { document.id to it }
             }.toMap()
 
@@ -294,10 +290,6 @@ private fun loadImageAssociationNames(
                         val lastName = document.getString("lastName").orEmpty()
                         val joinedName = "$firstName $lastName".trim()
                         val name = joinedName.takeIf { it.isNotBlank() }
-                            ?: document.getString("name")
-                            ?: document.getString("displayName")
-                            ?: document.getString("fullName")
-                            ?: document.getString("username")
                         name?.takeIf { it.isNotBlank() }?.let { document.id to it } }.toMap()
 
                     val namesByImageId = images.mapNotNull { image ->
@@ -329,6 +321,8 @@ private fun loadImageAssociation(
     image: CampsiteImage,
     onResult: (type: String, name: String?, error: String?) -> Unit
 ) { val isCampsiteImage = image.campsiteId.isNotBlank()
+    // See #076 in LLM.md
+    // See #077 in LLM.md
     val collection = if (isCampsiteImage) "campsites" else "users"
     val documentId = if (isCampsiteImage) image.campsiteId else image.ownerId
 
@@ -346,13 +340,10 @@ private fun loadImageAssociation(
         .addOnSuccessListener { document ->
             val name = if (isCampsiteImage) {
                 document.getString("name")
-                    ?: document.getString("campsiteName")
-                    ?: document.getString("title")
             } else {
-                document.getString("name")
-                    ?: document.getString("displayName")
-                    ?: document.getString("fullName")
-                    ?: document.getString("username") }
+                val firstName = document.getString("firstName").orEmpty()
+                val lastName = document.getString("lastName").orEmpty()
+                "$firstName $lastName".trim().takeIf { it.isNotBlank() } }
 
             onResult(
                 if (isCampsiteImage) "Campsite" else "Profile",
@@ -377,6 +368,7 @@ private fun loadImageAssociation(
  */
 private fun decodeBase64Image(data: String) =
     runCatching {
+        // See #073 in LLM.md
         val encodedData = data.substringAfter(",", data)
         val bytes = Base64.decode(encodedData, Base64.DEFAULT)
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
