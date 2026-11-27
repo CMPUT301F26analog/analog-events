@@ -238,12 +238,18 @@ private fun RoleHome(
                                 resolver = qrResolver,
                                 onClose = onQrClosed,
                                 entrantDetails = { campsite, close ->
-                                    EntrantCampsiteDetailsRoute(campsite, close)
+                                    EntrantCampsiteDetailsRoute(
+                                        campsite,
+                                        profile.fid,
+                                        listOf(profile.firstName, profile.lastName)
+                                            .filter { it.isNotBlank() }
+                                            .joinToString(" "),
+                                        onBack = close
+                                    )
                                 },
                                 adminDetails = { _, _ -> }
                             )
                         } else {
-                            // Restore the previous entrant tab when the QR route closes.
                             entrantStateHolder.SaveableStateProvider("entrantHome") {
                                 EntrantApp(
                                     profile = profile,
