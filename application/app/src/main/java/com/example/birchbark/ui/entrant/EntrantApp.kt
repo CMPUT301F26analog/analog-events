@@ -72,6 +72,9 @@ fun EntrantApp(
         .joinToString(" ")
         .ifBlank { "Entrant" }
 
+    // See [TBD 2] in LLM.md
+    val photo = remember(currentProfile.profileImage) { currentProfile.profileImage?.toBytes() }
+
     // See [TBD 1] in LLM.md
     Scaffold(
         containerColor = BirchBarkColors.DarkGreen,
@@ -90,7 +93,7 @@ fun EntrantApp(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             //the profile tab shows who you are in its own page
             if (tab != EntrantTab.PROFILE) {
-                UserHeader(name)
+                UserHeader(name, imageBytes = photo)
             }
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -242,6 +245,8 @@ private fun ProfileTab(
 /** The list of options on the profile page. */
 @Composable
 private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage) -> Unit) {
+    val photo = remember(profile.profileImage) { profile.profileImage?.toBytes() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -250,7 +255,7 @@ private fun ProfileMenu(profile: UserProfile, name: String, onPage: (ProfilePage
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(name, size = 56.dp)
+            Avatar(name, size = 56.dp, imageBytes = photo)
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
                     name,

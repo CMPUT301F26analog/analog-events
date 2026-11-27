@@ -33,6 +33,11 @@ import androidx.compose.ui.unit.dp
 import com.example.birchbark.model.Campsite
 import com.example.birchbark.ui.theme.BirchBarkColors
 import com.example.birchbark.util.ratingLabel
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 
 // See [TBD 6] in LLM.md
 
@@ -71,14 +76,34 @@ fun ScreenTitle(text: String, modifier: Modifier = Modifier) {
  * @param size the diameter of the circle.
  */
 @Composable
-fun Avatar(name: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .background(BirchBarkColors.AvatarGreen, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(initialsOf(name), color = BirchBarkColors.Cream)
+fun Avatar(
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 40.dp,
+    imageBytes: ByteArray? = null
+) {
+    //decode once per photo, not on every redraw
+    val bitmap = remember(imageBytes) {
+        imageBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap()
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = "Profile photo of $name",
+            contentScale = ContentScale.Crop,
+            modifier = modifier.size(size).clip(CircleShape).testTag("profileImage")
+        )
+    } else {
+        Box(
+            modifier = modifier
+                .size(size)
+                .background(BirchBarkColors.AvatarGreen, CircleShape)
+                .testTag("profileInitials"),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(initialsOf(name), color = BirchBarkColors.Cream)
+        }
     }
 }
 
@@ -95,15 +120,16 @@ fun Avatar(name: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
 fun UserHeader(
     name: String,
     modifier: Modifier = Modifier,
-    onNotificationsClick: (() -> Unit)? = null
-) {
+    onNotificationsClick: (() -> Unit)? = null,
+    imageBytes: ByteArray? = null
+){
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(name)
+        Avatar(name, imageBytes = imageBytes)
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text("Welcome", color = BirchBarkColors.MutedText)
