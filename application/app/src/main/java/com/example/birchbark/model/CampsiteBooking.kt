@@ -14,10 +14,14 @@ package com.example.birchbark.model
  * @property campsiteId the campsite that is booked.
  * @property startDate first day of the stay (epoch ms, start of that day).
  * @property endDate last day of the stay (epoch ms, end of that day).
+ * @property reservationIds the confirmed reservations on this night. A
+ *   campground holds up to [Campsite.maxOccupancy] parties a night, so the
+ *   night is full once there are that many (Riley's PR feedback). See #081 in LLM.md.
  */
 data class CampsiteBooking(
     val id: String = "",
     val campsiteId: String = "",
     val startDate: Long = 0L,
     val endDate: Long = 0L,
+    val reservationIds: List<String> = listOf(),
 )

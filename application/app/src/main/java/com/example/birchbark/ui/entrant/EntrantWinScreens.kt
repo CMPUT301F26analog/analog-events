@@ -185,7 +185,12 @@ private fun WonReservations(
  */
 fun toListItems(reservations: List<Reservation>, campsites: Map<String, Campsite>): List<ReservationListItem> {
     return reservations
-        .filter { it.status == ReservationStatus.CONFIRMED || it.status == ReservationStatus.CANCELLED }
+        //rejected ones show as cancelled so the entrant sees what happened (US 02.08.01)
+        .filter {
+            it.status == ReservationStatus.CONFIRMED ||
+                it.status == ReservationStatus.CANCELLED ||
+                it.status == ReservationStatus.REJECTED
+        }
         .mapNotNull { reservation ->
             val start = reservation.startDate ?: return@mapNotNull null
             val end = reservation.endDate ?: return@mapNotNull null
@@ -194,7 +199,7 @@ fun toListItems(reservations: List<Reservation>, campsites: Map<String, Campsite
                 campsiteName = reservation.campsiteId?.let { campsites[it]?.name } ?: "Campsite",
                 startDate = Time.toLocalDate(start),
                 endDate = Time.lastDayOf(end),
-                cancelled = reservation.status == ReservationStatus.CANCELLED
+                cancelled = reservation.status != ReservationStatus.CONFIRMED
             )
         }
 }
@@ -267,7 +272,8 @@ fun PickDatesScreen(
     fun onNext() {
         val lottery = state.lottery ?: return
         val bookings = state.bookings ?: return
-        state = when (val result = PickDatesForm.check(state.firstDayText, state.lastDayText, lottery, bookings)) {
+        val capacity = state.campsite?.maxOccupancy ?: 1
+        state = when (val result = PickDatesForm.check(state.firstDayText, state.lastDayText, lottery, bookings, capacity)) {
             is PickDatesForm.Result.Picked ->
                 state.copy(pickedDays = result.firstDay to result.lastDay, formError = null)
             is PickDatesForm.Result.Problem -> state.copy(formError = result.message)
@@ -463,7 +469,7 @@ fun PickDatesContent(
                 )
                 Text("Free dates", style = MaterialTheme.typography.titleMedium, color = BirchBarkColors.Cream)
                 Text(
-                    AvailableDates.label(AvailableDates.freeRanges(lottery, bookings)),
+                    AvailableDates.label(AvailableDates.freeRanges(lottery, bookings, campsite.maxOccupancy)),
                     color = BirchBarkColors.Cream,
                     modifier = Modifier.testTag("freeDates")
                 )

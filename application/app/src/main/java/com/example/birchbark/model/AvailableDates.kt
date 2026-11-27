@@ -8,7 +8,9 @@ import java.time.LocalDate
 /**
  * US 01.04.01: works out which days a lottery winner can still reserve, and
  * checks the days they pick. A winner can book any days inside the lottery's
- * booking period that no confirmed booking already takes. Pure logic with no
+ * booking period that aren't full yet. A campground holds up to
+ * [Campsite.maxOccupancy] parties a night (one per reservation), so a day is
+ * full once that many reservations are on it. See #081 in LLM.md. Pure logic with no
  * Firestore, so it can be unit tested.
  *
  * A stay is described by its first and last day, both included, the same way
@@ -23,21 +25,26 @@ object AvailableDates {
     fun lastBookableDay(lottery: Lottery): LocalDate = Time.lastDayOf(lottery.bookingEnd)
 
     /**
-     * Every day already taken by a booking.
+     * Every day that has no room left.
      *
      * @param bookings bookings for one campsite.
+     * @param capacity how many parties fit on one night ([Campsite.maxOccupancy]).
+     *   Defaults to 1, where any booking fills the day.
      */
-    fun bookedDays(bookings: List<CampsiteBooking>): Set<LocalDate> {
-        val days = mutableSetOf<LocalDate>()
+    fun bookedDays(bookings: List<CampsiteBooking>, capacity: Int = 1): Set<LocalDate> {
+        val counts = mutableMapOf<LocalDate, Int>()
         for (booking in bookings) {
+            //a booking without ids (one stay) still takes one spot
+            val parties = maxOf(1, booking.reservationIds.size)
             var day = Time.toLocalDate(booking.startDate)
             val last = Time.lastDayOf(booking.endDate)
             while (!day.isAfter(last)) {
-                days.add(day)
+                counts[day] = (counts[day] ?: 0) + parties
                 day = day.plusDays(1)
             }
         }
-        return days
+        //a campsite saved without a max occupancy still holds one party
+        return counts.filterValues { it >= maxOf(1, capacity) }.keys
     }
 
     /**
@@ -45,10 +52,15 @@ object AvailableDates {
      *
      * @param lottery the lottery the winner won.
      * @param bookings existing bookings for the campsite.
+     * @param capacity how many parties fit on one night ([Campsite.maxOccupancy]).
      * @return each free stretch as (first day, last day).
      */
-    fun freeRanges(lottery: Lottery, bookings: List<CampsiteBooking>): List<Pair<LocalDate, LocalDate>> {
-        val booked = bookedDays(bookings)
+    fun freeRanges(
+        lottery: Lottery,
+        bookings: List<CampsiteBooking>,
+        capacity: Int = 1
+    ): List<Pair<LocalDate, LocalDate>> {
+        val booked = bookedDays(bookings, capacity)
         val ranges = mutableListOf<Pair<LocalDate, LocalDate>>()
         var rangeStart: LocalDate? = null
         var day = firstBookableDay(lottery)
@@ -86,13 +98,15 @@ object AvailableDates {
      * @param bookings existing bookings for the campsite.
      * @param firstDay first day of the stay.
      * @param lastDay last day of the stay.
+     * @param capacity how many parties fit on one night ([Campsite.maxOccupancy]).
      * @return why the days can't be booked, or null if they can.
      */
     fun problemWith(
         lottery: Lottery,
         bookings: List<CampsiteBooking>,
         firstDay: LocalDate,
-        lastDay: LocalDate
+        lastDay: LocalDate,
+        capacity: Int = 1
     ): String? {
         val periodStart = firstBookableDay(lottery)
         val periodEnd = lastBookableDay(lottery)
@@ -100,7 +114,7 @@ object AvailableDates {
             lastDay.isBefore(firstDay) -> "The last day can't be before the first day"
             firstDay.isBefore(periodStart) || lastDay.isAfter(periodEnd) ->
                 "Pick days between ${Time.format(periodStart)} and ${Time.format(periodEnd)}"
-            bookedDays(bookings).any { !it.isBefore(firstDay) && !it.isAfter(lastDay) } ->
+            bookedDays(bookings, capacity).any { !it.isBefore(firstDay) && !it.isAfter(lastDay) } ->
                 "Some of those days are already booked"
             else -> null
         }

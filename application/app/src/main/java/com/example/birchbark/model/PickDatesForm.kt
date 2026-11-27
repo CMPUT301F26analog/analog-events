@@ -29,20 +29,22 @@ object PickDatesForm {
      * @param lastDayText what the entrant typed for the last day.
      * @param lottery the lottery the entrant won.
      * @param bookings bookings already made at the campsite.
+     * @param capacity how many parties fit on one night ([Campsite.maxOccupancy]).
      * @return [Result.Picked] with the days, or [Result.Problem] saying what's wrong.
      */
     fun check(
         firstDayText: String,
         lastDayText: String,
         lottery: Lottery,
-        bookings: List<CampsiteBooking>
+        bookings: List<CampsiteBooking>,
+        capacity: Int = 1
     ): Result {
         val first = parseDay(firstDayText)
         val last = parseDay(lastDayText)
         if (first == null || last == null) {
             return Result.Problem("Enter both days like 2026-11-20")
         }
-        val problem = AvailableDates.problemWith(lottery, bookings, first, last)
+        val problem = AvailableDates.problemWith(lottery, bookings, first, last, capacity)
         return if (problem == null) Result.Picked(first, last) else Result.Problem(problem)
     }
 
