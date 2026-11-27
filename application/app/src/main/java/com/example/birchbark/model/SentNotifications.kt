@@ -32,6 +32,7 @@ object SentNotifications {
         val recipientCount: Int
     )
 
+    // See #TBD14 in LLM.md
     /**
      * Puts notifications that were sent together (same message, same lottery,
      * same time) into one [SentMessage], newest first.
