@@ -398,6 +398,7 @@ private fun loadPickDates(
             if (campsiteId == null) {
                 // See #TBD10 in LLM.md
                 //US 01.04.02: more than one campsite, load them all so the winner can pick
+                var missing = 0
                 for (id in lottery.campsiteIds) {
                     CampsiteRepository().getCampsite(id, object : CampsiteRepository.LoadCallback {
                         override fun onLoaded(campsite: Campsite) {
@@ -408,8 +409,12 @@ private fun loadPickDates(
                             }
                         }
 
-                        //a deleted campsite just isn't shown as a choice
-                        override fun onNotFound() {}
+
+                        //a deleted campsite isn't shown, but if they're all gone there's nothing to pick
+                        override fun onNotFound() {
+                            missing++
+                            if (missing == lottery.campsiteIds.size) fail("None of this lottery's campsites exist anymore")
+                        }
 
                         override fun onError(error: Exception) =
                             fail("Couldn't load the campsites, check your connection and try again")
