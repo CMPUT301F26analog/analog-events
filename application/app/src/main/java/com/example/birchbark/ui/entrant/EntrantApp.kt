@@ -32,12 +32,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.birchbark.UserProfile
+import com.example.birchbark.qr.QrCodeScanner
+import com.example.birchbark.qr.QrScanResult
+import com.example.birchbark.qr.rememberZXingQrCodeScanner
 import com.example.birchbark.ui.theme.Avatar
 import com.example.birchbark.ui.theme.EmptyState
 import com.example.birchbark.ui.theme.MenuRow
 import com.example.birchbark.ui.theme.ScreenTitle
 import com.example.birchbark.ui.theme.UserHeader
 import com.example.birchbark.ui.notifications.NotificationSettingsScreen
+import com.example.birchbark.ui.qr.QrScanScreen
 import com.example.birchbark.ui.screens.BlankEntrantScreen
 import com.example.birchbark.ui.screens.PolicyScreen
 import com.example.birchbark.ui.theme.BirchBarkColors
@@ -57,11 +61,18 @@ import com.example.birchbark.model.ReviewRepository
  *
  * @param profile the signed-in entrant's profile.
  * @param onProfileDeleted called after the entrant deletes their profile.
+ * @param reservations the entrant's reservations for the booking list.
+ * @param onQrPayload raw scan callback for US 01.12.01 shared QR navigation.
+ * @param qrScannerFactory injectable scanner factory for tests.
  */
 @Composable
 fun EntrantApp(
     profile: UserProfile,
-    onProfileDeleted: () -> Unit
+    onProfileDeleted: () -> Unit,
+    reservations: List<ReservationListItem> = emptyList(),
+    onQrPayload: (String) -> Unit = {},
+    qrScannerFactory: @Composable ((QrScanResult) -> Unit) -> QrCodeScanner =
+        { callback -> rememberZXingQrCodeScanner(callback) }
 ) {
     var currentProfile by remember { mutableStateOf(profile) } // TBD
     var tab by rememberSaveable { mutableStateOf(EntrantTab.HOME) }
@@ -106,8 +117,8 @@ fun EntrantApp(
                     )
                     EntrantTab.BROWSE -> EntrantCampsitesApp(
                         entrantId = currentProfile.fid,
-                        entrantName = name
-                    )
+                        entrantName = name)
+                    EntrantTab.SCAN -> QrScanScreen(onQrPayload, qrScannerFactory)
                     EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = currentProfile,
