@@ -171,7 +171,7 @@ class ReservationRepository {
      * every night first, and stops if any night already has that many
      * reservations. Firestore retries the transaction if a night changes while
      * it runs, so two entrants can't both take the last spot: one gets
-     * [DatesTakenException] and nothing of theirs is saved. See #079 and #081
+     * [DatesTakenException] and nothing of theirs is saved. See #079 and #091
      * in LLM.md.
      *
      * @param reservation the PENDING reservation being accepted.

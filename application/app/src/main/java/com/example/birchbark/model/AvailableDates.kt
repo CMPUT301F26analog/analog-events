@@ -10,7 +10,7 @@ import java.time.LocalDate
  * checks the days they pick. A winner can book any days inside the lottery's
  * booking period that aren't full yet. A campground holds up to
  * [Campsite.maxOccupancy] parties a night (one per reservation), so a day is
- * full once that many reservations are on it. See #081 in LLM.md. Pure logic with no
+ * full once that many reservations are on it. See #091 in LLM.md. Pure logic with no
  * Firestore, so it can be unit tested.
  *
  * A stay is described by its first and last day, both included, the same way
