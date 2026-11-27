@@ -44,6 +44,8 @@ object NotificationLogs {
             NotificationType.RESERVATION_CONFIRMED -> "Reservation confirmed"
             NotificationType.RESERVATION_CANCELLED -> "Reservation cancelled"
             NotificationType.OWNER_MESSAGE -> "Owner message"
+            NotificationType.OWNER_REMOVED -> "Owner removed"
         }
+
     }
 }
