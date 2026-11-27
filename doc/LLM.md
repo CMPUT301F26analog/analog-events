@@ -3594,9 +3594,10 @@ internal object AdminImageRules {
     }
 }
 
+````
+
 ---
----
-## Prompt #081 (Akshat)
+## Prompt #091 (Akshat)
 
 | Field | Details |
 |:------|:--------|
