@@ -31,8 +31,7 @@ import com.example.birchbark.ui.theme.BirchBarkTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 
-// See #067 in LLM.md
-/** Lists the sections that can be opened from the admin navigation bar. */
+// Lists the sections that can be opened from the admin navigation bar.
 private enum class AdminSection {
     CAMPSITES,
     PROFILES,
@@ -40,13 +39,9 @@ private enum class AdminSection {
     LOGS
 }
 
-/**
- * Shows the admin browsing screen, including the admin header and bottom tabs.
- * adminName is the name displayed in the header.
- * It uses the signed-in user's name by default if no name is passed in.
- *
- * @param adminName the name displayed in the header.
- */
+// Shows the admin browsing screen, including the admin header and bottom tabs.
+// adminName is the name displayed in the header.
+// It uses the signed-in user's name by default if no name is passed in.
 @Composable
 fun AdminBrowseScreen(adminName: String = currentAdminName()) {
     // Saves the selected tab when the screen is recreated, such as after rotation.
@@ -100,28 +95,6 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                     colors = navigationItemColors()
                 )
 
-                // See #068 in LLM.md
-                NavigationBarItem(
-                    // Gives this tab a tag that can be used by UI tests.
-                    modifier = Modifier.testTag("admin-images-tab"),
-                    selected = selectedSection == AdminSection.IMAGES,
-                    // Changes the selected section to Images when this tab is tapped.
-                    onClick = { selectedSection = AdminSection.IMAGES },
-                    // Shows the icon for the Images tab.
-                    icon = {
-                        Text(
-                            "▧",
-                            color = if (selectedSection == AdminSection.IMAGES) {
-                                DarkGreen
-                            } else {
-                                MutedText
-                            }
-                        )
-                    },
-                    label = { Text("Images") },
-                    colors = navigationItemColors()
-                )
-
                 NavigationBarItem(
                     // Gives this tab a tag that can be used by UI tests.
                     modifier = Modifier.testTag("admin-logs-tab"),
@@ -165,10 +138,7 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                 when (selectedSection) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
-                    // See #069 in LLM.md
-                    AdminSection.IMAGES -> AdminUploadedImagesScreen()
-                    //US 03.08.01: every notification sent in the app (added by Yash)
-                    AdminSection.LOGS -> AdminNotificationLogsScreen()
+                    AdminSection.LOGS -> PlaceholderScreen("Logs")
                 }
             }
         }
