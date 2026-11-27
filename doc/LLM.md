@@ -3593,3 +3593,25 @@ internal object AdminImageRules {
         return images.filterNot { it.id == imageId }
     }
 }
+
+````
+
+---
+## Prompt #091 (Akshat)
+
+| Field | Details |
+|:------|:--------|
+| **Promptee** | Akshat Singh Chana |
+| **Agent** | Claude |
+| **Model** | Claude Opus 5.5 |
+| **Date** | 11-26-2026 |
+
+### Prompt
+
+> Let a campground hold up to its max occupancy of parties per night instead of one booking per night.
+
+### Answer
+
+> Claude changed each night document to hold a list of reservation IDs, updated the confirm transaction to check the campsite's maxOccupancy and the reject batch to remove the reservation from each night, made the free-dates logic treat a day as taken only when full, wrote the Firestore rule for joining and leaving a night, and added unit tests.
+
+---
