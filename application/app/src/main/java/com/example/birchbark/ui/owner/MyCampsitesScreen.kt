@@ -36,8 +36,9 @@ import com.example.birchbark.model.CampsiteRepository
  * US 02.03.01 View my campsites. The owner's "Your Campsites" page from the
  * Owner Home mockup. Shows the campsites they registered as cards they can
  * swipe through, and tapping one opens its details. Also has a button to
- * register a new campsite (US 02.01.01), and a Lottery Invites button for
- * invites from other owners (US 02.04.08).
+ * register a new campsite (US 02.01.01), a Lottery Invites button for
+ * invites from other owners (US 02.04.08), and a Sent Notifications button
+ * (US 02.10.02).
  *
  * MyCampsitesScreen loads the campsites from Firestore, and MyCampsitesList
  * just draws whatever list it's given. That way the intent tests can give it
@@ -58,6 +59,7 @@ import com.example.birchbark.model.CampsiteRepository
  * @param onRegisterClick called when the owner taps Register a Campsite.
  * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  * @param onInvitesClick called when the owner taps Lottery Invites (US 02.04.08).
+ * @param onSentClick called when the owner taps Sent Notifications (US 02.10.02).
  */
 @Composable
 fun MyCampsitesScreen(
@@ -65,7 +67,8 @@ fun MyCampsitesScreen(
     onCampsiteClick: (Campsite) -> Unit,
     onRegisterClick: () -> Unit = {},
     onReservationsClick: () -> Unit = {},
-    onInvitesClick: () -> Unit = {}
+    onInvitesClick: () -> Unit = {},
+    onSentClick: () -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
     var myCampsites by remember { mutableStateOf<List<Campsite>?>(null) }
@@ -108,7 +111,8 @@ fun MyCampsitesScreen(
             onCampsiteClick = onCampsiteClick,
             onRegisterClick = onRegisterClick,
             onReservationsClick = onReservationsClick,
-            onInvitesClick = onInvitesClick
+            onInvitesClick = onInvitesClick,
+            onSentClick = onSentClick
         )
     }
 }
@@ -123,6 +127,7 @@ fun MyCampsitesScreen(
  * @param onRegisterClick called when the owner taps Register a Campsite.
  * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  * @param onInvitesClick called when the owner taps Lottery Invites (US 02.04.08).
+ * @param onSentClick called when the owner taps Sent Notifications (US 02.10.02).
  */
 @Composable
 fun MyCampsitesList(
@@ -130,7 +135,8 @@ fun MyCampsitesList(
     onCampsiteClick: (Campsite) -> Unit,
     onRegisterClick: () -> Unit = {},
     onReservationsClick: () -> Unit = {},
-    onInvitesClick: () -> Unit = {}
+    onInvitesClick: () -> Unit = {},
+    onSentClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
         Text("Your Campsites", style = MaterialTheme.typography.headlineSmall)
@@ -154,6 +160,13 @@ fun MyCampsitesList(
             modifier = Modifier.testTag("invitesButton")
         ) {
             Text("Lottery Invites")
+        }
+        //US 02.10.02: everything the owner has sent
+        OutlinedButton(
+            onClick = onSentClick,
+            modifier = Modifier.testTag("sentNotificationsButton")
+        ) {
+            Text("Sent Notifications")
         }
         Spacer(modifier = Modifier.height(16.dp))
 

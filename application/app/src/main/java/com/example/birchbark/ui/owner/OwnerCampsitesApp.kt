@@ -23,6 +23,7 @@ import com.example.birchbark.waitlist.OwnerWaitlistScreen
  * US 02.02.01: the QR screen can be opened from a campsite's details.
  * Invite Another Owner opens
  * the invite screen and Lottery Invites opens the owner's invites (US 02.04.08).
+ * Sent Notifications opens everything the owner has sent (US 02.10.02).
  *
  * Uses a few variables to remember which screen is open instead of a navigation
  * library, so nothing new had to be added to the build file. The phone's back
@@ -49,6 +50,8 @@ fun OwnerCampsitesApp(ownerId: String) {
     //US 02.04.08: the lottery being invited into, and the invites screen
     var invitingInto by remember { mutableStateOf<Lottery?>(null) }
     var viewingInvites by remember { mutableStateOf(false) }
+    //US 02.10.02: the sent notifications screen
+    var viewingSent by remember { mutableStateOf(false) }
     val editing = editingCampsite
     val lotteryFor = lotteryCampsite
     val editLotteryFor = editingLotteryFor
@@ -58,7 +61,14 @@ fun OwnerCampsitesApp(ownerId: String) {
     val qrFor = qrCampsite
     val inviteLottery = invitingInto
 
-    if (viewingInvites) {
+    if (viewingSent) {
+        //sent notifications screen (US 02.10.02), back goes to the list
+        BackHandler { viewingSent = false }
+        SentNotificationsScreen(
+            ownerId = ownerId,
+            onBack = { viewingSent = false }
+        )
+    } else if (viewingInvites) {
         //lottery invites screen (US 02.04.08), back goes to the list
         BackHandler { viewingInvites = false }
         LotteryInvitesScreen(
@@ -154,7 +164,8 @@ fun OwnerCampsitesApp(ownerId: String) {
             onCampsiteClick = { campsite -> selectedCampsiteId = campsite.id },
             onRegisterClick = { registering = true },
             onReservationsClick = { viewingReservations = true },
-            onInvitesClick = { viewingInvites = true }
+            onInvitesClick = { viewingInvites = true },
+            onSentClick = { viewingSent = true }
         )
     }
 }

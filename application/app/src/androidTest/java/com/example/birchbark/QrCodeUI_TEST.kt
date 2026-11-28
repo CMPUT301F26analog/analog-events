@@ -53,7 +53,7 @@ class QrCodeUiTest {
                 } else {
                     CampsiteQrRoute(current, "entrant", resolver, onClose = { request = null },
                         entrantDetails = { site, close ->
-                            CampsiteDetailsScreen(site, null, false, false, null, close, {}, {})
+                            CampsiteDetailsScreen(site, null, false, false, null, close, {}, {}, {})
                         }, adminDetails = { _, _ -> })
                 }
             }
