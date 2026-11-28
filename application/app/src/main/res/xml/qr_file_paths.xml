@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- US 02.02.01: restrict exported file access to the QR cache directory. -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="qr_images" path="qr/" />
+</paths>

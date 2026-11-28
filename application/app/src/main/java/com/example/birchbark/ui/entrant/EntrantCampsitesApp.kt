@@ -91,8 +91,14 @@ fun EntrantCampsitesApp(
     }
 }
 
+/**
+ * US 01.01.05, US 01.12.01: shared entrant details route for Browse and QR results.
+ * Loads the campsite's lottery and presents the existing waitlist-aware details.
+ * @param campsite the retrieved campsite.
+ * @param onBack returns to the previous entrant screen.
+ */
 @Composable
-private fun EntrantCampsiteDetailsRoute(
+internal fun EntrantCampsiteDetailsRoute(
     campsite: Campsite,
     entrantId: String,
     entrantName: String,

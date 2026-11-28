@@ -53,6 +53,8 @@ import android.util.Log
  * The View Gallery button opens the campsite's photos, where the owner can
  * add or remove them (US 02.01.02).
  *
+ * US 02.02.01: opens the locally generated promotional QR code.
+ * Outstanding issues. Map location just shows the coordinates for now.
  * If the owner set a map location, it shows on a small map with the camp pin
  * (US 02.01.02).
  *
@@ -70,6 +72,7 @@ import android.util.Log
  * @param onLotteryClick called with the campsite when the owner taps Campsite Lottery.
  * @param onEditLotteryClick called with the campsite when the owner taps Edit Lottery (US 02.04.06).
  * @param onGalleryClick called with the campsite when the owner taps View Gallery (US 02.01.02).
+ * @param onQrClick called with the campsite when the owner taps View QR Code (US 02.02.01).
  * @param onInviteClick called with the current lottery when the owner taps Invite Another Owner (US 02.04.08).
  */
 @Composable
@@ -81,6 +84,7 @@ fun CampsiteDetailsScreen(
     onEditLotteryClick: (Campsite) -> Unit = {},
     onViewWaitlist: (String) -> Unit = {},
     onGalleryClick: (Campsite) -> Unit = {},
+    onQrClick: ((Campsite) -> Unit)? = null,
     onInviteClick: (Lottery) -> Unit = {}
 ) {
     val repository = remember { CampsiteRepository() }
@@ -209,6 +213,7 @@ fun CampsiteDetailsScreen(
             canEditLottery = canEditLottery,
             onEditLotteryClick = { onEditLotteryClick(shown) },
             onGalleryClick = { onGalleryClick(shown) },
+            onQrClick = onQrClick?.let { callback -> { callback(shown) } },
             canInvite = ownsLottery,
             onInviteClick = { current?.let { onInviteClick(it) } },
             bookedDatesText = booked?.let { BookedDates.label(it) } ?: "Loading...",
@@ -238,6 +243,7 @@ fun CampsiteDetailsScreen(
  * @param canInvite true to show the Invite Another Owner button (US 02.04.08).
  * @param onInviteClick called when the owner taps Invite Another Owner.
  * @param bookedDatesText the campsite's booked date ranges, one per line (US 02.06.01).
+ * @param onQrClick optional action for viewing the campsite QR code (US 02.02.01).
  */
 @Composable
 fun CampsiteDetailsContent(
@@ -254,7 +260,8 @@ fun CampsiteDetailsContent(
     onInviteClick: () -> Unit = {},
     bookedDatesText: String = "No booked dates yet",
     canViewWaitlist: Boolean = false,
-    onViewWaitlist: () -> Unit = {}
+    onViewWaitlist: () -> Unit = {},
+    onQrClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -325,6 +332,13 @@ fun CampsiteDetailsContent(
             modifier = Modifier.fillMaxWidth().testTag("viewGalleryButton")
         ) {
             Text("View Gallery")
+        }
+        if (onQrClick != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButton(onClick = onQrClick,
+                modifier = Modifier.fillMaxWidth().testTag("viewQrButton")) {
+                Text("View QR Code")
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Button(
