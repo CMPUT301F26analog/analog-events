@@ -3615,3 +3615,573 @@ internal object AdminImageRules {
 > Claude changed each night document to hold a list of reservation IDs, updated the confirm transaction to check the campsite's maxOccupancy and the reject batch to remove the reservation from each night, made the free-dates logic treat a day as taken only when full, wrote the Firestore rule for joining and leaving a night, and added unit tests.
 
 ---
+## Prompt #092 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Help me test the owner-removal planner with sample objects so the test does not need Firebase or an emulator.
+
+### Answer
+
+    @Test
+    fun plannerUsesSampleInputWithoutFirebase() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals("owner-fid", plan.blockedFid)
+    }
+
+---
+
+## Prompt #093 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+When the owner profile has exists set to false, verify that createPlan rejects it with the profile-missing error.
+
+### Answer
+
+    @Test
+    fun rejectsProfileThatDoesNotExist() {
+        assertPlanFails(
+            input = baseInput().copy(
+                profile = ownerProfile().copy(exists = false)
+            ),
+            expectedMessage = "The profile no longer exists."
+        )
+    }
+
+---
+
+## Prompt #094 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Given a profile whose only role is entrant, test that the planner rejects it as not being an owner.
+
+### Answer
+
+    @Test
+    fun rejectsProfileWithoutOwnerRole() {
+        assertPlanFails(
+            input = baseInput().copy(
+                profile = ownerProfile().copy(roles = listOf("entrant"))
+            ),
+            expectedMessage = "This profile is not an owner."
+        )
+    }
+
+---
+
+## Prompt #095 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Test that a profile with an empty roles list is rejected by the owner-removal planner.
+
+### Answer
+
+    @Test
+    fun rejectsProfileWithNoRoles() {
+        assertPlanFails(
+            input = baseInput().copy(
+                profile = ownerProfile().copy(roles = emptyList())
+            ),
+            expectedMessage = "This profile is not an owner."
+        )
+    }
+
+---
+
+## Prompt #096 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Test that a profile with a whitespace-only authUid is rejected with the missing-authUid error.
+
+### Answer
+
+    @Test
+    fun rejectsBlankAuthUid() {
+        assertPlanFails(
+            input = baseInput().copy(
+                profile = ownerProfile().copy(authUid = "  ")
+            ),
+            expectedMessage =
+                "The owner profile does not have an authUid."
+        )
+    }
+
+---
+
+## Prompt #097 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Test that planning fails when authLinkFid is set to an FID different from the owner's profile FID.
+
+### Answer
+
+    @Test
+    fun rejectsAuthLinkPointingToAnotherProfile() {
+        assertPlanFails(
+            input = baseInput().copy(authLinkFid = "different-fid"),
+            expectedMessage =
+                "The owner's auth link points to a different profile."
+        )
+    }
+
+---
+
+## Prompt #098 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that the owner-role validation is case-insensitive by passing the role Owner with a capital O.
+
+### Answer
+
+    @Test
+    fun acceptsOwnerRoleRegardlessOfCapitalization() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(
+            baseInput().copy(
+                profile = ownerProfile().copy(roles = listOf("Owner"))
+            )
+        )
+
+        assertEquals("owner-fid", plan.blockedFid)
+    }
+
+---
+
+## Prompt #099 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Given campsites and lotteries for two owners, verify that the plan selects only documents whose ownerId matches the violating owner's FID.
+
+### Answer
+
+    @Test
+    fun selectsOnlyThisOwnersCampsitesAndLotteries() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals(setOf("camp-owner"), plan.campsiteIdsToDelete)
+        assertEquals(setOf("lottery-owner"), plan.lotteryIdsToDelete)
+    }
+
+---
+
+## Prompt #100 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Given bookings and waitlist entries related to both owners, verify that only records linked to this owner's campsites and lotteries are selected.
+
+### Answer
+
+    @Test
+    fun selectsOnlyBookingsAndWaitlistEntriesRelatedToOwnedItems() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals(setOf("booking-owner"), plan.bookingIdsToDelete)
+        assertEquals(setOf("waitlist-owner"), plan.waitlistEntryIdsToDelete)
+    }
+
+---
+
+## Prompt #101 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that PENDING and CONFIRMED reservations tied to the owner's FID or owned campsite are selected for cancellation, including active reservations with missing entrant IDs.
+
+### Answer
+
+    @Test
+    fun cancelsPendingAndConfirmedReservationsForOwnerOrOwnedCampsite() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals(
+            setOf(
+                "pending-at-owned-campsite",
+                "confirmed-at-owned-campsite",
+                "confirmed-for-owner",
+                "blank-entrant-id",
+                "missing-entrant-id",
+                "another-eligible-entrant"
+            ),
+            plan.reservationIdsToCancel
+        )
+    }
+
+---
+
+## Prompt #102 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that CANCELLED, COMPLETED, lowercase pending, and another owner's reservation are not included in the cancellation plan.
+
+### Answer
+
+    @Test
+    fun keepsInactiveAndUnrelatedReservationsOutOfCancellationPlan() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertFalse("already-cancelled" in plan.reservationIdsToCancel)
+        assertFalse("completed" in plan.reservationIdsToCancel)
+        assertFalse("lowercase-status" in plan.reservationIdsToCancel)
+        assertFalse("other-owners-reservation" in plan.reservationIdsToCancel)
+    }
+
+---
+
+## Prompt #103 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+When the same entrant has multiple active reservations, verify that their FID appears only once in the notification recipient set.
+
+### Answer
+
+    @Test
+    fun notifiesEachEligibleEntrantOnlyOnce() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals(
+            setOf("entrant-1", "entrant-4"),
+            plan.entrantFidsToNotify
+        )
+    }
+
+---
+
+## Prompt #104 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+For an opted-out entrant with a CONFIRMED reservation at the owner's campsite, verify that the reservation is still cancelled but the entrant is not notified.
+
+### Answer
+
+    @Test
+    fun cancelsReservationButDoesNotNotifyOptedOutEntrant() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertTrue(
+            "confirmed-at-owned-campsite" in plan.reservationIdsToCancel
+        )
+        assertFalse(
+            "entrant-opted-out" in plan.entrantFidsToNotify
+        )
+    }
+
+---
+
+## Prompt #105 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that active reservations with blank or null entrant IDs are cancelled, while neither blank ID is added to notification recipients.
+
+### Answer
+
+    @Test
+    fun cancelsReservationsWithBlankOrMissingEntrantIdsButDoesNotNotifyThem() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertTrue("blank-entrant-id" in plan.reservationIdsToCancel)
+        assertTrue("missing-entrant-id" in plan.reservationIdsToCancel)
+        assertFalse("" in plan.entrantFidsToNotify)
+        assertFalse("   " in plan.entrantFidsToNotify)
+    }
+
+---
+
+## Prompt #106 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+When authLinkFid is null, verify that the plan leaves authUidToDelete null instead of scheduling an auth-link deletion.
+
+### Answer
+
+    @Test
+    fun doesNotPlanAuthLinkDeletionWhenNoAuthLinkExists() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(
+            baseInput().copy(authLinkFid = null)
+        )
+
+        assertNull(plan.authUidToDelete)
+    }
+
+---
+
+## Prompt #107 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that the valid removal plan uses the owner's auth UID and FID for the block records and profile deletion fields.
+
+### Answer
+
+    @Test
+    fun includesOwnerAndMatchingAuthLinkInRemovalPlan() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertEquals("owner-auth-uid", plan.blockedAuthUid)
+        assertEquals("owner-fid", plan.blockedFid)
+        assertEquals("owner-fid", plan.profileFidToDelete)
+        assertEquals("owner-auth-uid", plan.authUidToDelete)
+    }
+
+---
+
+## Prompt #108 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+When all related Firestore records are represented by empty lists, verify that the plan contains no cleanup or notification actions.
+
+### Answer
+
+    @Test
+    fun emptyRelatedDataProducesEmptyCleanupSets() {
+        val input = baseInput().copy(
+            campsites = emptyList(),
+            lotteries = emptyList(),
+            reservations = emptyList(),
+            campsiteBookings = emptyList(),
+            waitlistEntries = emptyList(),
+            optedOutEntrantFids = emptySet()
+        )
+
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(input)
+
+        assertEquals(emptySet<String>(), plan.campsiteIdsToDelete)
+        assertEquals(emptySet<String>(), plan.lotteryIdsToDelete)
+        assertEquals(emptySet<String>(), plan.reservationIdsToCancel)
+        assertEquals(emptySet<String>(), plan.bookingIdsToDelete)
+        assertEquals(emptySet<String>(), plan.waitlistEntryIdsToDelete)
+        assertEquals(emptySet<String>(), plan.entrantFidsToNotify)
+    }
+
+---
+
+## Prompt #109 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+The cancellation test failed because its expected set omitted three active owner reservations. Update the expected set to match every active reservation in the fixture.
+
+### Answer
+
+    assertEquals(
+        setOf(
+            "pending-at-owned-campsite",
+            "confirmed-at-owned-campsite",
+            "confirmed-for-owner",
+            "blank-entrant-id",
+            "missing-entrant-id",
+            "another-eligible-entrant"
+        ),
+        plan.reservationIdsToCancel
+    )
+
+---
+
+## Prompt #110 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+Verify that the planner treats only the exact PENDING and CONFIRMED status strings as active; lowercase pending and inactive statuses should not be cancelled.
+
+### Answer
+
+    @Test
+    fun cancelsOnlyExactActiveStatusValues() {
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(baseInput())
+
+        assertTrue(
+            "pending-at-owned-campsite" in plan.reservationIdsToCancel
+        )
+        assertTrue(
+            "confirmed-for-owner" in plan.reservationIdsToCancel
+        )
+        assertFalse("lowercase-status" in plan.reservationIdsToCancel)
+        assertFalse("already-cancelled" in plan.reservationIdsToCancel)
+        assertFalse("completed" in plan.reservationIdsToCancel)
+    }
+
+---
+
+## Prompt #111 (Anahita)
+
+| Field | Details |
+|---|---|
+| Promptee | Anahita Houshyar |
+| Agent | ChatGPT |
+| Model | GPT-6 |
+| Date | 11-27-2026 |
+
+### Prompt
+
+When the owner has no related campsites, lotteries, reservations, bookings, or waitlist entries, verify that cleanup sets are empty while the owner’s block and profile IDs remain in the plan.
+
+### Answer
+
+    @Test
+    fun emptyCleanupStillIncludesOwnerBlockAndProfileIds() {
+        val input = baseInput().copy(
+            campsites = emptyList(),
+            lotteries = emptyList(),
+            reservations = emptyList(),
+            campsiteBookings = emptyList(),
+            waitlistEntries = emptyList(),
+            optedOutEntrantFids = emptySet()
+        )
+
+        val plan = ViolatingOwnerRemovalPlanner.createPlan(input)
+
+        assertEquals(emptySet<String>(), plan.campsiteIdsToDelete)
+        assertEquals(emptySet<String>(), plan.lotteryIdsToDelete)
+        assertEquals(emptySet<String>(), plan.reservationIdsToCancel)
+        assertEquals("owner-auth-uid", plan.blockedAuthUid)
+        assertEquals("owner-fid", plan.blockedFid)
+        assertEquals("owner-fid", plan.profileFidToDelete)
+    }
+}
+
