@@ -52,6 +52,29 @@ import com.example.birchbark.model.CampsiteRepository
  */
 
 /**
+ * Preserves the existing navigation callbacks for callers outside the Message Center.
+ **/
+@Composable
+fun MyCampsitesScreen(
+    ownerId: String,
+    onCampsiteClick: (Campsite) -> Unit,
+    onRegisterClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onInvitesClick: () -> Unit = {},
+    onSentClick: () -> Unit = {}
+) {
+    MyCampsitesScreen(
+        ownerId = ownerId,
+        onCampsiteClick = onCampsiteClick,
+        onRegisterClick = onRegisterClick,
+        onReservationsClick = onReservationsClick,
+        onInvitesClick = onInvitesClick,
+        onSentClick = onSentClick,
+        onMessagesClick = {}
+    )
+}
+
+/**
  * Loads the owner's campsites and shows them.
  *
  * @param ownerId the owner's ID, used to only load the campsites they registered.
@@ -59,10 +82,12 @@ import com.example.birchbark.model.CampsiteRepository
  * @param onRegisterClick called when the owner taps Register a Campsite.
  * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  * @param onInvitesClick called when the owner taps Lottery Invites (US 02.04.08).
+ * @param onMessagesClick opens the reservation Message Center (US 02.12.01).
  * @param onSentClick called when the owner taps Sent Notifications (US 02.10.02).
  */
 @Composable
 fun MyCampsitesScreen(
+    onMessagesClick: () -> Unit,
     ownerId: String,
     onCampsiteClick: (Campsite) -> Unit,
     onRegisterClick: () -> Unit = {},
@@ -112,9 +137,33 @@ fun MyCampsitesScreen(
             onRegisterClick = onRegisterClick,
             onReservationsClick = onReservationsClick,
             onInvitesClick = onInvitesClick,
-            onSentClick = onSentClick
+            onSentClick = onSentClick,
+            onMessagesClick = onMessagesClick
         )
     }
+}
+
+/**
+ * Preserves the existing navigation callbacks for callers outside the Message Center.
+ **/
+@Composable
+fun MyCampsitesList(
+    campsites: List<Campsite>,
+    onCampsiteClick: (Campsite) -> Unit,
+    onRegisterClick: () -> Unit = {},
+    onReservationsClick: () -> Unit = {},
+    onInvitesClick: () -> Unit = {},
+    onSentClick: () -> Unit = {}
+) {
+    MyCampsitesList(
+        campsites = campsites,
+        onCampsiteClick = onCampsiteClick,
+        onRegisterClick = onRegisterClick,
+        onReservationsClick = onReservationsClick,
+        onInvitesClick = onInvitesClick,
+        onSentClick = onSentClick,
+        onMessagesClick = {}
+    )
 }
 
 /**
@@ -127,10 +176,12 @@ fun MyCampsitesScreen(
  * @param onRegisterClick called when the owner taps Register a Campsite.
  * @param onReservationsClick called when the owner taps My Reservations (US 02.07.01).
  * @param onInvitesClick called when the owner taps Lottery Invites (US 02.04.08).
+ * @param onMessagesClick opens the reservation Message Center (US 02.12.01).
  * @param onSentClick called when the owner taps Sent Notifications (US 02.10.02).
  */
 @Composable
 fun MyCampsitesList(
+    onMessagesClick: () -> Unit,
     campsites: List<Campsite>,
     onCampsiteClick: (Campsite) -> Unit,
     onRegisterClick: () -> Unit = {},
@@ -154,6 +205,7 @@ fun MyCampsitesList(
         ) {
             Text("My Reservations")
         }
+        OutlinedButton(onClick = onMessagesClick) { Text("Messages") }
         //US 02.04.08: invites from other owners to join their lottery
         OutlinedButton(
             onClick = onInvitesClick,

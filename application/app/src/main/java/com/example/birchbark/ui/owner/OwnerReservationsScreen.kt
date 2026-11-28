@@ -43,16 +43,31 @@ import com.example.birchbark.util.Time
 
 // See #049 in LLM.md
 
+/** Preserves the existing navigation callbacks for callers outside the Message Center. */
+@Composable
+fun OwnerReservationsScreen(
+    ownerId: String,
+    onBack: () -> Unit
+) {
+    OwnerReservationsScreen(
+        ownerId = ownerId,
+        onBack = onBack,
+        onOpenMessage = null
+    )
+}
+
 /**
  * US 02.07.01, 02.07.02, 02.07.03, 02.08.01: the owner's reservations across all their
  * campsites, split into Active, Past and Cancelled. Loads the reservations and
  * the owner's campsites (for their names), then shows [OwnerReservationsList].
  *
  * @param ownerId the owner's FID.
+ * @param onOpenMessage opens the active confirmed booking’s thread by reservation ID (US 02.12.01).
  * @param onBack called when the owner taps Back.
  */
 @Composable
 fun OwnerReservationsScreen(
+    onOpenMessage: ((String) -> Unit)?,
     ownerId: String,
     onBack: () -> Unit
 ) {
@@ -101,6 +116,7 @@ fun OwnerReservationsScreen(
             campsiteNames = campsiteNames,
             now = System.currentTimeMillis(),
             onBack = onBack,
+            onMessage = onOpenMessage?.let { open -> { r -> open(r.id) } },
             onReject = { reservation ->
                 reservationRepository.reject(
                     reservation,
@@ -111,7 +127,7 @@ fun OwnerReservationsScreen(
                         }
                         val name = reservation.campsiteId?.let { campsiteNames[it] }
                         NotificationRepository().send(
-                            listOf(RejectionNotice.build(reservation, name, System.currentTimeMillis())),
+                            listOf(RejectionNotice.build(reservation, name, System.currentTimeMillis(), ownerId)),
                             onResult = {},
                             onFailure = { error -> Log.e("OwnerReservations", "Couldn't notify entrant", error) }
                         )
@@ -125,6 +141,25 @@ fun OwnerReservationsScreen(
     }
 }
 
+/** Preserves the existing navigation callbacks for callers outside the Message Center. */
+@Composable
+fun OwnerReservationsList(
+    reservations: List<Reservation>,
+    campsiteNames: Map<String, String>,
+    now: Long,
+    onBack: () -> Unit,
+    onReject: (Reservation) -> Unit = {}
+) {
+    OwnerReservationsList(
+        reservations = reservations,
+        campsiteNames = campsiteNames,
+        now = now,
+        onBack = onBack,
+        onReject = onReject,
+        onMessage = null
+    )
+}
+
 /**
  * Draws the owner's reservations with Active / Past / Cancelled tabs. Kept
  * separate from [OwnerReservationsScreen] so UI tests can pass in a list
@@ -135,9 +170,11 @@ fun OwnerReservationsScreen(
  * @param now current time in epoch ms, used to split active from past.
  * @param onBack called when the owner taps Back.
  * @param onReject called when the owner confirms rejecting a reservation. US 02.08.01.
+ * @param onMessage opens the selected confirmed booking for a reply (US 02.12.01).
  */
 @Composable
 fun OwnerReservationsList(
+    onMessage: ((Reservation) -> Unit)?,
     reservations: List<Reservation>,
     campsiteNames: Map<String, String>,
     now: Long,
@@ -177,6 +214,8 @@ fun OwnerReservationsList(
                     ReservationCard(
                         reservation,
                         campsiteNames,
+                        onMessage = if (onMessage != null && reservation.status == ReservationStatus.CONFIRMED &&
+                            selectedTab == OwnerReservationTab.ACTIVE) ({ onMessage(reservation) }) else null,
                         onReject = if (OwnerReservationTabs.canReject(reservation, now)) {
                             { toReject = reservation }
                         } else {
@@ -231,11 +270,14 @@ private fun TabButton(
  * One reservation: campsite, dates, status and, once confirmed, the entrant's
  * contact details (TA feedback: owners should see who booked).
  * Shows a Reject button when [onReject] isn't null (US 02.08.01).
+ *
+ * @param onMessage opens the entrant conversation when the booking is eligible (US 02.12.01).
  */
 @Composable
 private fun ReservationCard(
     reservation: Reservation,
     campsiteNames: Map<String, String>,
+    onMessage: (() -> Unit)?,
     onReject: (() -> Unit)?
 ) {
     Card(modifier = Modifier.fillMaxWidth().testTag("ownerReservation-${reservation.id}")) {
@@ -259,6 +301,9 @@ private fun ReservationCard(
                 Text("Waiting for the entrant to confirm")
             }
 
+            if (onMessage != null) {
+                TextButton(onClick = onMessage) { Text("Message entrant") }
+            }
             if (onReject != null) {
                 TextButton(
                     onClick = onReject,
@@ -284,7 +329,9 @@ internal fun datesLabel(reservation: Reservation): String {
     }
 }
 
-/** A status as owners read it. */
+/**
+ * A status as owners read it.
+ **/
 internal fun statusLabel(status: ReservationStatus): String {
     return when (status) {
         ReservationStatus.PENDING -> "Waiting for entrant"

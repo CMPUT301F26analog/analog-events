@@ -41,6 +41,21 @@ private enum class ReservationTab {
     ACTIVE, PAST
 }
 
+/** Preserves the existing cancellation callbacks for callers outside the Message Center. */
+@Composable
+fun EntrantReservationsScreen(
+    reservations: List<ReservationListItem>,
+    today: LocalDate = LocalDate.now(),
+    onCancel: (ReservationListItem) -> Unit = {}
+) {
+    EntrantReservationsScreen(
+        reservations = reservations,
+        today = today,
+        onCancel = onCancel,
+        onMessage = null
+    )
+}
+
 /**
  * The entrant's booking list (US 01.06.01, US 01.06.02), styled like the
  * mockup's Booking List: photo cards with a status marker, and a details view
@@ -54,10 +69,12 @@ private enum class ReservationTab {
  *
  * @param reservations the entrant's reservations.
  * @param today the date used to decide what's active and what's past.
+ * @param onMessage opens the active confirmed booking’s conversation (US 01.14.01).
  * @param onCancel called with the reservation once the entrant confirms cancelling it.
  */
 @Composable
 fun EntrantReservationsScreen(
+    onMessage: ((String) -> Unit)?,
     reservations: List<ReservationListItem>,
     today: LocalDate = LocalDate.now(),
     onCancel: (ReservationListItem) -> Unit = {}
@@ -127,6 +144,9 @@ fun EntrantReservationsScreen(
             }
 
             ScreenTitle("Reservation Details")
+            if (onMessage != null && !details.cancelled && !details.endDate.isBefore(today)) {
+                TextButton(onClick = { onMessage(details.id) }) { Text("Message campsite owner") }
+            }
 
             val (statusText, statusKind) = statusOf(details, today)
             PhotoCard(

@@ -1,5 +1,8 @@
 package com.example.birchbark.ui.entrant
 
+import com.example.birchbark.ui.messaging.MessageCenter
+import com.example.birchbark.model.MessageSide
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,6 +78,7 @@ fun EntrantApp(
         { callback -> rememberZXingQrCodeScanner(callback) }
 ) {
     var currentProfile by remember { mutableStateOf(profile) } // TBD
+    var messageBookingId by rememberSaveable { mutableStateOf<String?>(null) }
     var tab by rememberSaveable { mutableStateOf(EntrantTab.HOME) }
     var profilePage by rememberSaveable { mutableStateOf(ProfilePage.MENU) }
 
@@ -95,6 +99,7 @@ fun EntrantApp(
             EntrantBottomBar(
                 selected = tab,
                 onSelect = {
+                    messageBookingId = null
                     tab = it
                     profilePage = ProfilePage.MENU
                 }
@@ -119,11 +124,18 @@ fun EntrantApp(
                         entrantId = currentProfile.fid,
                         entrantName = name)
                     EntrantTab.SCAN -> QrScanScreen(onQrPayload, qrScannerFactory)
-                    EntrantTab.MESSAGES -> BlankEntrantScreen(onBack = { tab = EntrantTab.HOME })
+                    EntrantTab.MESSAGES -> androidx.compose.runtime.key(messageBookingId) {
+                        MessageCenter(currentProfile.fid, MessageSide.ENTRANT,
+                            initialReservationId = messageBookingId, onBack = {
+                                tab = if (messageBookingId == null) EntrantTab.HOME else EntrantTab.PROFILE
+                                messageBookingId = null
+                            })
+                    }
                     EntrantTab.PROFILE -> ProfileTab(
                         profile = currentProfile,
                         name = name,
                         page = profilePage,
+                        onOpenMessage = { id -> messageBookingId = id; tab = EntrantTab.MESSAGES },
                         onPage = { profilePage = it },
                         onProfileUpdated = { currentProfile = it },
                         onProfileDeleted = onProfileDeleted
@@ -178,12 +190,17 @@ private fun YourLotteries() {
 }
 
 // See [TBD 3] in LLM.md
-/** The Profile tab: a menu, and the pages it opens. System back returns to the menu. */
+/**
+ * Shows the profile menu and its pages. System back returns to the menu.
+ *
+ * @param onOpenMessage opens the shared Message Center for a reservation under US 01.14.01.
+ */
 @Composable
 private fun ProfileTab(
     profile: UserProfile,
     name: String,
     page: ProfilePage,
+    onOpenMessage: (String) -> Unit,
     onPage: (ProfilePage) -> Unit,
     onProfileUpdated: (UserProfile) -> Unit,
     onProfileDeleted: () -> Unit
@@ -209,6 +226,7 @@ private fun ProfileTab(
         )
         //US 01.04.01, 01.04.03, 01.06.01, 01.06.02: wins to answer, then active / past stays
         ProfilePage.RESERVATIONS -> EntrantReservationsRoute(
+            onOpenMessage = onOpenMessage,
             profile = profile,
             onBack = { onPage(ProfilePage.MENU) }
         )

@@ -1,9 +1,16 @@
 package com.example.birchbark.ui.owner
 
+import com.example.birchbark.ui.messaging.MessageCenter
+import com.example.birchbark.model.MessageSide
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.Modifier
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.birchbark.model.Campsite
@@ -61,6 +68,8 @@ fun OwnerCampsitesApp(ownerId: String) {
     val qrFor = qrCampsite
     val inviteLottery = invitingInto
 
+    var messages by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var threadId by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<String?>(null) }
     if (viewingSent) {
         //sent notifications screen (US 02.10.02), back goes to the list
         BackHandler { viewingSent = false }
@@ -68,6 +77,25 @@ fun OwnerCampsitesApp(ownerId: String) {
             ownerId = ownerId,
             onBack = { viewingSent = false }
         )
+    } else if (messages) {
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f)) {
+                key(threadId) { MessageCenter(ownerId, MessageSide.OWNER, initialReservationId = threadId,
+                    onBack = { messages = false; threadId = null }, onNotifications = { viewingSent = true }) }
+            }
+            NavigationBar {
+                NavigationBarItem(false, {
+                    messages = false; threadId = null; viewingReservations = false
+                }, icon = { Text("△") }, label = { Text("Campsites") })
+                NavigationBarItem(false, {
+                    messages = false; threadId = null; viewingReservations = false; registering = true
+                }, icon = { Text("+") }, label = { Text("Register") })
+                NavigationBarItem(false, {
+                    messages = false; threadId = null; viewingReservations = true
+                }, icon = { Text("▦") }, label = { Text("Bookings") })
+                NavigationBarItem(true, { threadId = null }, icon = { Text("✉") }, label = { Text("Messages") })
+            }
+        }
     } else if (viewingInvites) {
         //lottery invites screen (US 02.04.08), back goes to the list
         BackHandler { viewingInvites = false }
@@ -87,7 +115,8 @@ fun OwnerCampsitesApp(ownerId: String) {
         BackHandler { viewingReservations = false }
         OwnerReservationsScreen(
             ownerId = ownerId,
-            onBack = { viewingReservations = false }
+            onBack = { viewingReservations = false },
+            onOpenMessage = { threadId = it; messages = true }
         )
     } else if (waitlistId != null) {
 
@@ -165,7 +194,8 @@ fun OwnerCampsitesApp(ownerId: String) {
             onRegisterClick = { registering = true },
             onReservationsClick = { viewingReservations = true },
             onInvitesClick = { viewingInvites = true },
-            onSentClick = { viewingSent = true }
+            onSentClick = { viewingSent = true },
+            onMessagesClick = { messages = true }
         )
     }
 }

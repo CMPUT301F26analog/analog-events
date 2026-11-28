@@ -39,9 +39,11 @@ private enum class AdminSection {
     LOGS
 }
 
-// Shows the admin browsing screen, including the admin header and bottom tabs.
-// adminName is the name displayed in the header.
-// It uses the signed-in user's name by default if no name is passed in.
+/**
+ * Hosts the admin browsing tabs. US 03.12.01 adds owner-message moderation under Logs.
+ *
+ * @param adminName name shown in the header, defaulting to the current admin.
+ */
 @Composable
 fun AdminBrowseScreen(adminName: String = currentAdminName()) {
     // Saves the selected tab when the screen is recreated, such as after rotation.
@@ -152,7 +154,7 @@ fun AdminBrowseScreen(adminName: String = currentAdminName()) {
                     AdminSection.CAMPSITES -> AdminCampsitesScreen()
                     AdminSection.PROFILES -> AdminProfilesScreen()
                     AdminSection.IMAGES -> AdminUploadedImagesScreen()
-                    AdminSection.LOGS -> PlaceholderScreen("Logs")
+                    AdminSection.LOGS -> com.example.birchbark.ui.messaging.AdminLogsRoute()
                 }
             }
         }

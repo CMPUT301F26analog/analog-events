@@ -50,6 +50,19 @@ import java.time.LocalDate
 
 // See #056 in LLM.md
 
+/** Preserves the existing navigation callbacks for callers outside the Message Center. */
+@Composable
+fun EntrantReservationsRoute(
+    profile: UserProfile,
+    onBack: () -> Unit
+) {
+    EntrantReservationsRoute(
+        profile = profile,
+        onBack = onBack,
+        onOpenMessage = null
+    )
+}
+
 /**
  * US 01.04.01, 01.04.03, 01.06.01, 01.06.02: the entrant's reservations with
  * real data, opened from Profile > Reservations History. Lottery wins still
@@ -60,9 +73,11 @@ import java.time.LocalDate
  * @param profile the signed-in entrant. Their FID loads the reservations, and
  *   their contact details are shared with the owner when they confirm.
  * @param onBack called when the entrant taps Back.
+ * @param onOpenMessage opens the selected booking in the entrant Message Center (US 01.14.01).
  */
 @Composable
 fun EntrantReservationsRoute(
+    onOpenMessage: ((String) -> Unit)?,
     profile: UserProfile,
     onBack: () -> Unit
 ) {
@@ -142,6 +157,7 @@ fun EntrantReservationsRoute(
                 Box(modifier = Modifier.weight(1f)) {
                     EntrantReservationsScreen(
                         reservations = toListItems(list, campsites),
+                        onMessage = onOpenMessage,
                         onCancel = { item ->
                             //US 01.07.01: cancel the real reservation, then reload so it leaves the Active list
                             list.firstOrNull { it.id == item.id }?.let { reservation ->
