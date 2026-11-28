@@ -148,8 +148,8 @@ fun JoinWaitlistButton(lotteryId: String) {
                 Text(
                     when {
                         working -> "Please wait..."
-                        isJoined == true -> "Leave Waitlist"
-                        else -> "Join Waitlist"
+                        isJoined == true -> "Leave Lottery"
+                        else -> "Join Lottery"
                     }
                 )
             }
