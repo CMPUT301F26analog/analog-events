@@ -60,6 +60,14 @@ fun AdminProfilesScreen() {
     var profileToDelete by remember {
         mutableStateOf<ProfilePreview?>(null)
     }
+    // Holds the owner selected for blocking and removal.
+    var profileToBlock by remember {
+        mutableStateOf<ProfilePreview?>(null)
+    }
+    // Displays errors from the owner-blocking operation.
+    var blockError by remember { mutableStateOf<String?>(null) }
+    // Prevents duplicate block requests while one is running.
+    var isBlocking by remember { mutableStateOf(false) }
     // This is used to show an error if Firebase cannot delete the profile.
     var deleteError by remember { mutableStateOf<String?>(null) }
     var profiles by remember { mutableStateOf(emptyList<ProfilePreview>()) }
@@ -104,6 +112,7 @@ fun AdminProfilesScreen() {
 
                             ProfilePreview(
                                 userId = user.id,
+                                authUid = user.getString("authUid").orEmpty(),
                                 name = listOfNotNull(
                                     user.getString("firstName"),
                                     user.getString("lastName")
@@ -265,7 +274,21 @@ fun AdminProfilesScreen() {
                 Text("Phone: ${profile.phone}", color = ProfileCream)
                 Text("Role: ${profile.role}", color = ProfileCream)
                 Text("Campsite: ${profile.campsite}", color = ProfileCream)
-                Text("Area: ${profile.area}", color = ProfileCream) } },
+                Text("Area: ${profile.area}", color = ProfileCream)
+
+                // Only owners can be blocked through this action.
+                if (profile.role.split(",").any {
+                        it.trim().equals("owner", ignoreCase = true)
+                    }) {
+                    TextButton(onClick = {
+                        selectedProfile = null
+                        profileToBlock = profile
+                        blockError = null
+                    }) {
+                        Text("Block owner and remove profile", color = ProfileGold)
+                    }
+                }
+            } },
 
             dismissButton = {
                 TextButton(onClick = {
@@ -277,6 +300,76 @@ fun AdminProfilesScreen() {
             confirmButton = {
                 TextButton(onClick = { selectedProfile = null }) {
                     Text("Close", color = ProfileGold) } }) }
+    // Confirms blocking the owner and removing their profile and related data.
+    profileToBlock?.let { profile ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!isBlocking) {
+                    profileToBlock = null
+                    blockError = null
+                }
+            },
+            containerColor = ProfileCardColor,
+            title = { Text("Block owner?", color = ProfileCream) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Block ${profile.name} and remove their profile?",
+                        color = ProfileCream
+                    )
+                    blockError?.let { error ->
+                        Text(error, color = ProfileCream)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isBlocking,
+                    onClick = {
+                        if (profile.authUid.isBlank()) {
+                            blockError = "This profile has no authUid in Firestore."
+                            return@TextButton
+                        }
+
+                        isBlocking = true
+                        blockError = null
+                        ViolatingOwnerRepository().blockOwnerAndRemoveProfile(
+                            fid = profile.userId,
+                            onSuccess = {
+                                profiles = profiles.filterNot {
+                                    it.userId == profile.userId
+                                }
+                                isBlocking = false
+                                profileToBlock = null
+                            },
+                            onError = { error ->
+                                isBlocking = false
+                                blockError = error.localizedMessage
+                                    ?: "Could not block this owner."
+                            }
+                        )
+                    }
+                ) {
+                    Text(
+                        if (isBlocking) "Blocking..." else "Block owner",
+                        color = ProfileGold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !isBlocking,
+                    onClick = {
+                        profileToBlock = null
+                        blockError = null
+                    }
+                ) {
+                    Text("Cancel", color = ProfileCream)
+                }
+            }
+        )
+    }
+
     // This dialog asks one more time before deleting the profile from Firebase.
     // profile is the profile selected in the details dialog for removal.
     profileToDelete?.let { profile ->
@@ -432,6 +525,7 @@ private fun ProfileCard(
 // role is the user's role or roles; campsite and area describe an owned campsite.
 private data class ProfilePreview(
     val userId: String,
+    val authUid: String,
     val name: String,
     val email: String,
     val phone: String,

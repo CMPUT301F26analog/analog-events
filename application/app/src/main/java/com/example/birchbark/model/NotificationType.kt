@@ -24,6 +24,9 @@ enum class NotificationType {
     /** Entrant cancelled a reservation. US 01.07.02. */
     RESERVATION_CANCELLED,
 
+    /** Admin notified an entrant after removing a violating owner. US 03.07.01. */
+    OWNER_REMOVED,
+
     /** Owner messaged one entrant with a reservation. US 02.12.01. */
     OWNER_MESSAGE,
 }
