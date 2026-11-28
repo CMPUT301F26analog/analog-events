@@ -71,6 +71,8 @@ fun EntrantReservationsRoute(
     var reservations by remember { mutableStateOf<List<Reservation>?>(null) }
     var campsites by remember { mutableStateOf<Map<String, Campsite>>(emptyMap()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    //US 01.07.01: tells the entrant if cancelling worked
+    var notice by remember { mutableStateOf<String?>(null) }
     var answering by remember { mutableStateOf<Reservation?>(null) }
     //bumped after accepting or declining so the list reloads
     var reloadKey by remember { mutableIntStateOf(0) }
@@ -126,6 +128,10 @@ fun EntrantReservationsRoute(
             }
 
             else -> {
+                notice?.let {
+                    Text(it, color = BirchBarkColors.Cream, modifier = Modifier.padding(horizontal = 16.dp).testTag("reservationNotice"))
+                }
+
                 //US 01.04.01: wins that still need an answer
                 val waiting = list.filter { it.status == ReservationStatus.PENDING }
                 if (waiting.isNotEmpty()) {
@@ -134,7 +140,22 @@ fun EntrantReservationsRoute(
 
                 //US 01.06.01, 01.06.02: confirmed and cancelled stays
                 Box(modifier = Modifier.weight(1f)) {
-                    EntrantReservationsScreen(reservations = toListItems(list, campsites))
+                    EntrantReservationsScreen(
+                        reservations = toListItems(list, campsites),
+                        onCancel = { item ->
+                            //US 01.07.01: cancel the real reservation, then reload so it leaves the Active list
+                            list.firstOrNull { it.id == item.id }?.let { reservation ->
+                                reservationRepository.cancel(
+                                    reservation,
+                                    onSuccess = {
+                                        notice = "Reservation cancelled"
+                                        reloadKey++
+                                    },
+                                    onFailure = { notice = "Couldn't cancel, check your connection and try again" }
+                                )
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -188,8 +209,8 @@ fun toListItems(reservations: List<Reservation>, campsites: Map<String, Campsite
         //rejected ones show as cancelled so the entrant sees what happened (US 02.08.01)
         .filter {
             it.status == ReservationStatus.CONFIRMED ||
-                it.status == ReservationStatus.CANCELLED ||
-                it.status == ReservationStatus.REJECTED
+                    it.status == ReservationStatus.CANCELLED ||
+                    it.status == ReservationStatus.REJECTED
         }
         .mapNotNull { reservation ->
             val start = reservation.startDate ?: return@mapNotNull null

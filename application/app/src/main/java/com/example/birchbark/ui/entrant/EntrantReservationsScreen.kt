@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,16 +46,21 @@ private enum class ReservationTab {
  * mockup's Booking List: photo cards with a status marker, and a details view
  * when a card is tapped. System back closes the details first.
  *
- * Outstanding issues. The photo is a placeholder. Cancelling and downloading a
- * CSV from the details view (US 01.07.01, US 01.05.02) aren't here yet.
+ * US 01.07.01 (added by Yash): the details view of a reservation that isn't
+ * over has a Cancel Reservation button, which asks "are you sure" first.
+ *
+ * Outstanding issues. The photo is a placeholder. Downloading a CSV from the
+ * details view (US 01.05.02) isn't here yet.
  *
  * @param reservations the entrant's reservations.
  * @param today the date used to decide what's active and what's past.
+ * @param onCancel called with the reservation once the entrant confirms cancelling it.
  */
 @Composable
 fun EntrantReservationsScreen(
     reservations: List<ReservationListItem>,
-    today: LocalDate = LocalDate.now()
+    today: LocalDate = LocalDate.now(),
+    onCancel: (ReservationListItem) -> Unit = {}
 ) {
     var selectedTab by remember {
         mutableStateOf(ReservationTab.ACTIVE)
@@ -62,6 +69,9 @@ fun EntrantReservationsScreen(
     var selectedReservation by remember {
         mutableStateOf<ReservationListItem?>(null)
     }
+
+    //US 01.07.01: true while the "are you sure" dialog is open
+    var confirmingCancel by remember { mutableStateOf(false) }
 
     val formatter = remember {
         DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH)
@@ -74,6 +84,34 @@ fun EntrantReservationsScreen(
         selectedReservation = null
     }
 
+    //US 01.07.01: make sure a reservation isn't cancelled by accident
+    if (confirmingCancel && details != null) {
+        AlertDialog(
+            onDismissRequest = { confirmingCancel = false },
+            title = { Text("Cancel this reservation?") },
+            text = { Text("Your dates will be given up, and this can't be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingCancel = false
+                        selectedReservation = null
+                        onCancel(details)
+                    },
+                    modifier = Modifier.testTag("confirmCancelReservationButton")
+                ) {
+                    Text("Cancel it")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmingCancel = false },
+                    modifier = Modifier.testTag("keepReservationButton")
+                ) {
+                    Text("Keep it")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -120,6 +158,16 @@ fun EntrantReservationsScreen(
                     "Check-out: ${details.endDate.format(formatter)}",
                     color = BirchBarkColors.Cream
                 )
+            }
+
+            //US 01.07.01: only reservations that aren't over can be cancelled
+            if (canCancel(details, today)) {
+                OutlinedButton(
+                    onClick = { confirmingCancel = true },
+                    modifier = Modifier.fillMaxWidth().testTag("cancelReservationButton")
+                ) {
+                    Text("Cancel Reservation", color = BirchBarkColors.Gold)
+                }
             }
         } else {
             ScreenTitle("My Reservations")
