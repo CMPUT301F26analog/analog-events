@@ -9,6 +9,8 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
 import com.example.birchbark.util.Time
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.FirebaseFirestoreException
 
 /**
  * Saves and loads [Reservation] objects in the top-level Firestore
@@ -140,7 +142,8 @@ class ReservationRepository {
 
     /**
      * US 02.07.01, 02.07.02, 02.07.03: loads every reservation for an
-     * owner's campsites, newest first.
+     * owner's campsites, newest first. For US 02.12.01, confirmed stays are matched by
+     * selected campsite so invited owners can also find bookings created by older clients.
      *
      * @param ownerId the owner's FID.
      */
@@ -149,11 +152,35 @@ class ReservationRepository {
         onResult: (List<Reservation>) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        db.collection("reservations").whereEqualTo("ownerId", ownerId).get()
-            .addOnSuccessListener { result ->
-                onResult(result.toObjects(Reservation::class.java).sortedByDescending { it.createdAt })
+        val bookings = db.collection("reservations")
+        val sitesTask = db.collection("campsites").whereEqualTo("ownerId", ownerId).get()
+        val organizedTask = bookings.whereEqualTo("ownerId", ownerId).get()
+        Tasks.whenAll(sitesTask, organizedTask).continueWithTask { initial ->
+            initial.result
+            val sites = sitesTask.result.documents.map { it.id }.toSet()
+            val organized = organizedTask.result.documents.mapNotNull { doc ->
+                doc.toObject(Reservation::class.java)?.copy(id = doc.id)
+            }.filter { it.startDate == null || it.campsiteId in sites }
+            // The existing rules allow organizer queries. Selected-site queries additionally
+            // find invited owners' bookings once the corresponding permission is available.
+            val reads = sites.map { site ->
+                bookings.whereEqualTo("campsiteId", site).get().continueWith { task ->
+                    val failure = task.exception
+                    if (failure is FirebaseFirestoreException &&
+                        failure.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        emptyList()
+                    } else {
+                        task.result.documents.mapNotNull { doc ->
+                            doc.toObject(Reservation::class.java)?.copy(id = doc.id)
+                        }.filter { it.status != ReservationStatus.PENDING }
+                    }
+                }
             }
-            .addOnFailureListener { error -> onFailure(error) }
+            Tasks.whenAll(reads).continueWith { completed ->
+                completed.result
+                (organized + reads.flatMap { it.result }).distinctBy { it.id }.sortedByDescending { it.createdAt }
+            }
+        }.addOnSuccessListener { onResult(it) }.addOnFailureListener { onFailure(it) }
     }
 
     /**

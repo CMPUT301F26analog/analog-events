@@ -12,14 +12,15 @@ object RejectionNotice {
      * @param reservation the reservation being rejected.
      * @param campsiteName the campsite's name, or null if it isn't known.
      * @param now current time in epoch ms.
+     * @param senderId acting campsite owner’s FID, including an invited owner for a multi-site draw.
      * @return the notification to send to the entrant.
      */
-    fun build(reservation: Reservation, campsiteName: String?, now: Long): AppNotification {
+    fun build(reservation: Reservation, campsiteName: String?, now: Long, senderId: String = reservation.ownerId): AppNotification {
         val where = if (campsiteName != null) " at $campsiteName" else ""
         return AppNotification(
             id = "${reservation.id}_rejected",
             recipientId = reservation.entrantId,
-            senderId = reservation.ownerId,
+            senderId = senderId,
             type = NotificationType.RESERVATION_CANCELLED,
             title = "Reservation rejected",
             body = "The owner rejected your reservation$where.",

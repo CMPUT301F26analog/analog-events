@@ -7,74 +7,8 @@ package com.example.birchbark.model
  * A user with both roles can enter a different inbox from each role's navigation.
  *
  * @Note See #[RW-2-LLM] in LLM.md
- *
- * @property field Firestore participant field used to query that side's inbox.
+ *.
  */
-enum class MessageSide(val field: String) {
-    OWNER("ownerId"), ENTRANT("entrantId")
-}
-
-/**
- * A booking the participant can select in the composer.
- *
- * @property reservation confirmed stay used to identify the thread and its participants.
- * @property siteName display name of the selected campsite.
- */
-data class MessageBooking(val reservation: Reservation, val siteName: String) {
-    // Reservation document ID shared by both participants for this thread.
-    val id get() = reservation.id
-
-    // Returns the recipient label for the participant composing from [side].
-    fun label(side: MessageSide) = if (side == MessageSide.OWNER)
-        reservation.entrantName.orEmpty().ifBlank { "Entrant" } else "$siteName management"
-}
-
-/**
- * Checks the booking window before enabling a send.
- *
- * @param now current time in epoch milliseconds.
- * @return true for a confirmed stay with a selected campsite before its exclusive checkout instant.
- */
-fun Reservation.acceptsMessages(now: Long): Boolean =
-    status == ReservationStatus.CONFIRMED && !campsiteId.isNullOrBlank() &&
-            endDate?.let { now < it } == true
-
-/**
- * Inbox row for one reservation.
- *
- * @property id reservation ID and conversation document ID.
- * @property siteName name used to identify campsite management to the entrant.
- * @property entrantName name supplied when the entrant confirmed the booking.
- * @property preview text of the latest message, shortened for display by the inbox.
- * @property sentAt time of the latest message in epoch milliseconds.
- * @property lastId document ID of the latest message.
- * @property lastSender FID of the participant who sent the latest message.
- * @property seenId ID last marked as read by the viewer's side, or null before the first receipt.
- */
-data class ConversationSummary(
-    val id: String, val siteName: String, val entrantName: String, val preview: String,
-    val sentAt: Long, val lastId: String, val lastSender: String, val seenId: String?
-) {
-    /** Returns true when [fid] received the latest message and has yet to mark it as seen. */
-    fun unread(fid: String) = fid != lastSender && lastId != seenId
-    /** Returns the counterpart shown in the inbox for [side]. */
-    fun label(side: MessageSide) = if (side == MessageSide.OWNER) entrantName.ifBlank { "Entrant" } else "$siteName management"
-}
-
-/**
- * One immutable entry in a reservation conversation.
- *
- * @property id message document ID within its thread.
- * @property sender FID of the participant who sent the message.
- * @property recipient FID of the other participant in the booking.
- * @property body saved message text.
- * @property sentAt server-assigned send time in epoch milliseconds.
- * @property ownerSent true for a message sent as the selected campsite's owner.
- */
-data class ReservationMessage(
-    val id: String, val sender: String, val recipient: String,
-    val body: String, val sentAt: Long, val ownerSent: Boolean
-)
 
 // Handle for a live message or booking query.
 fun interface MessageSubscription {

@@ -38,3 +38,16 @@ data class Reservation (
     val entrantEmail: String? = null,
     val entrantPhone: String? = null,
 )
+
+/**
+ * Checks the booking window before enabling a send.
+ *
+ * Added to this data class as it's an expressive top-level extension and can preserve calls
+ * across the app.
+ *
+ * @param now current time in epoch milliseconds.
+ * @return true for a confirmed stay with a selected campsite before its exclusive checkout instant.
+ */
+fun Reservation.acceptsMessages(now: Long): Boolean =
+    status == ReservationStatus.CONFIRMED && !campsiteId.isNullOrBlank() &&
+            endDate?.let { now < it } == true
